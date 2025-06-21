@@ -63,7 +63,7 @@ export default function Home() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300 text-lg">
                 Monitor your book sales, royalties, and revenue across all platforms in one place. 
-                Get insights into what's working and make data-driven decisions.
+                Get insights into what&apos;s working and make data-driven decisions.
               </p>
             </div>
           </div>
