@@ -9,7 +9,7 @@ export default function Home() {
               Author<span className="text-indigo-600">Magic</span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
-              Unleash the power of intelligent writing tools for authors, creators, and storytellers.
+              Helping Authors Deal With All The Crap
             </p>
             <div className="flex gap-4 justify-center">
               <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-colors">
