@@ -91,3 +91,6 @@ pids
 .env.test.local
 .env.production.local 
 >>>>>>> 9a731b7117d9b0bec392718d0c78bd2f01e35c42
+.env*.local
+
+/src/generated/prisma

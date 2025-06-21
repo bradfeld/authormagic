@@ -1,4 +1,14 @@
+'use client';
+
+import { useState } from 'react';
+import WaitlistModal from '@/components/WaitlistModal';
+
 export default function Home() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header Navigation */}
@@ -11,7 +21,10 @@ export default function Home() {
             <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">Features</a>
             <a href="#about" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">About</a>
             <a href="#contact" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">Contact</a>
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+            <button 
+              onClick={openModal}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            >
               Get Started
             </button>
           </div>
@@ -26,7 +39,10 @@ export default function Home() {
               Helping Authors Deal With All The Crap
             </h1>
             <div className="flex gap-4 justify-center flex-col sm:flex-row">
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-8 rounded-lg shadow-lg transition-colors text-lg">
+              <button 
+                onClick={openModal}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-8 rounded-lg shadow-lg transition-colors text-lg"
+              >
                 Get Started
               </button>
               <button className="border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:border-indigo-400 dark:hover:bg-indigo-900 font-semibold py-4 px-8 rounded-lg transition-colors text-lg">
@@ -78,7 +94,10 @@ export default function Home() {
               because we live it every day. Join the waitlist to be the first to reclaim your writing time.
             </p>
             <div className="mt-8">
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-colors">
+              <button 
+                onClick={openModal}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-colors"
+              >
                 Join the Waitlist
               </button>
             </div>
@@ -122,6 +141,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Waitlist Modal */}
+      <WaitlistModal isOpen={isModalOpen} onClose={closeModal} />
     </div>
   );
 }
