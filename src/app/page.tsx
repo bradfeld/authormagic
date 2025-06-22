@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import WaitlistModal from '@/components/WaitlistModal';
+import { UserMenu } from '@/components/UserMenu';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,12 +22,7 @@ export default function Home() {
             <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">Features</a>
             <a href="#about" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">About</a>
             <a href="#contact" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">Contact</a>
-            <button 
-              onClick={openModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-            >
-              Get Started
-            </button>
+            <UserMenu />
           </div>
         </nav>
       </header>
