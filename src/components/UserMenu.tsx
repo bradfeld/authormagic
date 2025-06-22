@@ -93,13 +93,13 @@ export const UserMenu: React.FC = () => {
           onClick={() => openAuthModal('login')}
           className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
         >
-          Sign In
+          Log In
         </button>
         <button
           onClick={() => openAuthModal('register')}
           className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium"
         >
-          Get Started
+          Sign Up
         </button>
       </div>
 
