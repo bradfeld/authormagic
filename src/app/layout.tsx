@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AuthorMagic - Intelligent Writing Tools for Authors",
+  title: "AuthorMagic",
   description: "Unleash the power of intelligent writing tools for authors, creators, and storytellers with AuthorMagic.",
 };
 
