@@ -41,8 +41,10 @@ jobs:
         with:
           name: stackhawk-scan-results
           path: |
-            hawkscan-*.json
-            hawkscan-*.html
+            hawkscan*
+            *.json
+            *.html
+            results/
           retention-days: 30
 
       - name: Comment PR with scan results
