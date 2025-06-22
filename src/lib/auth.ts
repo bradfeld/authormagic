@@ -69,9 +69,14 @@ export const userProfile = {
     emailNotifications?: boolean
     profilePublic?: boolean
   }) => {
+    const updateData = {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .update(updates)
+      .update(updateData)
       .eq('supabaseId', supabaseId)
       .select()
       .single()

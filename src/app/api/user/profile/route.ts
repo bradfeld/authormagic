@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
-const prisma = new PrismaClient()
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+// Server-side client with service role key for admin operations
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,23 +23,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user profile using Prisma Client (handles all defaults automatically)
-    const data = await prisma.user.create({
-      data: {
-        supabaseId,
-        email: userData.email,
-        name: userData.name || null,
-        username: userData.username || null,
-        bio: userData.bio || null
-        // Prisma automatically handles:
-        // - id: @default(cuid())
-        // - newsletterOptIn: @default(true)
-        // - emailNotifications: @default(true) 
-        // - profilePublic: @default(true)
-        // - createdAt: @default(now())
-        // - updatedAt: @updatedAt
-      }
-    })
+    // Create user profile using Supabase client with existing database schema (camelCase)
+    const now = new Date().toISOString()
+    const userRecord = {
+      id: crypto.randomUUID(), // Manual ID generation
+      supabaseId: supabaseId, // Using existing camelCase column name
+      email: userData.email,
+      name: userData.name || null,
+      username: userData.username || null,
+      bio: userData.bio || null,
+      newsletterOptIn: true, // Using existing camelCase column name
+      emailNotifications: true, // Using existing camelCase column name
+      profilePublic: true, // Using existing camelCase column name
+      createdAt: now, // Using existing camelCase column name
+      updatedAt: now // Using existing camelCase column name
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert(userRecord)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating user profile:', error)
+      return NextResponse.json(
+        { error: 'Failed to create user profile' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json(data)
   } catch (error) {
@@ -39,7 +60,5 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 } 

@@ -67,7 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           }, 2000)
         }
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

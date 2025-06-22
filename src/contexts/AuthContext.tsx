@@ -5,8 +5,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { auth } from '@/lib/auth'
 
-// Debug the imports
-console.log('AuthContext imports:', { auth: !!auth })
+// Auth imports verified
 
 // Local user profile functions to avoid import issues
 const createUserProfile = async (supabaseId: string, userData: {
@@ -44,7 +43,7 @@ const getUserProfile = async (supabaseId: string) => {
     .from('users')
     .select('*')
     .eq('supabaseId', supabaseId)
-    .single()
+    .maybeSingle() // Use maybeSingle() instead of single() to handle 0 rows gracefully
   
   return { data, error }
 }
@@ -104,13 +103,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Listen for auth state changes
   useEffect(() => {
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, session?.user?.email)
-      
       setSession(session)
       setUser(session?.user || null)
 
       if (session?.user) {
-        await loadUserProfile(session.user.id)
+        // Small delay to ensure profile creation is complete
+        setTimeout(() => loadUserProfile(session.user.id), 100)
       } else {
         setUserProfile(null)
       }
@@ -129,6 +127,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error loading user profile:', error)
         return
       }
+      if (!data) {
+        return
+      }
       setUserProfile(data)
     } catch (error) {
       console.error('Error loading user profile:', error)
@@ -138,12 +139,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign up function with profile creation
   const signUp = async (email: string, password: string, metadata?: any) => {
     try {
-      console.log('Starting sign up process...')
       const { data, error } = await auth.signUp(email, password, metadata)
       
       if (data.user && !error) {
-        console.log('User created successfully, creating profile...', data.user.id)
-        
         // Create user profile record
         const profileData = {
           email,
@@ -157,8 +155,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error creating user profile:', profileError)
           return { data, error: profileError }
         }
-        
-        console.log('Profile created successfully')
       }
       
       return { data, error }

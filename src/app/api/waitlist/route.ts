@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+// Server-side client with service role key for admin operations
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 // Email validation regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,10 +69,20 @@ export async function POST(request: NextRequest) {
       website: body.website?.trim() || null,
     };
 
-    // Check for duplicate email
-    const existingEntry = await prisma.waitlist.findUnique({
-      where: { email: normalizedData.email },
-    });
+    // Check for duplicate email using Supabase
+    const { data: existingEntry, error: checkError } = await supabase
+      .from('waitlist')
+      .select('id')
+      .eq('email', normalizedData.email)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error checking for duplicate email:', checkError);
+      return NextResponse.json(
+        { error: 'Something went wrong. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     if (existingEntry) {
       return NextResponse.json(
@@ -70,10 +91,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new waitlist entry
-    const waitlistEntry = await prisma.waitlist.create({
-      data: normalizedData,
-    });
+    // Create new waitlist entry using Supabase with existing database schema (camelCase)
+    const now = new Date().toISOString()
+    const waitlistRecord = {
+      id: crypto.randomUUID(), // Manual ID generation
+      name: normalizedData.name,
+      email: normalizedData.email,
+      website: normalizedData.website,
+      createdAt: now, // Using existing camelCase column name
+      updatedAt: now // Using existing camelCase column name
+    }
+
+    const { data: waitlistEntry, error: insertError } = await supabase
+      .from('waitlist')
+      .insert(waitlistRecord)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error creating waitlist entry:', insertError);
+      
+      // Handle unique constraint violations
+      if (insertError.code === '23505') { // PostgreSQL unique constraint violation
+        return NextResponse.json(
+          { error: 'This email is already on the waitlist' },
+          { status: 409 }
+        );
+      }
+      
+      return NextResponse.json(
+        { error: 'Something went wrong. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { 
@@ -86,16 +136,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Waitlist API error:', error);
     
-    // Handle Prisma-specific errors
-    if (error instanceof Error) {
-      if (error.message.includes('Unique constraint')) {
-        return NextResponse.json(
-          { error: 'This email is already on the waitlist' },
-          { status: 409 }
-        );
-      }
-    }
-
     // Generic server error
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },
