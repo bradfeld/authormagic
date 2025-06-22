@@ -1,9 +1,10 @@
 import { supabase } from './supabase'
+import { Session } from '@supabase/supabase-js'
 
 // Authentication helper functions (client-side only)
 export const auth = {
   // Sign up a new user
-  signUp: async (email: string, password: string, metadata?: any) => {
+  signUp: async (email: string, password: string, metadata?: Record<string, unknown>) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -42,7 +43,7 @@ export const auth = {
   },
 
   // Listen for auth state changes
-  onAuthStateChange: (callback: (event: string, session: any) => void) => {
+  onAuthStateChange: (callback: (event: string, session: Session | null) => void) => {
     return supabase.auth.onAuthStateChange(callback)
   }
 }

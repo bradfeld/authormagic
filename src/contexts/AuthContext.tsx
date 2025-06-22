@@ -48,15 +48,36 @@ const getUserProfile = async (supabaseId: string) => {
   return { data, error }
 }
 
+// User profile type
+interface UserProfile {
+  id: string
+  supabaseId: string
+  email: string
+  name: string | null
+  username: string | null
+  bio: string | null
+  newsletterOptIn: boolean
+  emailNotifications: boolean
+  profilePublic: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// Auth response types
+interface AuthResponse {
+  data: unknown
+  error: { message: string } | null
+}
+
 // Types for our auth context
 interface AuthContextType {
   user: User | null
   session: Session | null
-  userProfile: any | null
+  userProfile: UserProfile | null
   loading: boolean
-  signUp: (email: string, password: string, metadata?: any) => Promise<{ data: any; error: any }>
-  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
-  signOut: () => Promise<{ error: any }>
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<AuthResponse>
+  signIn: (email: string, password: string) => Promise<AuthResponse>
+  signOut: () => Promise<{ error: { message: string } | null }>
   refreshProfile: () => Promise<void>
 }
 
@@ -76,7 +97,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [userProfile, setUserProfile] = useState<any | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load initial session and user profile
@@ -137,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   // Sign up function with profile creation
-  const signUp = async (email: string, password: string, metadata?: any) => {
+  const signUp = async (email: string, password: string, metadata?: Record<string, unknown>) => {
     try {
       const { data, error } = await auth.signUp(email, password, metadata)
       
@@ -145,9 +166,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Create user profile record
         const profileData = {
           email,
-          name: metadata?.name || null,
-          username: metadata?.username || null,
-          bio: metadata?.bio || null
+          name: typeof metadata?.name === 'string' ? metadata.name : undefined,
+          username: typeof metadata?.username === 'string' ? metadata.username : undefined,
+          bio: typeof metadata?.bio === 'string' ? metadata.bio : undefined
         }
         
         const { error: profileError } = await createUserProfile(data.user.id, profileData)
