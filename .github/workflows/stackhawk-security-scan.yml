@@ -15,6 +15,10 @@ jobs:
   stackhawk-security-scan:
     runs-on: ubuntu-latest
     name: StackHawk Security Scan
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     
     steps:
       - name: Checkout code
