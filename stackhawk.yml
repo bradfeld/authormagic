@@ -1,0 +1,57 @@
+app:
+  # Your StackHawk Application ID
+  applicationId: "cf274bc9-bccb-49d8-b5b4-3dceb9e6d5ea"
+  env: Production
+  host: https://authormagic-7dok8apkt-bradfelds-projects.vercel.app
+
+# Authentication configuration for testing protected routes
+  authentication:
+    usernamePassword:
+      loginPagePath: /
+      loginPath: /api/auth/signin
+      usernameField: email
+      passwordField: password
+      scanUsername: "${SCAN_USERNAME}"
+      scanPassword: "${SCAN_PASSWORD}"
+      type: JSON
+    cookieAuthorization:
+      cookieNames:
+        - next-auth.session-token
+        - __Secure-next-auth.session-token
+    loggedInIndicator: ".*user.*profile.*"
+    loggedOutIndicator: ".*sign.*in.*"
+
+  # Include paths for security testing
+  includePaths:
+    - "/api/.*"
+    - "/.*"
+
+  # Exclude static assets and non-security relevant paths
+  excludePaths:
+    - "/favicon.ico"
+    - "/_next/.*"
+    - "/.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$"
+
+# Spider configuration for discovery
+hawk:
+  spider:
+    base: true
+    ajax: true
+    maxDurationMinutes: 5
+    seedPaths:
+      - /api/user/profile
+      - /api/waitlist
+
+  # Scan configuration
+  scan:
+    maxDurationMinutes: 10
+    failureThreshold: medium
+
+# Tags for organizing scan results
+tags:
+  - name: framework
+    value: nextjs
+  - name: app
+    value: authormagic
+  - name: security-fixes
+    value: "2025-01-implemented" 
