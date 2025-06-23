@@ -1,7 +1,24 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export function middleware() {
-  // Create response
+export function middleware(request: NextRequest) {
+  // SECURITY: Block TRACE and TRACK methods to prevent Proxy Disclosure
+  const method = request.method.toUpperCase()
+  
+  if (method === 'TRACE' || method === 'TRACK') {
+    // Return 405 Method Not Allowed for TRACE/TRACK
+    return NextResponse.json(
+      { error: 'Method Not Allowed' }, 
+      { 
+        status: 405,
+        headers: {
+          'Allow': 'GET, POST, PUT, DELETE, HEAD, OPTIONS'
+        }
+      }
+    )
+  }
+
+  // Create response for allowed methods
   const response = NextResponse.next()
 
   // Content Security Policy - Fixes "Content Security Policy Header Not Set" (MEDIUM)
