@@ -1,15 +1,38 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { SignInButton, SignUpButton } from '@clerk/nextjs'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, TrendingUp, Users, Zap } from 'lucide-react'
 
-export default async function Home() {
-  const { userId } = await auth()
+export default function Home() {
+  const { isSignedIn, isLoaded } = useUser()
+  const router = useRouter()
 
-  if (userId) {
-    redirect('/dashboard')
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push('/dashboard')
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  // Show loading state while authentication is being checked
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render the page if user is signed in (will redirect)
+  if (isSignedIn) {
+    return null
   }
 
   return (
