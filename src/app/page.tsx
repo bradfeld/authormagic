@@ -13,6 +13,12 @@ export default async function Home() {
   }
 
   return (
+    <HomePage />
+  )
+}
+
+function HomePage() {
+  return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
@@ -132,11 +138,6 @@ export default async function Home() {
           </SignUpButton>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="container mx-auto px-4 py-12 text-center text-gray-600">
-        <p>&copy; 2024 AuthorMagic. All rights reserved.</p>
-      </footer>
     </div>
   )
 }

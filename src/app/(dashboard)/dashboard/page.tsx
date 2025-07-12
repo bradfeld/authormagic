@@ -13,6 +13,14 @@ export default async function DashboardPage() {
     redirect('/sign-in')
   }
 
+  const firstName = user?.firstName || 'Author'
+
+  return (
+    <DashboardContent firstName={firstName} />
+  )
+}
+
+function DashboardContent({ firstName }: { firstName: string }) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -24,7 +32,7 @@ export default async function DashboardPage() {
               <h1 className="text-2xl font-bold text-gray-900">AuthorMagic</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome back, {user?.firstName || 'Author'}!</span>
+              <span className="text-sm text-gray-600">Welcome back, {firstName}!</span>
               <UserButton afterSignOutUrl="/" />
             </div>
           </div>
