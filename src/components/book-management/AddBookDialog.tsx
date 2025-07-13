@@ -137,8 +137,7 @@ export function AddBookDialog({
         throw new Error('Failed to add book');
       }
 
-      const result = await response.json();
-      console.log('Book added successfully:', result);
+      await response.json();
       
       // Clear search results and close dialog
       setSearchResults([]);

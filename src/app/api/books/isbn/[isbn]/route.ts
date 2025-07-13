@@ -16,8 +16,6 @@ export async function GET(
       );
     }
 
-    console.log(`Searching for ISBN: "${isbn}"`);
-    
     // Create service instance
     const isbnService = new ISBNDBService();
     const result = await isbnService.getBookByISBN(isbn);

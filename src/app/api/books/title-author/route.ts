@@ -15,8 +15,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`Searching for title: "${title}" by author: "${author}"`);
-
     // Request more comprehensive results - increase pageSize to get more books
     // The user expects 13 books for "Startup Communities" and 26 for "Venture Deals"
     const result = await isbnDbService.searchTitleAuthor(title.trim(), author.trim(), 1, 50);

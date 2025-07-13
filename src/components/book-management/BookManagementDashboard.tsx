@@ -15,6 +15,7 @@ interface BookManagementDashboardProps {
   authorProfile: Author | null
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function BookManagementDashboard({ authorProfile }: BookManagementDashboardProps) {
   const [books, setBooks] = useState<UIBook[]>(sampleUIBooks)
   const [selectedBook, setSelectedBook] = useState<UIBook | null>(null)
@@ -32,7 +33,6 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
   // }
 
   // TODO: Use authorProfile for author-specific functionality
-  console.log('Author profile:', authorProfile)
 
   const handleViewBook = (book: UIBook) => {
     setSelectedBook(book)
@@ -49,8 +49,6 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
     setBooks(prev => prev.filter(book => 
       book.id !== bookToDelete.id
     ))
-    console.log('Book removed from library:', bookToDelete)
-    
     // TODO: Here we'll integrate with Supabase to delete the book
   }
 
@@ -59,8 +57,6 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
     setBooks(prev => prev.map(book => 
       book.id === updatedBook.id ? updatedBook : book
     ))
-    console.log('Book updated:', updatedBook)
-    
     // TODO: Here we'll integrate with Supabase to update the book
   }
 
@@ -135,7 +131,6 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
               onOpenChange={setShowAddBookDialog}
               onBookAdded={() => {
                 // Refresh the book list - we'll implement this properly later
-                console.log('Book added - refreshing list');
                 setShowAddBookDialog(false);
               }}
             >

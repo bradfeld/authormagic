@@ -118,11 +118,8 @@ class ISBNDBService {
       return await cacheWrapper(
         cacheKey,
         async () => {
-          console.log(`ISBNDB Service: Enhanced search for "${title}" by "${author}"`);
-          
           // Strategy 1: Try quoted search first (most comprehensive and matches user expectations)
           const quotedSearch = `"${title}" "${author}"`;
-          console.log(`ISBNDB Service: Trying quoted search: ${quotedSearch}`);
           const quotedResult = await this.performTextSearch(quotedSearch, page, Math.max(pageSize, 30));
           
           if (quotedResult.success && quotedResult.data && quotedResult.data.length > 0) {
@@ -137,7 +134,6 @@ class ISBNDBService {
             });
             
             if (filteredBooks.length > 0) {
-              console.log(`ISBNDB Service: Quoted search found ${filteredBooks.length} relevant books`);
               return {
                 success: true,
                 data: this.rankBooks(filteredBooks, title)
@@ -146,11 +142,9 @@ class ISBNDBService {
           }
 
           // Strategy 2: Try separate title and author parameters (fallback)
-          console.log(`ISBNDB Service: Trying separate parameters: title=${title}, author=${author}`);
           const separateResult = await this.performSearch({ title, author, page, pageSize: Math.max(pageSize, 20) });
           
           if (separateResult.success && separateResult.data && separateResult.data.length > 0) {
-            console.log(`ISBNDB Service: Separate parameters found ${separateResult.data.length} books`);
             return {
               success: true,
               data: this.rankBooks(separateResult.data, title)
@@ -158,7 +152,6 @@ class ISBNDBService {
           }
 
           // Strategy 3: Author-first search (only if others fail)
-          console.log(`ISBNDB Service: Trying author-first search: ${author}`);
           const authorResult = await this.getBooksByAuthor(author, 1, 50); // Reduced from 100 to 50
           
           if (authorResult.success && authorResult.data && authorResult.data.length > 0) {
@@ -191,7 +184,6 @@ class ISBNDBService {
             });
             
             if (titleMatches.length > 0) {
-              console.log(`ISBNDB Service: Author-first search found ${titleMatches.length} title matches out of ${authorResult.data.length} author books`);
               return {
                 success: true,
                 data: this.rankBooks(titleMatches, title)
@@ -445,13 +437,10 @@ class ISBNDBService {
       if (pageSize) searchParams.append('pageSize', pageSize.toString())
 
       const url = `${this.baseUrl}/search${API_CONFIG.ISBN_DB.ENDPOINTS.BOOKS}?${searchParams}`
-      console.log('ISBNDB Service: Making text search request to:', url)
-      
       const response = await this.makeRequest(url)
       
       // The search endpoint returns data in a 'data' array
       const books = response.data || [];
-      console.log('ISBNDB Service: Text search extracted books:', books.length)
       
       // Apply intelligent ranking to surface primary editions first
       const rankedBooks = this.rankBooks(books, searchText);
