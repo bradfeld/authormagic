@@ -5,7 +5,7 @@ import { UIBook, sampleUIBooks } from '@/lib/types/ui-book'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BookOpen, TrendingUp, Users, Zap, Plus, Library } from 'lucide-react'
-import { AddBookDialog } from './AddBookDialog'
+import { EditionSelectionDialog } from './EditionSelectionDialog'
 import { BookLibrary } from './BookLibrary'
 import { BookDetailModal } from './BookDetailModal'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,6 +19,7 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
   const [books, setBooks] = useState<UIBook[]>(sampleUIBooks)
   const [selectedBook, setSelectedBook] = useState<UIBook | null>(null)
   const [showBookDetail, setShowBookDetail] = useState(false)
+  const [showAddBookDialog, setShowAddBookDialog] = useState(false)
 
   const handleAddBook = (book: UIBook) => {
     // Add book to the collection
@@ -125,12 +126,20 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
           </TabsList>
           
           <div className="flex gap-2">
-            <AddBookDialog onBookAdded={handleAddBook} authorProfile={authorProfile}>
+            <EditionSelectionDialog 
+              isOpen={showAddBookDialog}
+              onOpenChange={setShowAddBookDialog}
+              onBookAdded={() => {
+                // Refresh the book list - we'll implement this properly later
+                console.log('Book added - refreshing list');
+                setShowAddBookDialog(false);
+              }}
+            >
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
                 Add Book
               </Button>
-            </AddBookDialog>
+            </EditionSelectionDialog>
           </div>
         </div>
 
