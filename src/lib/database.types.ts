@@ -546,6 +546,126 @@ export type Database = {
           }
         ]
       }
+      primary_books: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          author: string
+          selected_edition_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          author: string
+          selected_edition_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          author?: string
+          selected_edition_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_primary_books_selected_edition"
+            columns: ["selected_edition_id"]
+            isOneToOne: false
+            referencedRelation: "primary_book_editions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      primary_book_editions: {
+        Row: {
+          id: string
+          primary_book_id: string
+          edition_number: number
+          publication_year: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          primary_book_id: string
+          edition_number: number
+          publication_year?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          primary_book_id?: string
+          edition_number?: number
+          publication_year?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "primary_book_editions_primary_book_id_fkey"
+            columns: ["primary_book_id"]
+            isOneToOne: false
+            referencedRelation: "primary_books"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      primary_book_bindings: {
+        Row: {
+          id: string
+          book_edition_id: string
+          isbn: string | null
+          binding_type: string
+          price: number | null
+          publisher: string | null
+          cover_image_url: string | null
+          description: string | null
+          pages: number | null
+          language: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          book_edition_id: string
+          isbn?: string | null
+          binding_type: string
+          price?: number | null
+          publisher?: string | null
+          cover_image_url?: string | null
+          description?: string | null
+          pages?: number | null
+          language?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          book_edition_id?: string
+          isbn?: string | null
+          binding_type?: string
+          price?: number | null
+          publisher?: string | null
+          cover_image_url?: string | null
+          description?: string | null
+          pages?: number | null
+          language?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "primary_book_bindings_book_edition_id_fkey"
+            columns: ["book_edition_id"]
+            isOneToOne: false
+            referencedRelation: "primary_book_editions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -646,4 +766,16 @@ export type AuthorUpdate = TablesUpdate<'authors'>
 
 export type BookRow = Tables<'books'>
 export type BookInsert = TablesInsert<'books'>
-export type BookUpdate = TablesUpdate<'books'> 
+export type BookUpdate = TablesUpdate<'books'>
+
+export type PrimaryBookRow = Tables<'primary_books'>
+export type PrimaryBookInsert = TablesInsert<'primary_books'>
+export type PrimaryBookUpdate = TablesUpdate<'primary_books'>
+
+export type PrimaryBookEditionRow = Tables<'primary_book_editions'>
+export type PrimaryBookEditionInsert = TablesInsert<'primary_book_editions'>
+export type PrimaryBookEditionUpdate = TablesUpdate<'primary_book_editions'>
+
+export type PrimaryBookBindingRow = Tables<'primary_book_bindings'>
+export type PrimaryBookBindingInsert = TablesInsert<'primary_book_bindings'>
+export type PrimaryBookBindingUpdate = TablesUpdate<'primary_book_bindings'> 
