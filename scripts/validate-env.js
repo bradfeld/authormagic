@@ -84,11 +84,19 @@ function loadEnvFile(filePath) {
 function validateEnvironment(envFile = '.env.local') {
   console.log(`🔍 Validating environment variables in ${envFile}...`);
   
-  const envVars = loadEnvFile(envFile);
+  let envVars;
   
-  if (!envVars) {
-    console.error(`❌ Could not load ${envFile}`);
-    return false;
+  // Check if we're running in Vercel (or other CI environments)
+  if (process.env.VERCEL || process.env.CI || process.env.NODE_ENV === 'production') {
+    console.log('📦 Running in deployment environment - using injected environment variables');
+    envVars = process.env;
+  } else {
+    envVars = loadEnvFile(envFile);
+    
+    if (!envVars) {
+      console.error(`❌ Could not load ${envFile}`);
+      return false;
+    }
   }
   
   let isValid = true;
