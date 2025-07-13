@@ -134,6 +134,10 @@ function validateEnvironment(envFile = '.env.local') {
     return true;
   }
   
+  if (isValid && warnings.length > 0) {
+    console.log('✅ All required environment variables are present (with warnings)');
+  }
+  
   if (errors.length > 0) {
     console.log('\n🚨 ERRORS:');
     errors.forEach(error => console.log(error));
@@ -150,7 +154,8 @@ function validateEnvironment(envFile = '.env.local') {
     console.log(`  ${status} ${name}: ${config.description}`);
   });
   
-  return isValid && warnings.length === 0;
+  // Only fail on actual errors, not warnings
+  return isValid;
 }
 
 function showHelp() {
