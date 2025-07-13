@@ -6,7 +6,15 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "env:validate": "node scripts/validate-env.js",
+    "env:backup": "node scripts/manage-env.js backup",
+    "env:restore": "node scripts/manage-env.js restore",
+    "env:list": "node scripts/manage-env.js list",
+    "env:setup": "node scripts/manage-env.js setup",
+    "env:guide": "node scripts/manage-env.js help",
+    "predev": "npm run env:validate",
+    "prebuild": "npm run env:validate"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.20",
