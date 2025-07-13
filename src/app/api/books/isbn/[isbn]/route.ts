@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { bookDataService } from '@/lib/services/book-data.service';
+import { isbnDbService } from '@/lib/services/isbn-db.service';
+import { convertISBNDBToUIBook } from '@/lib/types/ui-book';
 
-export async function GET(request: NextRequest, { params }: { params: { isbn: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ isbn: string }> }) {
   try {
-    const isbn = params.isbn;
+    // Await params to fix Next.js 15 async params issue
+    const { isbn } = await params;
     
     // Validate ISBN format
     if (!isbn || isbn.length < 10) {
@@ -23,40 +25,40 @@ export async function GET(request: NextRequest, { params }: { params: { isbn: st
       );
     }
 
-    // Use book data service to get comprehensive book information
-    const result = await bookDataService.getBookByISBN(cleanIsbn);
-    
+    console.log(`Searching for ISBN: ${cleanIsbn}`);
+
+    // Use ISBN DB service to get book data
+    const result = await isbnDbService.getBookByISBN(cleanIsbn);
+
     if (result.success && result.data) {
+      // Convert ISBNDB response to UIBook format
+      const uiBook = convertISBNDBToUIBook(result.data);
+      
       return NextResponse.json({
         success: true,
-        books: [result.data], // Return as array to match frontend expectations
-        source: result.data.source,
+        books: [uiBook], // Return as array to match expected format
+        source: 'isbndb',
         total: 1,
         searchParams: {
           isbn: cleanIsbn
         }
       });
     } else {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: result.error || 'No book found with this ISBN',
-          source: 'isbn-lookup',
-          searchParams: {
-            isbn: cleanIsbn
-          }
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: false,
+        books: [],
+        error: result.error || 'Book not found',
+        source: 'isbndb',
+        total: 0,
+        searchParams: {
+          isbn: cleanIsbn
+        }
+      });
     }
   } catch (error) {
-    console.error('ISBN lookup API error:', error);
+    console.error('Error in ISBN API:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error',
-        source: 'isbn-lookup'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

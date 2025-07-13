@@ -23,6 +23,7 @@ export interface UIBook {
 // Conversion utilities
 import { Book } from './book'
 import { CompleteBook } from './book'
+import { ISBNDBBookResponse } from './api'
 
 export function convertBookToUIBook(book: Book): UIBook {
   return {
@@ -63,6 +64,29 @@ export function convertCompleteBookToUIBook(book: CompleteBook): UIBook {
     external_id: book.external_book_data?.[0]?.external_id || undefined,
     created_at: book.created_at,
     updated_at: book.updated_at
+  }
+}
+
+export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
+  return {
+    id: book.isbn13 || book.isbn || `isbn-${Date.now()}`, // Generate unique ID from ISBN
+    title: book.title,
+    subtitle: book.title_long && book.title_long !== book.title ? book.title_long : undefined,
+    authors: book.authors || [],
+    publisher: book.publisher || undefined,
+    published_date: book.date_published || undefined,
+    isbn: book.isbn13 || book.isbn || undefined,
+    categories: book.subjects || [],
+    description: book.synopsis || book.overview || book.excerpt || undefined,
+    page_count: book.pages || undefined,
+    language: book.language || undefined,
+    data_source: 'isbn_db',
+    external_id: book.isbn13 || book.isbn || undefined,
+    maturity_rating: undefined,
+    print_type: book.binding || undefined,
+    content_version: book.edition || undefined,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 }
 
