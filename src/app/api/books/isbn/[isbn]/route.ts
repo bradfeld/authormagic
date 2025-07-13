@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BookDataService } from '@/lib/services/book-data.service';
+import ISBNDBService from '@/lib/services/isbn-db.service';
+import { convertISBNDBToUIBook } from '@/lib/types/ui-book';
 
 export async function GET(
   request: NextRequest,
@@ -16,9 +17,27 @@ export async function GET(
     }
 
     console.log(`Searching for ISBN: "${isbn}"`);
-    const result = await BookDataService.searchByISBN(isbn);
     
-    return NextResponse.json(result);
+    // Create service instance
+    const isbnService = new ISBNDBService();
+    const result = await isbnService.getBookByISBN(isbn);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || 'Failed to find book' },
+        { status: 404 }
+      );
+    }
+
+    // Convert to UI format
+    const uiBook = convertISBNDBToUIBook(result.data);
+    
+    return NextResponse.json({
+      success: true,
+      books: [uiBook], // Return as array for consistency with other endpoints
+      total: 1,
+      source: 'isbn_db'
+    });
   } catch (error) {
     console.error('ISBN search error:', error);
     return NextResponse.json(

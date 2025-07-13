@@ -53,6 +53,8 @@ export function EditionSelectionDialog({
     setEditionGroups([]);
 
     try {
+      let groups: any[] = [];
+
       // Auto-detect if input looks like ISBN
       const isISBN = /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(bookTitle.trim());
       
@@ -69,7 +71,7 @@ export function EditionSelectionDialog({
         setSearchResults(books);
         
         // Group results by edition for ISBN search
-        const groups = EditionDetectionService.groupByEdition(books);
+        groups = EditionDetectionService.groupByEdition(books);
         setEditionGroups(groups);
       } else {
         setSearchType('title-author');
@@ -88,7 +90,7 @@ export function EditionSelectionDialog({
         setSearchResults(books);
         
         // Group results by edition for title-author search
-        const groups = EditionDetectionService.groupByEdition(books);
+        groups = EditionDetectionService.groupByEdition(books);
         setEditionGroups(groups);
       }
 
@@ -166,16 +168,26 @@ export function EditionSelectionDialog({
     setSearchError(null);
   };
 
-  const getBindingTypeColor = (binding: string) => {
-    const colors: { [key: string]: string } = {
-      'hardcover': 'bg-blue-100 text-blue-800',
-      'paperback': 'bg-green-100 text-green-800',
-      'mass market paperback': 'bg-yellow-100 text-yellow-800',
-      'ebook': 'bg-purple-100 text-purple-800',
-      'audiobook': 'bg-orange-100 text-orange-800',
-      'unknown': 'bg-gray-100 text-gray-800'
-    };
-    return colors[binding.toLowerCase()] || colors['unknown'];
+  // Removed color coding - all badges use default styling
+  const formatBindingType = (binding: string) => {
+    if (!binding || binding.toLowerCase() === 'unknown') {
+      return 'Not specified';
+    }
+    return binding;
+  };
+
+  const groupBindings = (books: UIBook[]) => {
+    const bindingGroups = new Map<string, UIBook[]>();
+    
+    books.forEach(book => {
+      const formattedBinding = formatBindingType(book.print_type || 'unknown');
+      if (!bindingGroups.has(formattedBinding)) {
+        bindingGroups.set(formattedBinding, []);
+      }
+      bindingGroups.get(formattedBinding)!.push(book);
+    });
+
+    return bindingGroups;
   };
 
   const renderSearchStep = () => (
@@ -316,7 +328,7 @@ export function EditionSelectionDialog({
                       </div>
                     )}
                     <div className="flex items-center gap-1">
-                      <span>{edition.books.length} binding{edition.books.length !== 1 ? 's' : ''}</span>
+                      <span>{edition.books.length} book{edition.books.length !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
 
@@ -324,16 +336,19 @@ export function EditionSelectionDialog({
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Available Bindings:</p>
                     <div className="flex flex-wrap gap-2">
-                      {edition.books.map((book, bookIndex) => (
+                      {Array.from(groupBindings(edition.books)).map(([bindingType, books]) => (
                         <Badge 
-                          key={bookIndex}
+                          key={bindingType}
                           variant="outline"
-                          className={getBindingTypeColor(book.binding || 'unknown')}
                         >
-                          {book.binding || 'Unknown'}
-                          {book.msrp && (
+                          {books.length > 1 ? (
+                            `${bindingType} (${books.length})`
+                          ) : (
+                            bindingType
+                          )}
+                          {books[0].msrp && (
                             <span className="ml-1 opacity-70">
-                              ${book.msrp}
+                              ${books[0].msrp}
                             </span>
                           )}
                         </Badge>

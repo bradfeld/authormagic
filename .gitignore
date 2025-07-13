@@ -71,3 +71,6 @@ pids
 
 # Clerk
 .clerk/
+
+# Environment backups (should never be committed)
+backups/

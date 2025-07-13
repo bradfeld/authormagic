@@ -31,10 +31,12 @@ export interface ISBNDBBookResponse {
   isbn13: string
   dewey_decimal?: string
   binding: string
+  print_type?: string // New field name used by the API
   publisher: string
   language: string
   date_published: string
   edition?: string
+  content_version?: string // New field name used by the API
   pages?: number
   dimensions?: string
   overview?: string

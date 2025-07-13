@@ -6,11 +6,18 @@ type AuthorProfile = Database['public']['Tables']['authors']['Row']
 type NewAuthorProfile = Database['public']['Tables']['authors']['Insert']
 
 export class AuthorProfileService {
-  private supabase = createServiceClient()
+  private _supabase: ReturnType<typeof createServiceClient> | null = null
+  
+  private getSupabase() {
+    if (!this._supabase) {
+      this._supabase = createServiceClient()
+    }
+    return this._supabase
+  }
 
   async getProfileByClerkUserId(clerkUserId: string): Promise<AuthorProfile | null> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getSupabase()
         .from('authors')
         .select('*')
         .eq('clerk_user_id', clerkUserId)
@@ -34,7 +41,7 @@ export class AuthorProfileService {
 
   async createProfile(profileData: NewAuthorProfile): Promise<AuthorProfile> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getSupabase()
         .from('authors')
         .insert(profileData)
         .select()
@@ -54,7 +61,7 @@ export class AuthorProfileService {
 
   async updateProfile(id: string, updates: Partial<NewAuthorProfile>): Promise<AuthorProfile> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getSupabase()
         .from('authors')
         .update(updates)
         .eq('id', id)

@@ -83,8 +83,8 @@ export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
     data_source: 'isbn_db',
     external_id: book.isbn13 || book.isbn || undefined,
     maturity_rating: undefined,
-    print_type: book.binding || undefined,
-    content_version: book.edition || undefined,
+    print_type: book.print_type || book.binding || undefined,
+    content_version: book.content_version || book.edition || undefined,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }

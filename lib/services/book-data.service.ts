@@ -70,10 +70,17 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '../database.types'
 
 class BookDataService {
-  private supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  private _supabase: ReturnType<typeof createClient> | null = null
+  
+  private getSupabase() {
+    if (!this._supabase) {
+      this._supabase = createClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+    }
+    return this._supabase
+  }
 
   // Main method to fetch book data by ISBN
   async getBookByISBN(isbn: string): Promise<ApiResponse<NormalizedBookData>> {
@@ -131,7 +138,7 @@ class BookDataService {
   async importBookData(bookData: NormalizedBookData, authorId: string): Promise<ApiResponse<BookHierarchyData>> {
     try {
       // Start transaction
-      const { data: book, error: bookError } = await this.supabase
+      const { data: book, error: bookError } = await this.getSupabase()
         .from('books')
         .insert({
           title: bookData.title,
@@ -156,7 +163,7 @@ class BookDataService {
       }
 
       // Create book-author relationship
-      const { error: authorError } = await this.supabase
+      const { error: authorError } = await this.getSupabase()
         .from('book_authors')
         .insert({
           book_id: book.id,
@@ -175,7 +182,7 @@ class BookDataService {
       // Create editions and bindings
       const createdEditions = []
       for (const edition of bookData.editions) {
-        const { data: createdEdition, error: editionError } = await this.supabase
+        const { data: createdEdition, error: editionError } = await this.getSupabase()
           .from('book_editions')
           .insert({
             book_id: book.id,
@@ -202,7 +209,7 @@ class BookDataService {
         // Create bindings for this edition
         const createdBindings = []
         for (const binding of edition.bindings) {
-          const { data: createdBinding, error: bindingError } = await this.supabase
+          const { data: createdBinding, error: bindingError } = await this.getSupabase()
             .from('book_bindings')
             .insert({
               edition_id: createdEdition.id,
@@ -236,7 +243,7 @@ class BookDataService {
 
       // Store external data
       for (const externalData of bookData.external_data) {
-        await this.supabase
+        await this.getSupabase()
           .from('external_book_data')
           .insert({
             book_id: book.id,
@@ -506,7 +513,7 @@ class BookDataService {
 
     let databaseStatus = false
     try {
-      const { error } = await this.supabase.from('books').select('id').limit(1)
+      const { error } = await this.getSupabase().from('books').select('id').limit(1)
       databaseStatus = !error
     } catch {
       databaseStatus = false

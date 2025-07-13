@@ -20,7 +20,14 @@ import { UIBook } from '@/lib/types/ui-book';
 import { EditionDetectionService, EditionGroup } from './edition-detection.service';
 
 export class PrimaryBookService {
-  private static supabase = createServiceClient();
+  private static _supabase: ReturnType<typeof createServiceClient> | null = null;
+  
+  private static getSupabase() {
+    if (!this._supabase) {
+      this._supabase = createServiceClient();
+    }
+    return this._supabase;
+  }
 
   /**
    * Create a new Primary Book with editions and bindings
@@ -43,7 +50,7 @@ export class PrimaryBookService {
       selected_edition_id: null // Will be set after creating editions
     };
 
-    const { data: primaryBook, error: primaryBookError } = await this.supabase
+    const { data: primaryBook, error: primaryBookError } = await this.getSupabase()
       .from('primary_books')
       .insert(primaryBookData)
       .select()
@@ -79,7 +86,7 @@ export class PrimaryBookService {
    * Get user's primary books with editions and bindings
    */
   static async getUserPrimaryBooks(userId: string): Promise<PrimaryBook[]> {
-    const { data: primaryBooks, error } = await this.supabase
+    const { data: primaryBooks, error } = await this.getSupabase()
       .from('primary_books')
       .select(`
         *,
@@ -111,7 +118,7 @@ export class PrimaryBookService {
     primaryBookId: string,
     userId: string
   ): Promise<PrimaryBook | null> {
-    const { data: primaryBook, error } = await this.supabase
+    const { data: primaryBook, error } = await this.getSupabase()
       .from('primary_books')
       .select(`
         *,
@@ -147,7 +154,7 @@ export class PrimaryBookService {
     primaryBookId: string,
     editionId: string
   ): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.getSupabase()
       .from('primary_books')
       .update({ selected_edition_id: editionId })
       .eq('id', primaryBookId);
@@ -164,7 +171,7 @@ export class PrimaryBookService {
     primaryBookId: string,
     userId: string
   ): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.getSupabase()
       .from('primary_books')
       .delete()
       .eq('id', primaryBookId)
@@ -183,7 +190,7 @@ export class PrimaryBookService {
     title: string,
     author: string
   ): Promise<PrimaryBook | null> {
-    const { data: primaryBook, error } = await this.supabase
+    const { data: primaryBook, error } = await this.getSupabase()
       .from('primary_books')
       .select(`
         *,
@@ -261,7 +268,7 @@ export class PrimaryBookService {
         publication_year: group.publication_year
       };
 
-      const { data: edition, error: editionError } = await this.supabase
+      const { data: edition, error: editionError } = await this.getSupabase()
         .from('primary_book_editions')
         .insert(editionData)
         .select()
@@ -284,7 +291,7 @@ export class PrimaryBookService {
         language: book.language || 'en'
       }));
 
-      const { data: bindings, error: bindingsError } = await this.supabase
+      const { data: bindings, error: bindingsError } = await this.getSupabase()
         .from('primary_book_bindings')
         .insert(bindingData)
         .select();
