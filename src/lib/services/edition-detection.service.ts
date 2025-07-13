@@ -1,0 +1,247 @@
+/**
+ * Edition Detection Service
+ * Groups books by edition using multiple detection strategies
+ */
+
+import { UIBook } from '@/lib/types/ui-book';
+import { BookEdition, BookBinding } from '@/lib/types/primary-book';
+
+export interface EditionGroup {
+  edition_number: number;
+  publication_year?: number;
+  books: UIBook[];
+}
+
+export class EditionDetectionService {
+  /**
+   * Main entry point: Group books by edition
+   */
+  static groupByEdition(books: UIBook[]): EditionGroup[] {
+    const editionGroups = new Map<string, EditionGroup>();
+    
+    for (const book of books) {
+      const editionKey = this.detectEditionKey(book);
+      
+      if (!editionGroups.has(editionKey)) {
+        editionGroups.set(editionKey, {
+          edition_number: this.extractEditionNumber(book),
+          publication_year: this.extractPublicationYear(book),
+          books: []
+        });
+      }
+      
+      editionGroups.get(editionKey)!.books.push(book);
+    }
+    
+    // Sort by edition number descending (latest first)
+    return Array.from(editionGroups.values())
+      .sort((a, b) => b.edition_number - a.edition_number);
+  }
+
+  /**
+   * Create unique key for grouping books into editions
+   */
+  private static detectEditionKey(book: UIBook): string {
+    // Strategy 1: Use ISBNDB edition field if available
+    if (book.edition && book.edition !== '1' && book.edition !== '') {
+      return `edition-${book.edition}`;
+    }
+    
+    // Strategy 2: Extract edition from title
+    const titleEdition = this.extractEditionFromTitle(book.title);
+    if (titleEdition > 1) {
+      return `edition-${titleEdition}`;
+    }
+    
+    // Strategy 3: Group by publication year (±1 year tolerance)
+    const year = this.extractPublicationYear(book);
+    if (year) {
+      // Group years within 1 year tolerance
+      const yearGroup = Math.floor(year / 2) * 2; // Group into 2-year buckets
+      return `year-${yearGroup}`;
+    }
+    
+    // Fallback: Default edition
+    return 'edition-1';
+  }
+
+  /**
+   * Extract edition number from various sources
+   */
+  private static extractEditionNumber(book: UIBook): number {
+    // Strategy 1: ISBNDB edition field
+    if (book.edition && book.edition !== '') {
+      const editionNum = parseInt(book.edition, 10);
+      if (!isNaN(editionNum) && editionNum > 0) {
+        return editionNum;
+      }
+    }
+    
+    // Strategy 2: Extract from title
+    const titleEdition = this.extractEditionFromTitle(book.title);
+    if (titleEdition > 1) {
+      return titleEdition;
+    }
+    
+    // Strategy 3: Use publication year as rough edition indicator
+    const year = this.extractPublicationYear(book);
+    if (year) {
+      // Very rough heuristic: newer books are "higher editions"
+      // This is imperfect but gives some ordering
+      return year >= 2020 ? 2 : 1;
+    }
+    
+    return 1; // Default to first edition
+  }
+
+  /**
+   * Extract edition number from book title
+   */
+  private static extractEditionFromTitle(title: string): number {
+    if (!title) return 1;
+    
+    // Common patterns for edition in titles
+    const patterns = [
+      /(\d+)(?:st|nd|rd|th)?\s+edition/i,
+      /edition\s+(\d+)/i,
+      /(\d+)(?:st|nd|rd|th)?\s+ed\.?/i,
+      /ed\.?\s+(\d+)/i,
+      /revised\s+edition/i, // Treat as 2nd edition
+      /updated\s+edition/i, // Treat as 2nd edition
+      /new\s+edition/i,     // Treat as 2nd edition
+    ];
+    
+    for (const pattern of patterns) {
+      const match = title.match(pattern);
+      if (match) {
+        if (match[1]) {
+          const edition = parseInt(match[1], 10);
+          if (!isNaN(edition) && edition > 0) {
+            return edition;
+          }
+        } else {
+          // For patterns like "revised edition", "updated edition"
+          return 2;
+        }
+      }
+    }
+    
+    return 1; // Default to first edition
+  }
+
+  /**
+   * Extract publication year from book data
+   */
+  private static extractPublicationYear(book: UIBook): number | undefined {
+    // Strategy 1: Direct date_published field
+    if (book.date_published) {
+      const year = parseInt(book.date_published.substring(0, 4), 10);
+      if (!isNaN(year) && year > 1800 && year <= new Date().getFullYear() + 5) {
+        return year;
+      }
+    }
+    
+    // Strategy 2: Extract from title (sometimes has year)
+    const titleYearMatch = book.title.match(/\((\d{4})\)/);
+    if (titleYearMatch) {
+      const year = parseInt(titleYearMatch[1], 10);
+      if (!isNaN(year) && year > 1800 && year <= new Date().getFullYear() + 5) {
+        return year;
+      }
+    }
+    
+    return undefined;
+  }
+
+  /**
+   * Convert grouped editions to Primary Book structure
+   */
+  static convertToBookEditions(
+    editionGroups: EditionGroup[],
+    primaryBookId: string
+  ): BookEdition[] {
+    return editionGroups.map(group => ({
+      id: '', // Will be generated by database
+      primary_book_id: primaryBookId,
+      edition_number: group.edition_number,
+      publication_year: group.publication_year,
+      created_at: new Date().toISOString(),
+      bindings: this.convertToBookBindings(group.books, '')
+    }));
+  }
+
+  /**
+   * Convert UI books to book bindings
+   */
+  private static convertToBookBindings(books: UIBook[], editionId: string): BookBinding[] {
+    return books.map(book => ({
+      id: '', // Will be generated by database
+      book_edition_id: editionId,
+      isbn: book.isbn13 || book.isbn,
+      binding_type: this.normalizeBindingType(book.binding),
+      price: book.msrp ? parseFloat(book.msrp.toString()) : undefined,
+      publisher: book.publisher,
+      cover_image_url: book.image,
+      description: book.synopsis,
+      pages: book.pages ? parseInt(book.pages.toString()) : undefined,
+      language: book.language || 'en',
+      created_at: new Date().toISOString()
+    }));
+  }
+
+  /**
+   * Normalize binding type to consistent values
+   */
+  private static normalizeBindingType(binding?: string): string {
+    if (!binding) return 'unknown';
+    
+    const normalized = binding.toLowerCase().trim();
+    
+    // Map common variations to standard types
+    const bindingMap: { [key: string]: string } = {
+      'hardcover': 'hardcover',
+      'hardback': 'hardcover',
+      'hard cover': 'hardcover',
+      'hc': 'hardcover',
+      
+      'paperback': 'paperback',
+      'softcover': 'paperback',
+      'soft cover': 'paperback',
+      'pb': 'paperback',
+      'trade paperback': 'paperback',
+      
+      'ebook': 'ebook',
+      'e-book': 'ebook',
+      'digital': 'ebook',
+      'kindle': 'ebook',
+      
+      'audiobook': 'audiobook',
+      'audio book': 'audiobook',
+      'audio': 'audiobook',
+      
+      'mass market': 'mass market paperback',
+      'mass market paperback': 'mass market paperback',
+      'mmpb': 'mass market paperback'
+    };
+    
+    return bindingMap[normalized] || normalized;
+  }
+
+  /**
+   * Get user-friendly edition display name
+   */
+  static getEditionDisplayName(edition: EditionGroup): string {
+    const ordinal = this.getOrdinal(edition.edition_number);
+    const year = edition.publication_year ? ` (${edition.publication_year})` : '';
+    return `${ordinal} Edition${year}`;
+  }
+
+  /**
+   * Convert number to ordinal (1st, 2nd, 3rd, etc.)
+   */
+  private static getOrdinal(num: number): string {
+    const suffix = ['th', 'st', 'nd', 'rd'];
+    const v = num % 100;
+    return num + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
+  }
+} 
