@@ -4,8 +4,7 @@ export const API_CONFIG = {
     BASE_URL: 'https://api2.isbndb.com',
     ENDPOINTS: {
       BOOK: '/book',
-      BOOKS: '/books',           // For batch ISBN lookup (POST)
-      SEARCH_BOOKS: '/search/books',  // For text search (GET)
+      BOOKS: '/books',
       AUTHOR: '/author',
       AUTHORS: '/authors',
       PUBLISHER: '/publisher',
@@ -89,8 +88,8 @@ export const BINDING_TYPES = {
 
 // Search parameters
 export const SEARCH_PARAMS = {
-  MAX_RESULTS: 60,
-  DEFAULT_RESULTS: 40,
+  MAX_RESULTS: 40,
+  DEFAULT_RESULTS: 10,
   MIN_QUERY_LENGTH: 2,
   MAX_QUERY_LENGTH: 500
 } as const

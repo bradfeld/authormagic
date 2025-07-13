@@ -213,11 +213,11 @@ class ISBNDBService {
   private rankBooks(books: ISBNDBBookResponse[], searchTitle?: string): ISBNDBBookResponse[] {
     return books
       .map(book => ({
-        ...book,
-        _score: this.calculateBookScore(book, searchTitle)
+        book,
+        score: this.calculateBookScore(book, searchTitle)
       }))
-      .sort((a, b) => (b._score || 0) - (a._score || 0))
-      .map(({ _score, ...book }) => book); // Remove scoring field from final result
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.book);
   }
 
   private calculateBookScore(book: ISBNDBBookResponse, searchTitle?: string): number {
@@ -396,11 +396,11 @@ class ISBNDBService {
       if (params.page) searchParams.append('page', params.page.toString())
       if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString())
 
-      const url = `${this.baseUrl}${API_CONFIG.ISBN_DB.ENDPOINTS.SEARCH_BOOKS}?${searchParams}`
+      const url = `${this.baseUrl}/search${API_CONFIG.ISBN_DB.ENDPOINTS.BOOKS}?${searchParams}`
       const response = await this.makeRequest(url)
       
-      // The search endpoint returns data in a 'data' array
-      const books = response.data || [];
+      // The search endpoint returns data in a 'books' array
+      const books = response.books || [];
       
       // Apply intelligent ranking to surface primary editions first
       const rankedBooks = this.rankBooks(books, params.title);
@@ -427,13 +427,13 @@ class ISBNDBService {
       if (page) searchParams.append('page', page.toString())
       if (pageSize) searchParams.append('pageSize', pageSize.toString())
 
-      const url = `${this.baseUrl}${API_CONFIG.ISBN_DB.ENDPOINTS.SEARCH_BOOKS}?${searchParams}`
+      const url = `${this.baseUrl}/search${API_CONFIG.ISBN_DB.ENDPOINTS.BOOKS}?${searchParams}`
       console.log('ISBNDB Service: Making text search request to:', url)
       
       const response = await this.makeRequest(url)
       
       // The search endpoint returns data in a 'data' array
-      const books = response.data || [];
+      const books = response.books || [];
       console.log('ISBNDB Service: Text search extracted books:', books.length)
       
       // Apply intelligent ranking to surface primary editions first

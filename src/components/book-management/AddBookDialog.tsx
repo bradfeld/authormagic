@@ -4,41 +4,15 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Search, BookOpen, Plus, Loader2, Calendar, Users, Building, Hash, User, Book } from 'lucide-react'
-import { bookDataServiceClient, NormalizedBookData } from '@/lib/services/book-data.service.client'
 import { UIBook } from '@/lib/types/ui-book'
 import { Author } from '@/lib/services/author-profile.service'
-
-// Convert NormalizedBookData to UIBook for UI display
-function convertNormalizedBookDataToBook(normalized: NormalizedBookData): UIBook {
-  // Extract publisher from the first edition
-  const publisher = normalized.editions?.[0]?.publisher
-  
-  // Extract publication date from the first edition
-  const published_date = normalized.editions?.[0]?.publication_date
-  
-  // Use primary_isbn or fall back to the first edition's ISBN
-  const isbn = normalized.primary_isbn || 
-    normalized.editions?.[0]?.isbn_13 || 
-    normalized.editions?.[0]?.isbn_10
-  
-  return {
-    id: normalized.primary_isbn || 'temp-id', // Use ISBN as temporary ID
-    title: normalized.title,
-    subtitle: normalized.subtitle,
-    authors: [], // Will be populated from external API data later
-    publisher,
-    published_date,
-    isbn,
-    categories: normalized.genre || [],
-    description: normalized.description
-  }
-}
+import { ISBNDBBookResponse } from '@/lib/types/api'
 
 // Convert ISBNDB response to UIBook for display
-function convertISBNDBToUIBook(isbndbBook: any): UIBook {
+function convertISBNDBToUIBook(isbndbBook: ISBNDBBookResponse): UIBook {
   return {
     id: isbndbBook.isbn13 || isbndbBook.isbn || 'temp-id',
     title: isbndbBook.title || 'Unknown Title',
@@ -58,7 +32,7 @@ interface AddBookDialogProps {
   authorProfile: Author | null
 }
 
-export function AddBookDialog({ children, onBookAdded, authorProfile }: AddBookDialogProps) {
+export function AddBookDialog({ children, onBookAdded }: AddBookDialogProps) {
   const [open, setOpen] = useState(false)
   
   // Three separate search fields
@@ -117,7 +91,7 @@ export function AddBookDialog({ children, onBookAdded, authorProfile }: AddBookD
       const data = await response.json()
       
       if (response.ok && data.success && data.data) {
-        const books = data.data.map((book: any) => convertISBNDBToUIBook(book))
+        const books = data.data.map((book: ISBNDBBookResponse) => convertISBNDBToUIBook(book))
         setSearchResults(books)
         
         if (books.length === 0) {
@@ -155,7 +129,7 @@ export function AddBookDialog({ children, onBookAdded, authorProfile }: AddBookD
       const data = await response.json()
       
       if (response.ok && data.success && data.data) {
-        const books = data.data.map((book: any) => convertISBNDBToUIBook(book))
+        const books = data.data.map((book: ISBNDBBookResponse) => convertISBNDBToUIBook(book))
         setSearchResults(books)
         
         if (books.length === 0) {

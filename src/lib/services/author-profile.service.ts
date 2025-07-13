@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { Database } from '@/lib/database.types'
 
+export type Author = Database['public']['Tables']['authors']['Row']
 type AuthorProfile = Database['public']['Tables']['authors']['Row']
 type NewAuthorProfile = Database['public']['Tables']['authors']['Insert']
 
