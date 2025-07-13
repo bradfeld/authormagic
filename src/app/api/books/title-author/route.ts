@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     if (result.success && result.data) {
       return NextResponse.json({
         success: true,
-        data: result.data,
+        books: result.data,
         source: 'isbndb',
         total: result.data.length,
         searchParams: {
