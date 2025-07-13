@@ -17,12 +17,13 @@ export async function GET(request: NextRequest) {
 
     console.log(`Searching for title: "${title}" by author: "${author}"`);
 
-    // Use the enhanced search method that was working before
-    const result = await isbnDbService.searchTitleAuthor(title.trim(), author.trim(), 1, 10);
+    // Request more comprehensive results - increase pageSize to get more books
+    // The user expects 13 books for "Startup Communities" and 26 for "Venture Deals"
+    const result = await isbnDbService.searchTitleAuthor(title.trim(), author.trim(), 1, 50);
 
     if (result.success && result.data) {
       // Convert ISBNDB response to UIBook format
-      const uiBooks = result.data.map(book => convertISBNDBToUIBook(book));
+      const uiBooks = result.data.map(convertISBNDBToUIBook);
       
       return NextResponse.json({
         success: true,
@@ -30,25 +31,18 @@ export async function GET(request: NextRequest) {
         source: 'isbndb',
         total: uiBooks.length,
         searchParams: {
-          title: title?.trim() || null,
-          author: author?.trim() || null
+          title: title.trim() || null,
+          author: author.trim() || null
         }
       });
     } else {
-      return NextResponse.json({
-        success: false,
-        books: [],
-        error: result.error || 'No books found',
-        source: 'isbndb',
-        total: 0,
-        searchParams: {
-          title: title?.trim() || null,
-          author: author?.trim() || null
-        }
-      });
+      return NextResponse.json(
+        { error: result.error || 'No books found' },
+        { status: 404 }
+      );
     }
   } catch (error) {
-    console.error('Error in title-author API:', error);
+    console.error('Title-Author search error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -120,45 +120,20 @@ class ISBNDBService {
         async () => {
           console.log(`ISBNDB Service: Enhanced search for "${title}" by "${author}"`);
           
-          // Strategy 1: Author-first search (most comprehensive for ISBNDB)
-          // This returns more books than title+author combined search
-          console.log(`ISBNDB Service: Trying author-first search: ${author}`);
-          const authorResult = await this.getBooksByAuthor(author, 1, 50); // Get more books from author search
-          
-          if (authorResult.success && authorResult.data && authorResult.data.length > 0) {
-            // Filter for books that match the title
-            const titleMatches = authorResult.data.filter(book => {
-              const bookTitle = book.title.toLowerCase();
-              const searchTitle = title.toLowerCase();
-              
-              // Check for exact match or if title is contained in book title
-              return bookTitle.includes(searchTitle) || 
-                     bookTitle.replace(/[:\-\s]+/g, ' ').includes(searchTitle) ||
-                     searchTitle.includes(bookTitle.replace(/[:\-\s]+/g, ' '));
-            });
-            
-            if (titleMatches.length > 0) {
-              console.log(`ISBNDB Service: Author-first search found ${titleMatches.length} title matches out of ${authorResult.data.length} author books`);
-              // Rank and limit to requested page size
-              const rankedBooks = this.rankBooks(titleMatches, title);
-              return {
-                success: true,
-                data: rankedBooks.slice(0, pageSize)
-              };
-            }
-          }
-
-          // Strategy 2: Try quoted search (more specific, like website)
+          // Strategy 1: Try quoted search first (most comprehensive and matches user expectations)
           const quotedSearch = `"${title}" "${author}"`;
           console.log(`ISBNDB Service: Trying quoted search: ${quotedSearch}`);
-          const quotedResult = await this.performTextSearch(quotedSearch, page, pageSize);
+          const quotedResult = await this.performTextSearch(quotedSearch, page, Math.max(pageSize, 30));
           
           if (quotedResult.success && quotedResult.data && quotedResult.data.length > 0) {
-            // Filter for books that actually match the title closely
+            // Less restrictive filtering for quoted search since the API already filtered
             const filteredBooks = quotedResult.data.filter(book => {
               const titleMatch = book.title.toLowerCase().includes(title.toLowerCase());
               const authorMatch = book.authors?.some(a => a.toLowerCase().includes(author.toLowerCase())) || false;
-              return titleMatch && authorMatch;
+              
+              // For quoted search, if the API returned it, it's likely relevant
+              // Only filter out obvious non-matches
+              return titleMatch || authorMatch; // Changed from AND to OR - less restrictive
             });
             
             if (filteredBooks.length > 0) {
@@ -170,9 +145,9 @@ class ISBNDBService {
             }
           }
 
-          // Strategy 3: Try separate title and author parameters (traditional method)
+          // Strategy 2: Try separate title and author parameters (fallback)
           console.log(`ISBNDB Service: Trying separate parameters: title=${title}, author=${author}`);
-          const separateResult = await this.performSearch({ title, author, page, pageSize });
+          const separateResult = await this.performSearch({ title, author, page, pageSize: Math.max(pageSize, 20) });
           
           if (separateResult.success && separateResult.data && separateResult.data.length > 0) {
             console.log(`ISBNDB Service: Separate parameters found ${separateResult.data.length} books`);
@@ -180,6 +155,48 @@ class ISBNDBService {
               success: true,
               data: this.rankBooks(separateResult.data, title)
             };
+          }
+
+          // Strategy 3: Author-first search (only if others fail)
+          console.log(`ISBNDB Service: Trying author-first search: ${author}`);
+          const authorResult = await this.getBooksByAuthor(author, 1, 50); // Reduced from 100 to 50
+          
+          if (authorResult.success && authorResult.data && authorResult.data.length > 0) {
+            // More flexible title matching - but only as fallback
+            const titleMatches = authorResult.data.filter(book => {
+              const bookTitle = book.title.toLowerCase();
+              const searchTitle = title.toLowerCase();
+              
+              // Strategy 1: Direct substring match
+              if (bookTitle.includes(searchTitle)) return true;
+              
+              // Strategy 2: Clean punctuation and try again
+              const cleanBookTitle = bookTitle.replace(/[:\-\s]+/g, ' ').trim();
+              const cleanSearchTitle = searchTitle.replace(/[:\-\s]+/g, ' ').trim();
+              if (cleanBookTitle.includes(cleanSearchTitle)) return true;
+              
+              // Strategy 3: Word-by-word matching (more flexible)
+              const bookWords = cleanBookTitle.split(' ').filter(w => w.length > 2);
+              const searchWords = cleanSearchTitle.split(' ').filter(w => w.length > 2);
+              
+              // If most search words are found in book title, it's a match
+              if (searchWords.length > 0) {
+                const matchingWords = searchWords.filter(searchWord => 
+                  bookWords.some(bookWord => bookWord.includes(searchWord) || searchWord.includes(bookWord))
+                );
+                return matchingWords.length >= Math.max(1, Math.floor(searchWords.length * 0.6)); // 60% word match threshold
+              }
+              
+              return false;
+            });
+            
+            if (titleMatches.length > 0) {
+              console.log(`ISBNDB Service: Author-first search found ${titleMatches.length} title matches out of ${authorResult.data.length} author books`);
+              return {
+                success: true,
+                data: this.rankBooks(titleMatches, title)
+              };
+            }
           }
 
           return {
@@ -260,7 +277,7 @@ class ISBNDBService {
   }
 
   private getEditionScore(book: ISBNDBBookResponse): number {
-    const edition = book.edition || book.title || '';
+    const edition = String(book.edition || book.title || '');
     
     // Look for edition numbers in various formats
     // Format 1: "2nd", "3rd", "1st", etc. (with or without "edition")
