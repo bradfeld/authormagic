@@ -1,0 +1,98 @@
+// UI-friendly book interfaces for dashboard components
+export interface UIBook {
+  id: string
+  title: string
+  subtitle?: string
+  authors: string[]
+  publisher?: string
+  published_date?: string
+  isbn?: string
+  categories?: string[]
+  description?: string
+  page_count?: number
+  language?: string
+  data_source?: string
+  external_id?: string
+  maturity_rating?: string
+  print_type?: string
+  content_version?: string
+  created_at?: string
+  updated_at?: string
+}
+
+// Conversion utilities
+import { Book } from './book'
+import { CompleteBook } from './book'
+
+export function convertBookToUIBook(book: Book): UIBook {
+  return {
+    id: book.id,
+    title: book.title,
+    subtitle: book.subtitle || undefined,
+    authors: [], // Will be populated from relationships
+    publisher: undefined, // Will be populated from editions
+    published_date: book.publication_year ? book.publication_year.toString() : undefined,
+    isbn: book.primary_isbn || undefined,
+    categories: book.genre || [],
+    description: book.description || undefined,
+    page_count: undefined, // Will be populated from editions
+    language: book.language || undefined,
+    created_at: book.created_at,
+    updated_at: book.updated_at
+  }
+}
+
+export function convertCompleteBookToUIBook(book: CompleteBook): UIBook {
+  const firstEdition = book.book_editions?.[0]
+  const authors = book.book_authors?.map(ba => ba.authors.name).filter((name): name is string => name !== null) || []
+  
+  return {
+    id: book.id,
+    title: book.title,
+    subtitle: book.subtitle || undefined,
+    authors,
+    publisher: firstEdition?.publisher || undefined,
+    published_date: firstEdition?.publication_date || 
+      (book.publication_year ? book.publication_year.toString() : undefined),
+    isbn: book.primary_isbn || firstEdition?.isbn_13 || firstEdition?.isbn_10 || undefined,
+    categories: book.genre || [],
+    description: book.description || undefined,
+    page_count: firstEdition?.page_count || undefined,
+    language: book.language || firstEdition?.language || undefined,
+    data_source: book.external_book_data?.[0]?.source || undefined,
+    external_id: book.external_book_data?.[0]?.external_id || undefined,
+    created_at: book.created_at,
+    updated_at: book.updated_at
+  }
+}
+
+// Sample data for development
+export const sampleUIBooks: UIBook[] = [
+  {
+    id: '1',
+    title: 'The Great Gatsby',
+    subtitle: 'A Novel',
+    authors: ['F. Scott Fitzgerald'],
+    publisher: 'Charles Scribner\'s Sons',
+    published_date: '1925',
+    isbn: '9780743273565',
+    categories: ['Fiction', 'Classic Literature'],
+    description: 'The Great Gatsby is a 1925 novel by American writer F. Scott Fitzgerald.',
+    page_count: 180,
+    data_source: 'google_books',
+    external_id: 'xyz123'
+  },
+  {
+    id: '2',
+    title: 'To Kill a Mockingbird',
+    authors: ['Harper Lee'],
+    publisher: 'J.B. Lippincott & Co.',
+    published_date: '1960',
+    isbn: '9780061120084',
+    categories: ['Fiction', 'Classic Literature'],
+    description: 'To Kill a Mockingbird is a novel by Harper Lee published in 1960.',
+    page_count: 376,
+    data_source: 'isbn_db',
+    external_id: 'abc456'
+  }
+] 
