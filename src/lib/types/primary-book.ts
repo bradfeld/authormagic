@@ -100,6 +100,41 @@ export interface CreateBookBindingRequest {
 }
 
 /**
+ * Database Insert types for Supabase operations
+ */
+export interface PrimaryBookInsert {
+  id?: string;
+  user_id: string;
+  title: string;
+  author: string;
+  selected_edition_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PrimaryBookEditionInsert {
+  id?: string;
+  primary_book_id: string;
+  edition_number: number;
+  publication_year?: number;
+  created_at?: string;
+}
+
+export interface PrimaryBookBindingInsert {
+  id?: string;
+  book_edition_id: string;
+  isbn?: string;
+  binding_type: string;
+  price?: number;
+  publisher?: string;
+  cover_image_url?: string;
+  description?: string;
+  pages?: number;
+  language: string;
+  created_at?: string;
+}
+
+/**
  * Types for search and selection workflow
  */
 export interface EditionGroup {

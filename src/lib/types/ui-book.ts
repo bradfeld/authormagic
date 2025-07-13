@@ -18,6 +18,38 @@ export interface UIBook {
   content_version?: string
   created_at?: string
   updated_at?: string
+  
+  // Additional properties from various API sources
+  thumbnail?: string
+  binding?: string
+  format?: string
+  edition?: string
+  dimensions?: string
+  weight?: string | number
+  msrp?: string | number
+  price?: string | number
+  currency?: string
+  date_created?: string
+  dewey_decimal?: string
+  overview?: string
+  excerpt?: string
+  synopsys?: string  // Legacy typo - maps to synopsis
+  synopsis?: string
+  image?: string
+  title_long?: string
+  related_isbns?: string[]
+  subjects?: string[]
+  reviews?: Record<string, unknown>[]
+  prices?: Record<string, unknown>[]
+  other_isbns?: string[]
+  book_id?: string
+  other_isbns_bindings?: Record<string, unknown>[]
+  coverUrl?: string
+  
+  // Alternative property names for compatibility
+  pages?: number        // Maps to page_count
+  date_published?: string  // Maps to published_date  
+  isbn13?: string       // Maps to isbn
 }
 
 // Conversion utilities

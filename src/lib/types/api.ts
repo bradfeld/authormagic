@@ -19,6 +19,7 @@ export interface ApiError {
 export interface ISBNDBApiResponse<T> {
   book?: T
   books?: T[]
+  data?: T[]  // Added for compatibility with some ISBNDB responses
   total?: number
   page?: number
   show?: number

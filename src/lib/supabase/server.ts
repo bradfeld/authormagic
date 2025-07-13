@@ -3,7 +3,7 @@ import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 
 export async function createClient() {
   const { cookies } = await import('next/headers')
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -31,7 +31,7 @@ export function EditionSelectionDialog({
   const [selectedEdition, setSelectedEdition] = useState<EditionGroup | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [searchType, setSearchType] = useState<'title-author' | 'isbn'>('title-author');
+  // const [searchType, setSearchType] = useState<'title-author' | 'isbn'>('title-author'); // TODO: Implement search type selection
   const [searchError, setSearchError] = useState<string | null>(null);
   const [step, setStep] = useState<'search' | 'select-edition'>('search');
 
@@ -53,13 +53,13 @@ export function EditionSelectionDialog({
     setEditionGroups([]);
 
     try {
-      let groups: any[] = [];
+      let groups: EditionGroup[] = [];
 
       // Auto-detect if input looks like ISBN
       const isISBN = /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(bookTitle.trim());
       
       if (isISBN) {
-        setSearchType('isbn');
+        // setSearchType('isbn'); // TODO: Implement search type selection
         const response = await fetch(`/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`);
         
         if (!response.ok) {
@@ -74,7 +74,7 @@ export function EditionSelectionDialog({
         groups = EditionDetectionService.groupByEdition(books);
         setEditionGroups(groups);
       } else {
-        setSearchType('title-author');
+        // setSearchType('title-author'); // TODO: Implement search type selection
         const queryParams = new URLSearchParams();
         if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
         if (author.trim()) queryParams.append('author', author.trim());
@@ -158,7 +158,7 @@ export function EditionSelectionDialog({
     setEditionGroups([]);
     setSelectedEdition(null);
     setSearchError(null);
-    setSearchType('title-author');
+    // setSearchType('title-author'); // TODO: Implement search type selection
     setStep('search');
   };
 

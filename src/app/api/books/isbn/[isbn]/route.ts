@@ -22,7 +22,7 @@ export async function GET(
     const isbnService = new ISBNDBService();
     const result = await isbnService.getBookByISBN(isbn);
     
-    if (!result.success) {
+    if (!result.success || !result.data) {
       return NextResponse.json(
         { error: result.error || 'Failed to find book' },
         { status: 404 }

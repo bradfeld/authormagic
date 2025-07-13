@@ -8,12 +8,8 @@ import {
   PrimaryBook, 
   BookEdition, 
   BookBinding,
-  PrimaryBookRow,
   PrimaryBookInsert,
-  PrimaryBookUpdate,
-  PrimaryBookEditionRow,
   PrimaryBookEditionInsert,
-  PrimaryBookBindingRow,
   PrimaryBookBindingInsert
 } from '@/lib/types/primary-book';
 import { UIBook } from '@/lib/types/ui-book';
@@ -47,7 +43,7 @@ export class PrimaryBookService {
       user_id: userId,
       title,
       author,
-      selected_edition_id: null // Will be set after creating editions
+      selected_edition_id: undefined // Will be set after creating editions
     };
 
     const { data: primaryBook, error: primaryBookError } = await this.getSupabase()
@@ -104,7 +100,7 @@ export class PrimaryBookService {
 
     return primaryBooks.map(book => ({
       ...book,
-      editions: book.editions.map(edition => ({
+      editions: book.editions.map((edition: BookEdition) => ({
         ...edition,
         bindings: edition.bindings
       }))
@@ -140,7 +136,7 @@ export class PrimaryBookService {
 
     return {
       ...primaryBook,
-      editions: primaryBook.editions.map(edition => ({
+      editions: primaryBook.editions.map((edition: BookEdition) => ({
         ...edition,
         bindings: edition.bindings
       }))
@@ -213,7 +209,7 @@ export class PrimaryBookService {
 
     return {
       ...primaryBook,
-      editions: primaryBook.editions.map(edition => ({
+      editions: primaryBook.editions.map((edition: BookEdition) => ({
         ...edition,
         bindings: edition.bindings
       }))

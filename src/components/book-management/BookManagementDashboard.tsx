@@ -21,14 +21,18 @@ export function BookManagementDashboard({ authorProfile }: BookManagementDashboa
   const [showBookDetail, setShowBookDetail] = useState(false)
   const [showAddBookDialog, setShowAddBookDialog] = useState(false)
 
-  const handleAddBook = (book: UIBook) => {
-    // Add book to the collection
-    setBooks(prev => [...prev, book])
-    console.log('Book added to library:', book)
-    
-    // TODO: Here we'll integrate with Supabase to persist the book
-    // For now, we're just managing local state
-  }
+  // TODO: Implement handleAddBook functionality when AddBookDialog integration is complete
+  // const handleAddBook = (book: UIBook) => {
+  //   // Add book to the collection
+  //   setBooks(prev => [...prev, book])
+  //   console.log('Book added to library:', book)
+  //   
+  //   // TODO: Here we'll integrate with Supabase to persist the book
+  //   // For now, we're just managing local state
+  // }
+
+  // TODO: Use authorProfile for author-specific functionality
+  console.log('Author profile:', authorProfile)
 
   const handleViewBook = (book: UIBook) => {
     setSelectedBook(book)

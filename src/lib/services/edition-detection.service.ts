@@ -109,7 +109,7 @@ export class EditionDetectionService {
     const titleEdition = this.extractEditionFromTitle(audiobook.title);
     if (titleEdition > 1) {
       // Find matching print edition by number
-      for (const [key, group] of editionGroups) {
+      for (const [, group] of editionGroups) {
         if (group.edition_number === titleEdition && !group.edition_type) {
           return group;
         }
@@ -213,7 +213,7 @@ export class EditionDetectionService {
     // Strategy 1: ISBNDB content_version field
     if (book.content_version && book.content_version !== '') {
       // Handle different content_version formats
-      let versionStr = book.content_version.toLowerCase();
+      const versionStr = book.content_version.toLowerCase();
       
       // Extract number from formats like "2nd", "2", "1st", "1"
       let editionNum: number;
