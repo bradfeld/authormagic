@@ -1,430 +1,331 @@
 'use client'
 
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Search, BookOpen, Plus, Loader2, Calendar, Users, Building, Hash, User, Book } from 'lucide-react'
-import { UIBook } from '@/lib/types/ui-book'
-import { Author } from '@/lib/services/author-profile.service'
-import { ISBNDBBookResponse } from '@/lib/types/api'
-
-// Convert ISBNDB response to UIBook for display
-function convertISBNDBToUIBook(isbndbBook: ISBNDBBookResponse): UIBook {
-  return {
-    id: isbndbBook.isbn13 || isbndbBook.isbn || 'temp-id',
-    title: isbndbBook.title || 'Unknown Title',
-    subtitle: isbndbBook.title_long || isbndbBook.synopsis,
-    authors: isbndbBook.authors || [],
-    publisher: isbndbBook.publisher,
-    published_date: isbndbBook.date_published,
-    isbn: isbndbBook.isbn13 || isbndbBook.isbn,
-    categories: isbndbBook.subjects || [],
-    description: isbndbBook.synopsis || isbndbBook.overview
-  }
-}
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Search, Loader2 } from 'lucide-react';
+import { UIBook } from '@/lib/types/ui-book';
 
 interface AddBookDialogProps {
-  children: React.ReactNode
-  onBookAdded?: (book: UIBook) => void
-  authorProfile: Author | null
+  children: React.ReactNode;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onBookAdded?: () => void;
+  userId?: string;
 }
 
-export function AddBookDialog({ children, onBookAdded }: AddBookDialogProps) {
-  const [open, setOpen] = useState(false)
-  
-  // Three separate search fields
-  const [isbnQuery, setIsbnQuery] = useState('')
-  const [authorQuery, setAuthorQuery] = useState('')
-  const [titleQuery, setTitleQuery] = useState('')
-  const [titleAuthorQuery, setTitleAuthorQuery] = useState('')
-  
-  const [isLoading, setIsLoading] = useState(false)
-  const [searchResults, setSearchResults] = useState<UIBook[]>([])
-  const [hasSearched, setHasSearched] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [activeSearchType, setActiveSearchType] = useState<'isbn' | 'author' | 'title-author' | null>(null)
+export function AddBookDialog({ 
+  children, 
+  isOpen, 
+  onOpenChange, 
+  onBookAdded,
+  userId 
+}: AddBookDialogProps) {
+  const [bookTitle, setBookTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [searchResults, setSearchResults] = useState<UIBook[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchType, setSearchType] = useState<'title-author' | 'isbn'>('title-author');
+  const [searchError, setSearchError] = useState<string | null>(null);
 
-  // ISBN Search Function
-  const handleISBNSearch = async () => {
-    if (!isbnQuery.trim()) return
-    
-    setIsLoading(true)
-    setError(null)
-    setHasSearched(true)
-    setActiveSearchType('isbn')
-    
-    try {
-      const cleanISBN = isbnQuery.replace(/[-\s]/g, '')
-      const response = await fetch(`/api/books/isbn/${encodeURIComponent(cleanISBN)}`)
-      const data = await response.json()
-      
-      if (response.ok && data.success && data.data) {
-        const book = convertISBNDBToUIBook(data.data)
-        setSearchResults([book])
-      } else {
-        setError(data.error || 'No book found with that ISBN')
-        setSearchResults([])
-      }
-    } catch (err) {
-      console.error('ISBN search error:', err)
-      setError('Failed to search by ISBN')
-      setSearchResults([])
-    } finally {
-      setIsLoading(false)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleUnifiedSearch();
     }
-  }
+  };
 
-  // Author Search Function  
-  const handleAuthorSearch = async () => {
-    if (!authorQuery.trim()) return
-    
-    setIsLoading(true)
-    setError(null)
-    setHasSearched(true)
-    setActiveSearchType('author')
-    
+  const handleUnifiedSearch = async () => {
+    if (!bookTitle.trim() && !author.trim()) {
+      setSearchError('Please enter a book title or author name');
+      return;
+    }
+
+    setIsLoading(true);
+    setSearchError(null);
+    setSearchResults([]);
+
     try {
-      const response = await fetch(`/api/books/author/${encodeURIComponent(authorQuery)}?maxResults=10`)
-      const data = await response.json()
+      // Auto-detect if input looks like ISBN
+      const isISBN = /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(bookTitle.trim());
       
-      if (response.ok && data.success && data.data) {
-        const books = data.data.map((book: ISBNDBBookResponse) => convertISBNDBToUIBook(book))
-        setSearchResults(books)
+      if (isISBN) {
+        setSearchType('isbn');
+        const response = await fetch(`/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`);
         
-        if (books.length === 0) {
-          setError('No books found for this author')
+        if (!response.ok) {
+          throw new Error('Failed to search by ISBN');
         }
-      } else {
-        setError(data.error || 'No books found for this author')
-        setSearchResults([])
-      }
-    } catch (err) {
-      console.error('Author search error:', err)
-      setError('Failed to search by author')
-      setSearchResults([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Title + Author Search Function
-  const handleTitleAuthorSearch = async () => {
-    if (!titleQuery.trim() && !titleAuthorQuery.trim()) return
-    
-    setIsLoading(true)
-    setError(null)
-    setHasSearched(true)
-    setActiveSearchType('title-author')
-    
-    try {
-      const params = new URLSearchParams()
-      if (titleQuery.trim()) params.append('title', titleQuery.trim())
-      if (titleAuthorQuery.trim()) params.append('author', titleAuthorQuery.trim())
-      params.append('maxResults', '10')
-      
-      const response = await fetch(`/api/books/title-author?${params.toString()}`)
-      const data = await response.json()
-      
-      if (response.ok && data.success && data.data) {
-        const books = data.data.map((book: ISBNDBBookResponse) => convertISBNDBToUIBook(book))
-        setSearchResults(books)
         
-        if (books.length === 0) {
-          setError('No books found matching title and author')
-        }
+        const result = await response.json();
+        setSearchResults(result.books || []);
       } else {
-        setError(data.error || 'No books found matching your search')
-        setSearchResults([])
+        setSearchType('title-author');
+        const queryParams = new URLSearchParams();
+        if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
+        if (author.trim()) queryParams.append('author', author.trim());
+        
+        const response = await fetch(`/api/books/title-author?${queryParams}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to search books');
+        }
+        
+        const result = await response.json();
+        setSearchResults(result.books || []);
       }
-    } catch (err) {
-      console.error('Title+Author search error:', err)
-      setError('Failed to search by title and author')
-      setSearchResults([])
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
-
-  // Clear all search fields and results
-  const clearAllSearches = () => {
-    setIsbnQuery('')
-    setAuthorQuery('')
-    setTitleQuery('')
-    setTitleAuthorQuery('')
-    setSearchResults([])
-    setHasSearched(false)
-    setError(null)
-    setActiveSearchType(null)
-  }
+  };
 
   const handleAddBook = async (book: UIBook) => {
+    if (!userId) {
+      console.error('User not authenticated');
+      return;
+    }
+
     try {
-      // Here you would typically save to your database
-      // For now, we'll just call the onBookAdded callback
-      
-      if (onBookAdded) {
-        onBookAdded(book)
+      const response = await fetch('/api/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          book: {
+            title: book.title,
+            authors: book.authors,
+            isbn: book.isbn,
+            publisher: book.publisher,
+            published_date: book.published_date,
+            description: book.description,
+            categories: book.categories,
+            thumbnail: book.thumbnail,
+            page_count: book.page_count,
+            binding: book.binding,
+            format: book.format,
+            edition: book.edition,
+            subtitle: book.subtitle,
+            language: book.language,
+            dimensions: book.dimensions,
+            weight: book.weight,
+            msrp: book.msrp,
+            price: book.price,
+            currency: book.currency,
+            date_created: book.date_created,
+            dewey_decimal: book.dewey_decimal,
+            overview: book.overview,
+            excerpt: book.excerpt,
+            synopsys: book.synopsys,
+            image: book.image,
+            title_long: book.title_long,
+            related_isbns: book.related_isbns,
+            subjects: book.subjects,
+            reviews: book.reviews,
+            prices: book.prices,
+            other_isbns: book.other_isbns,
+            book_id: book.book_id,
+            other_isbns_bindings: book.other_isbns_bindings,
+            coverUrl: book.coverUrl,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add book');
       }
+
+      const result = await response.json();
+      console.log('Book added successfully:', result);
       
       // Clear search results and close dialog
-      clearAllSearches()
-      setOpen(false)
-    } catch (error) {
-      console.error('Error adding book:', error)
-      setError('Failed to add book to library')
-    }
-  }
-
-  // Handle Enter key press for each search field
-  const handleKeyPress = (e: React.KeyboardEvent, searchType: 'isbn' | 'author' | 'title-author') => {
-    if (e.key === 'Enter') {
-      switch (searchType) {
-        case 'isbn':
-          handleISBNSearch()
-          break
-        case 'author':
-          handleAuthorSearch()
-          break
-        case 'title-author':
-          handleTitleAuthorSearch()
-          break
+      setSearchResults([]);
+      setBookTitle('');
+      setAuthor('');
+      setSearchError(null);
+      onOpenChange(false);
+      
+      // Refresh the book list
+      if (onBookAdded) {
+        onBookAdded();
       }
+    } catch (error) {
+      console.error('Error adding book:', error);
+      setSearchError('Failed to add book. Please try again.');
     }
-  }
+  };
+
+  const clearSearch = () => {
+    setBookTitle('');
+    setAuthor('');
+    setSearchResults([]);
+    setSearchError(null);
+    setSearchType('title-author');
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="!max-w-[50vw] !w-[50vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5" />
-            Add Book to Library
-          </DialogTitle>
+          <DialogTitle>Add New Book</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Three Search Sections */}
-          <div className="space-y-6">
+          {/* Unified Search Interface */}
+          <div className="border rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Search className="w-5 h-5 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">Search for Book</h3>
+            </div>
             
-            {/* ISBN Search */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Hash className="w-4 h-4" />
-                <h3 className="font-medium">Search by ISBN</h3>
+            {/* Search Error Display */}
+            {searchError && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                <p className="text-sm text-destructive">{searchError}</p>
               </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter ISBN (10 or 13 digits)"
-                  value={isbnQuery}
-                  onChange={(e) => setIsbnQuery(e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'isbn')}
-                  className="flex-1"
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Book Title Field */}
+              <div className="space-y-2">
+                <label htmlFor="bookTitle" className="text-sm font-medium">
+                  Book Title
+                </label>
+                <input
+                  id="bookTitle"
+                  type="text"
+                  value={bookTitle}
+                  onChange={(e) => setBookTitle(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Enter book title or ISBN"
+                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  disabled={isLoading}
                 />
-                <Button 
-                  onClick={handleISBNSearch}
-                  disabled={isLoading || !isbnQuery.trim()}
-                  size="sm"
-                >
-                  {isLoading && activeSearchType === 'isbn' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Enter book title or ISBN number
+                </p>
               </div>
-            </div>
-
-            {/* Author Search */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <h3 className="font-medium">Search by Author</h3>
-              </div>
-              <div className="flex gap-2">
-                <Input
+              
+              {/* Author Field */}
+              <div className="space-y-2">
+                <label htmlFor="author" className="text-sm font-medium">
+                  Author
+                </label>
+                <input
+                  id="author"
+                  type="text"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   placeholder="Enter author name"
-                  value={authorQuery}
-                  onChange={(e) => setAuthorQuery(e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'author')}
-                  className="flex-1"
+                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  disabled={isLoading}
                 />
-                <Button 
-                  onClick={handleAuthorSearch}
-                  disabled={isLoading || !authorQuery.trim()}
-                  size="sm"
-                >
-                  {isLoading && activeSearchType === 'author' ? (
+                <p className="text-xs text-muted-foreground">
+                  Author name helps improve search accuracy
+                </p>
+              </div>
+            </div>
+            
+            {/* Search Button with Loading State */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleUnifiedSearch}
+                disabled={isLoading || (!bookTitle.trim() && !author.trim())}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? (
+                  <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
+                    Searching...
+                  </>
+                ) : (
+                  <>
                     <Search className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
+                    Search Books
+                  </>
+                )}
+              </button>
             </div>
-
-            {/* Title + Author Search */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Book className="w-4 h-4" />
-                <h3 className="font-medium">Search by Title + Author</h3>
+            
+            {/* Search Type Indicator */}
+            {searchResults.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full">
+                  {searchType === 'isbn' ? 'ISBN Search' : 'Title & Author Search'}
+                </span>
+                <span>Found {searchResults.length} results</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  placeholder="Book title"
-                  value={titleQuery}
-                  onChange={(e) => setTitleQuery(e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'title-author')}
-                />
-                <Input
-                  placeholder="Author name"
-                  value={titleAuthorQuery}
-                  onChange={(e) => setTitleAuthorQuery(e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'title-author')}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={handleTitleAuthorSearch}
-                  disabled={isLoading || (!titleQuery.trim() && !titleAuthorQuery.trim())}
-                  className="flex-1"
-                  size="sm"
-                >
-                  {isLoading && activeSearchType === 'title-author' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-4 h-4 mr-2" />
-                      Search Books
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  onClick={clearAllSearches}
-                  variant="outline"
-                  size="sm"
-                >
-                  Clear All
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Search Results */}
-          {hasSearched && searchResults.length === 0 && !error && !isLoading && (
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>No books found. Try a different search.</p>
-            </div>
-          )}
-
+          {/* Search Results Display */}
           {searchResults.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg">Search Results</h3>
-              <div className="grid gap-4 max-h-96 overflow-y-auto">
-                {searchResults.map((book, index) => (
-                  <Card key={book.id || index} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-3 gap-4">
-                        {/* Book Info */}
-                        <div className="col-span-2 space-y-2">
-                          <div>
-                            <h4 className="font-medium text-lg leading-tight">{book.title}</h4>
-                            {book.subtitle && (
-                              <p className="text-sm text-gray-600 mt-1">{book.subtitle}</p>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            {book.authors && book.authors.length > 0 && (
-                              <div className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
-                                <span>{book.authors.join(', ')}</span>
-                              </div>
-                            )}
-                            {book.published_date && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>{book.published_date}</span>
-                              </div>
-                            )}
-                            {book.publisher && (
-                              <div className="flex items-center gap-1">
-                                <Building className="w-4 h-4" />
-                                <span>{book.publisher}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {book.isbn && (
-                            <div className="text-sm text-gray-500">
-                              ISBN: {book.isbn}
-                            </div>
-                          )}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Search Results</h3>
+                <button
+                  onClick={clearSearch}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear Search
+                </button>
+              </div>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {searchResults.map((book) => (
+                  <div key={book.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{book.title}</h4>
+                        {book.subtitle && (
+                          <p className="text-sm text-muted-foreground mt-1">{book.subtitle}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          by {book.authors?.join(', ') || 'Unknown Author'}
+                        </p>
+                        <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
+                          {book.isbn && <span>ISBN: {book.isbn}</span>}
+                          {book.published_date && <span>Published: {book.published_date}</span>}
+                          {book.publisher && <span>Publisher: {book.publisher}</span>}
+                          {book.binding && <span>Format: {book.binding}</span>}
+                          {book.edition && <span>Edition: {book.edition}</span>}
                         </div>
-
-                        {/* Categories and Action */}
-                        <div className="space-y-3">
-                          {book.categories && book.categories.length > 0 && (
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-gray-700">Categories</h5>
-                              <div className="flex flex-wrap gap-1">
-                                {book.categories.slice(0, 3).map((category, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
-                                    {category}
-                                  </Badge>
-                                ))}
-                                {book.categories.length > 3 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    +{book.categories.length - 3}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          
-                          <Button 
-                            onClick={() => handleAddBook(book)}
-                            className="w-full"
-                            size="sm"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Book
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {book.description && (
-                        <div className="mt-4 pt-4 border-t">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Description</h5>
-                          <p className="text-sm text-gray-600 line-clamp-3">
+                        {book.description && (
+                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                             {book.description}
                           </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleAddBook(book)}
+                        className="ml-4 px-3 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm flex-shrink-0"
+                      >
+                        Add Book
+                      </button>
+                    </div>
+                  </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* No Results Message */}
+          {!isLoading && searchResults.length === 0 && (bookTitle.trim() || author.trim()) && !searchError && (
+            <div className="border rounded-lg p-8 text-center">
+              <div className="text-muted-foreground">
+                <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="text-lg mb-2">No books found</p>
+                <p className="text-sm">Try adjusting your search terms or check spelling</p>
               </div>
             </div>
           )}
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 } 
