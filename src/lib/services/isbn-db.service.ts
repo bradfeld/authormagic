@@ -399,8 +399,8 @@ class ISBNDBService {
       const url = `${this.baseUrl}/search${API_CONFIG.ISBN_DB.ENDPOINTS.BOOKS}?${searchParams}`
       const response = await this.makeRequest(url)
       
-      // The search endpoint returns data in a 'books' array
-      const books = response.books || [];
+      // The search endpoint returns data in a 'data' array
+      const books = response.data || [];
       
       // Apply intelligent ranking to surface primary editions first
       const rankedBooks = this.rankBooks(books, params.title);
@@ -433,7 +433,7 @@ class ISBNDBService {
       const response = await this.makeRequest(url)
       
       // The search endpoint returns data in a 'data' array
-      const books = response.books || [];
+      const books = response.data || [];
       console.log('ISBNDB Service: Text search extracted books:', books.length)
       
       // Apply intelligent ranking to surface primary editions first
