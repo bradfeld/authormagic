@@ -18,6 +18,13 @@ export type Database = {
           bio: string | null
           profile_image_url: string | null
           website_url: string | null
+          first_name: string | null
+          last_name: string | null
+          twitter_username: string | null
+          linkedin_url: string | null
+          facebook_url: string | null
+          github_username: string | null
+          goodreads_url: string | null
           created_at: string
           updated_at: string
         }
@@ -29,6 +36,13 @@ export type Database = {
           bio?: string | null
           profile_image_url?: string | null
           website_url?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          twitter_username?: string | null
+          linkedin_url?: string | null
+          facebook_url?: string | null
+          github_username?: string | null
+          goodreads_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -40,6 +54,13 @@ export type Database = {
           bio?: string | null
           profile_image_url?: string | null
           website_url?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          twitter_username?: string | null
+          linkedin_url?: string | null
+          facebook_url?: string | null
+          github_username?: string | null
+          goodreads_url?: string | null
           created_at?: string
           updated_at?: string
         }
