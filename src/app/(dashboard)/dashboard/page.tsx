@@ -14,9 +14,8 @@ export default async function DashboardPage() {
   }
 
   // Ensure user has an author profile
-  let authorProfile = null
   if (user) {
-    authorProfile = await authorProfileService.getOrCreateProfile(user.id, {
+    await authorProfileService.getOrCreateProfile(user.id, {
       clerk_user_id: user.id,
       name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
       first_name: user.firstName || null,
