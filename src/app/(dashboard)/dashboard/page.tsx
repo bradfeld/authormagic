@@ -1,9 +1,10 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, User } from 'lucide-react'
 import { BookManagementDashboard } from "@/components/book-management/BookManagementDashboard"
 import { authorProfileService } from '@/lib/services/author-profile.service'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -37,6 +38,13 @@ export default async function DashboardPage() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome back, {firstName}!</span>
+              <Link 
+                href="/dashboard/profile"
+                className="flex items-center space-x-1 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+              >
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
               <UserButton afterSignOutUrl="/" />
             </div>
           </div>
