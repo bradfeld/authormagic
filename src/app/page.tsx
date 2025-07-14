@@ -1,22 +1,29 @@
-'use client'
+'use client';
 
-import { useUser } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { SignInButton, SignUpButton } from '@clerk/nextjs'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, TrendingUp, Users, Zap } from 'lucide-react'
+import { useUser } from '@clerk/nextjs';
+import { SignInButton, SignUpButton } from '@clerk/nextjs';
+import { BookOpen, TrendingUp, Users, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export default function Home() {
-  const { isSignedIn, isLoaded } = useUser()
-  const router = useRouter()
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.push('/dashboard')
+      router.push('/dashboard');
     }
-  }, [isLoaded, isSignedIn, router])
+  }, [isLoaded, isSignedIn, router]);
 
   // Show loading state while authentication is being checked
   if (!isLoaded) {
@@ -27,17 +34,15 @@ export default function Home() {
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Don't render the page if user is signed in (will redirect)
   if (isSignedIn) {
-    return null
+    return null;
   }
 
-  return (
-    <HomePage />
-  )
+  return <HomePage />;
 }
 
 function HomePage() {
@@ -68,8 +73,9 @@ function HomePage() {
           <span className="block text-indigo-600">Made Simple</span>
         </h2>
         <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Empower your book&apos;s success with intelligent marketing automation, comprehensive sales analytics, 
-          and AI-driven content generation. Everything you need to market your book effectively.
+          Empower your book&apos;s success with intelligent marketing
+          automation, comprehensive sales analytics, and AI-driven content
+          generation. Everything you need to market your book effectively.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <SignUpButton>
@@ -94,7 +100,8 @@ function HomePage() {
               <TrendingUp className="h-12 w-12 text-indigo-600 mb-4" />
               <CardTitle>Sales Analytics</CardTitle>
               <CardDescription>
-                Track sales across all platforms with unified analytics and revenue attribution
+                Track sales across all platforms with unified analytics and
+                revenue attribution
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -112,7 +119,8 @@ function HomePage() {
               <Zap className="h-12 w-12 text-indigo-600 mb-4" />
               <CardTitle>AI Content Generation</CardTitle>
               <CardDescription>
-                Create compelling marketing content with Claude AI-powered generation
+                Create compelling marketing content with Claude AI-powered
+                generation
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -130,7 +138,8 @@ function HomePage() {
               <Users className="h-12 w-12 text-indigo-600 mb-4" />
               <CardTitle>Media Outreach</CardTitle>
               <CardDescription>
-                Connect with podcasters, bloggers, and media contacts effectively
+                Connect with podcasters, bloggers, and media contacts
+                effectively
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -152,7 +161,8 @@ function HomePage() {
             Ready to Transform Your Book Marketing?
           </h3>
           <p className="text-xl text-indigo-100 mb-8">
-            Join thousands of authors who have already boosted their book sales with AuthorMagic
+            Join thousands of authors who have already boosted their book sales
+            with AuthorMagic
           </p>
           <SignUpButton>
             <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
@@ -162,5 +172,5 @@ function HomePage() {
         </div>
       </section>
     </div>
-  )
+  );
 }

@@ -4,20 +4,25 @@
  */
 
 import { createServiceClient } from '@/lib/supabase/server';
-import { 
-  PrimaryBook, 
-  BookEdition, 
+import {
+  PrimaryBook,
+  BookEdition,
   BookBinding,
   PrimaryBookInsert,
   PrimaryBookEditionInsert,
-  PrimaryBookBindingInsert
+  PrimaryBookBindingInsert,
 } from '@/lib/types/primary-book';
 import { UIBook } from '@/lib/types/ui-book';
-import { EditionDetectionService, EditionGroup } from './edition-detection.service';
+
+import {
+  EditionDetectionService,
+  EditionGroup,
+} from './edition-detection.service';
 
 export class PrimaryBookService {
-  private static _supabase: ReturnType<typeof createServiceClient> | null = null;
-  
+  private static _supabase: ReturnType<typeof createServiceClient> | null =
+    null;
+
   private static getSupabase() {
     if (!this._supabase) {
       this._supabase = createServiceClient();
@@ -33,33 +38,36 @@ export class PrimaryBookService {
     title: string,
     author: string,
     searchResults: UIBook[],
-    selectedEditionNumber?: number
+    selectedEditionNumber?: number,
   ): Promise<PrimaryBook> {
     // Group books by edition
     const editionGroups = EditionDetectionService.groupByEdition(searchResults);
-    
+
     // Create primary book record
     const primaryBookData: PrimaryBookInsert = {
       user_id: userId,
       title,
       author,
-      selected_edition_id: undefined // Will be set after creating editions
+      selected_edition_id: undefined, // Will be set after creating editions
     };
 
-    const { data: primaryBook, error: primaryBookError } = await this.getSupabase()
-      .from('primary_books')
-      .insert(primaryBookData)
-      .select()
-      .single();
+    const { data: primaryBook, error: primaryBookError } =
+      await this.getSupabase()
+        .from('primary_books')
+        .insert(primaryBookData)
+        .select()
+        .single();
 
     if (primaryBookError) {
-      throw new Error(`Failed to create primary book: ${primaryBookError.message}`);
+      throw new Error(
+        `Failed to create primary book: ${primaryBookError.message}`,
+      );
     }
 
     // Create editions and bindings
     const editions = await this.createEditionsWithBindings(
       primaryBook.id,
-      editionGroups
+      editionGroups,
     );
 
     // Select the default edition (latest if not specified)
@@ -74,7 +82,7 @@ export class PrimaryBookService {
     return {
       ...primaryBook,
       editions,
-      selected_edition_id: selectedEdition?.id
+      selected_edition_id: selectedEdition?.id,
     };
   }
 
@@ -84,13 +92,15 @@ export class PrimaryBookService {
   static async getUserPrimaryBooks(userId: string): Promise<PrimaryBook[]> {
     const { data: primaryBooks, error } = await this.getSupabase()
       .from('primary_books')
-      .select(`
+      .select(
+        `
         *,
         editions:primary_book_editions (
           *,
           bindings:primary_book_bindings (*)
         )
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -102,8 +112,8 @@ export class PrimaryBookService {
       ...book,
       editions: book.editions.map((edition: BookEdition) => ({
         ...edition,
-        bindings: edition.bindings
-      }))
+        bindings: edition.bindings,
+      })),
     }));
   }
 
@@ -112,17 +122,19 @@ export class PrimaryBookService {
    */
   static async getPrimaryBookById(
     primaryBookId: string,
-    userId: string
+    userId: string,
   ): Promise<PrimaryBook | null> {
     const { data: primaryBook, error } = await this.getSupabase()
       .from('primary_books')
-      .select(`
+      .select(
+        `
         *,
         editions:primary_book_editions (
           *,
           bindings:primary_book_bindings (*)
         )
-      `)
+      `,
+      )
       .eq('id', primaryBookId)
       .eq('user_id', userId)
       .single();
@@ -138,8 +150,8 @@ export class PrimaryBookService {
       ...primaryBook,
       editions: primaryBook.editions.map((edition: BookEdition) => ({
         ...edition,
-        bindings: edition.bindings
-      }))
+        bindings: edition.bindings,
+      })),
     };
   }
 
@@ -148,7 +160,7 @@ export class PrimaryBookService {
    */
   static async updateSelectedEdition(
     primaryBookId: string,
-    editionId: string
+    editionId: string,
   ): Promise<void> {
     const { error } = await this.getSupabase()
       .from('primary_books')
@@ -165,7 +177,7 @@ export class PrimaryBookService {
    */
   static async deletePrimaryBook(
     primaryBookId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const { error } = await this.getSupabase()
       .from('primary_books')
@@ -184,17 +196,19 @@ export class PrimaryBookService {
   static async findExistingPrimaryBook(
     userId: string,
     title: string,
-    author: string
+    author: string,
   ): Promise<PrimaryBook | null> {
     const { data: primaryBook, error } = await this.getSupabase()
       .from('primary_books')
-      .select(`
+      .select(
+        `
         *,
         editions:primary_book_editions (
           *,
           bindings:primary_book_bindings (*)
         )
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .eq('title', title)
       .eq('author', author)
@@ -204,15 +218,17 @@ export class PrimaryBookService {
       if (error.code === 'PGRST116') {
         return null; // Not found
       }
-      throw new Error(`Failed to check existing primary book: ${error.message}`);
+      throw new Error(
+        `Failed to check existing primary book: ${error.message}`,
+      );
     }
 
     return {
       ...primaryBook,
       editions: primaryBook.editions.map((edition: BookEdition) => ({
         ...edition,
-        bindings: edition.bindings
-      }))
+        bindings: edition.bindings,
+      })),
     };
   }
 
@@ -222,7 +238,7 @@ export class PrimaryBookService {
   static async addEditionsToPrimaryBook(
     primaryBookId: string,
     userId: string,
-    newBooks: UIBook[]
+    newBooks: UIBook[],
   ): Promise<BookEdition[]> {
     // Verify ownership
     const existingBook = await this.getPrimaryBookById(primaryBookId, userId);
@@ -232,11 +248,13 @@ export class PrimaryBookService {
 
     // Group new books by edition
     const editionGroups = EditionDetectionService.groupByEdition(newBooks);
-    
+
     // Filter out editions that already exist
-    const existingEditionNumbers = existingBook.editions.map(e => e.edition_number);
+    const existingEditionNumbers = existingBook.editions.map(
+      e => e.edition_number,
+    );
     const newEditionGroups = editionGroups.filter(
-      group => !existingEditionNumbers.includes(group.edition_number)
+      group => !existingEditionNumbers.includes(group.edition_number),
     );
 
     if (newEditionGroups.length === 0) {
@@ -244,7 +262,10 @@ export class PrimaryBookService {
     }
 
     // Create new editions
-    return await this.createEditionsWithBindings(primaryBookId, newEditionGroups);
+    return await this.createEditionsWithBindings(
+      primaryBookId,
+      newEditionGroups,
+    );
   }
 
   /**
@@ -252,7 +273,7 @@ export class PrimaryBookService {
    */
   private static async createEditionsWithBindings(
     primaryBookId: string,
-    editionGroups: EditionGroup[]
+    editionGroups: EditionGroup[],
   ): Promise<BookEdition[]> {
     const editions: BookEdition[] = [];
 
@@ -261,7 +282,7 @@ export class PrimaryBookService {
       const editionData: PrimaryBookEditionInsert = {
         primary_book_id: primaryBookId,
         edition_number: group.edition_number,
-        publication_year: group.publication_year
+        publication_year: group.publication_year,
       };
 
       const { data: edition, error: editionError } = await this.getSupabase()
@@ -284,7 +305,7 @@ export class PrimaryBookService {
         cover_image_url: book.image,
         description: book.synopsis,
         pages: book.pages ? parseInt(book.pages.toString()) : undefined,
-        language: book.language || 'en'
+        language: book.language || 'en',
       }));
 
       const { data: bindings, error: bindingsError } = await this.getSupabase()
@@ -298,7 +319,7 @@ export class PrimaryBookService {
 
       editions.push({
         ...edition,
-        bindings: bindings || []
+        bindings: bindings || [],
       });
     }
 
@@ -310,7 +331,9 @@ export class PrimaryBookService {
    */
   static getEditionDisplayInfo(edition: BookEdition): string {
     const ordinal = this.getOrdinal(edition.edition_number);
-    const year = edition.publication_year ? ` (${edition.publication_year})` : '';
+    const year = edition.publication_year
+      ? ` (${edition.publication_year})`
+      : '';
     return `${ordinal} Edition${year}`;
   }
 
@@ -319,12 +342,12 @@ export class PrimaryBookService {
    */
   static getBindingDisplayName(binding: BookBinding): string {
     const typeMap: { [key: string]: string } = {
-      'hardcover': 'Hardcover',
-      'paperback': 'Paperback',
+      hardcover: 'Hardcover',
+      paperback: 'Paperback',
       'mass market paperback': 'Mass Market Paperback',
-      'ebook': 'eBook',
-      'audiobook': 'Audiobook',
-      'unknown': 'Unknown'
+      ebook: 'eBook',
+      audiobook: 'Audiobook',
+      unknown: 'Unknown',
     };
 
     return typeMap[binding.binding_type] || binding.binding_type;
@@ -344,36 +367,36 @@ export class PrimaryBookService {
    */
   private static normalizeBindingType(binding?: string): string {
     if (!binding) return 'unknown';
-    
+
     const normalized = binding.toLowerCase().trim();
-    
+
     // Map common variations to standard types
     const bindingMap: { [key: string]: string } = {
-      'hardcover': 'hardcover',
-      'hardback': 'hardcover',
+      hardcover: 'hardcover',
+      hardback: 'hardcover',
       'hard cover': 'hardcover',
-      'hc': 'hardcover',
-      
-      'paperback': 'paperback',
-      'softcover': 'paperback',
+      hc: 'hardcover',
+
+      paperback: 'paperback',
+      softcover: 'paperback',
       'soft cover': 'paperback',
-      'pb': 'paperback',
+      pb: 'paperback',
       'trade paperback': 'paperback',
-      
-      'ebook': 'ebook',
+
+      ebook: 'ebook',
       'e-book': 'ebook',
-      'digital': 'ebook',
-      'kindle': 'ebook',
-      
-      'audiobook': 'audiobook',
+      digital: 'ebook',
+      kindle: 'ebook',
+
+      audiobook: 'audiobook',
       'audio book': 'audiobook',
-      'audio': 'audiobook',
-      
+      audio: 'audiobook',
+
       'mass market': 'mass market paperback',
       'mass market paperback': 'mass market paperback',
-      'mmpb': 'mass market paperback'
+      mmpb: 'mass market paperback',
     };
-    
+
     return bindingMap[normalized] || normalized;
   }
 
@@ -389,31 +412,34 @@ export class PrimaryBookService {
     const totalEditions = primaryBook.editions.length;
     const totalBindings = primaryBook.editions.reduce(
       (sum, edition) => sum + edition.bindings.length,
-      0
+      0,
     );
-    
+
     const bindingTypes = Array.from(
       new Set(
         primaryBook.editions.flatMap(edition =>
-          edition.bindings.map(binding => binding.binding_type)
-        )
-      )
+          edition.bindings.map(binding => binding.binding_type),
+        ),
+      ),
     );
 
     const years = primaryBook.editions
       .map(edition => edition.publication_year)
       .filter(year => year !== undefined) as number[];
 
-    const yearRange = years.length > 0 ? {
-      earliest: Math.min(...years),
-      latest: Math.max(...years)
-    } : {};
+    const yearRange =
+      years.length > 0
+        ? {
+            earliest: Math.min(...years),
+            latest: Math.max(...years),
+          }
+        : {};
 
     return {
       totalEditions,
       totalBindings,
       bindingTypes,
-      yearRange
+      yearRange,
     };
   }
-} 
+}

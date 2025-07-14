@@ -1,8 +1,15 @@
-'use client'
+'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { UIBook } from '@/lib/types/ui-book';
 
 interface AddBookDialogProps {
@@ -13,18 +20,20 @@ interface AddBookDialogProps {
   userId?: string;
 }
 
-export function AddBookDialog({ 
-  children, 
-  isOpen, 
-  onOpenChange, 
+export function AddBookDialog({
+  children,
+  isOpen,
+  onOpenChange,
   onBookAdded,
-  userId 
+  userId,
 }: AddBookDialogProps) {
   const [bookTitle, setBookTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [searchResults, setSearchResults] = useState<UIBook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchType, setSearchType] = useState<'title-author' | 'isbn'>('title-author');
+  const [searchType, setSearchType] = useState<'title-author' | 'isbn'>(
+    'title-author',
+  );
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -45,16 +54,21 @@ export function AddBookDialog({
 
     try {
       // Auto-detect if input looks like ISBN
-      const isISBN = /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(bookTitle.trim());
-      
+      const isISBN =
+        /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(
+          bookTitle.trim(),
+        );
+
       if (isISBN) {
         setSearchType('isbn');
-        const response = await fetch(`/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`);
-        
+        const response = await fetch(
+          `/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`,
+        );
+
         if (!response.ok) {
           throw new Error('Failed to search by ISBN');
         }
-        
+
         const result = await response.json();
         setSearchResults(result.books || []);
       } else {
@@ -62,19 +76,23 @@ export function AddBookDialog({
         const queryParams = new URLSearchParams();
         if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
         if (author.trim()) queryParams.append('author', author.trim());
-        
+
         const response = await fetch(`/api/books/title-author?${queryParams}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to search books');
         }
-        
+
         const result = await response.json();
         setSearchResults(result.books || []);
       }
     } catch (error) {
       console.error('Search error:', error);
-      setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.');
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : 'Search failed. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -138,14 +156,14 @@ export function AddBookDialog({
       }
 
       await response.json();
-      
+
       // Clear search results and close dialog
       setSearchResults([]);
       setBookTitle('');
       setAuthor('');
       setSearchError(null);
       onOpenChange(false);
-      
+
       // Refresh the book list
       if (onBookAdded) {
         onBookAdded();
@@ -166,14 +184,12 @@ export function AddBookDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Book</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Unified Search Interface */}
           <div className="border rounded-lg p-4 space-y-4">
@@ -181,14 +197,14 @@ export function AddBookDialog({
               <Search className="w-5 h-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">Search for Book</h3>
             </div>
-            
+
             {/* Search Error Display */}
             {searchError && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                 <p className="text-sm text-destructive">{searchError}</p>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Book Title Field */}
               <div className="space-y-2">
@@ -199,7 +215,7 @@ export function AddBookDialog({
                   id="bookTitle"
                   type="text"
                   value={bookTitle}
-                  onChange={(e) => setBookTitle(e.target.value)}
+                  onChange={e => setBookTitle(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Enter book title or ISBN"
                   className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
@@ -209,7 +225,7 @@ export function AddBookDialog({
                   Enter book title or ISBN number
                 </p>
               </div>
-              
+
               {/* Author Field */}
               <div className="space-y-2">
                 <label htmlFor="author" className="text-sm font-medium">
@@ -219,7 +235,7 @@ export function AddBookDialog({
                   id="author"
                   type="text"
                   value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
+                  onChange={e => setAuthor(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Enter author name"
                   className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
@@ -230,7 +246,7 @@ export function AddBookDialog({
                 </p>
               </div>
             </div>
-            
+
             {/* Search Button with Loading State */}
             <div className="flex justify-end">
               <button
@@ -251,12 +267,14 @@ export function AddBookDialog({
                 )}
               </button>
             </div>
-            
+
             {/* Search Type Indicator */}
             {searchResults.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full">
-                  {searchType === 'isbn' ? 'ISBN Search' : 'Title & Author Search'}
+                  {searchType === 'isbn'
+                    ? 'ISBN Search'
+                    : 'Title & Author Search'}
                 </span>
                 <span>Found {searchResults.length} results</span>
               </div>
@@ -276,21 +294,30 @@ export function AddBookDialog({
                 </button>
               </div>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {searchResults.map((book) => (
-                  <div key={book.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                {searchResults.map(book => (
+                  <div
+                    key={book.id}
+                    className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-medium">{book.title}</h4>
                         {book.subtitle && (
-                          <p className="text-sm text-muted-foreground mt-1">{book.subtitle}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {book.subtitle}
+                          </p>
                         )}
                         <p className="text-sm text-muted-foreground">
                           by {book.authors?.join(', ') || 'Unknown Author'}
                         </p>
                         <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
                           {book.isbn && <span>ISBN: {book.isbn}</span>}
-                          {book.published_date && <span>Published: {book.published_date}</span>}
-                          {book.publisher && <span>Publisher: {book.publisher}</span>}
+                          {book.published_date && (
+                            <span>Published: {book.published_date}</span>
+                          )}
+                          {book.publisher && (
+                            <span>Publisher: {book.publisher}</span>
+                          )}
                           {book.binding && <span>Format: {book.binding}</span>}
                           {book.edition && <span>Edition: {book.edition}</span>}
                         </div>
@@ -314,17 +341,22 @@ export function AddBookDialog({
           )}
 
           {/* No Results Message */}
-          {!isLoading && searchResults.length === 0 && (bookTitle.trim() || author.trim()) && !searchError && (
-            <div className="border rounded-lg p-8 text-center">
-              <div className="text-muted-foreground">
-                <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="text-lg mb-2">No books found</p>
-                <p className="text-sm">Try adjusting your search terms or check spelling</p>
+          {!isLoading &&
+            searchResults.length === 0 &&
+            (bookTitle.trim() || author.trim()) &&
+            !searchError && (
+              <div className="border rounded-lg p-8 text-center">
+                <div className="text-muted-foreground">
+                  <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-lg mb-2">No books found</p>
+                  <p className="text-sm">
+                    Try adjusting your search terms or check spelling
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </DialogContent>
     </Dialog>
   );
-} 
+}

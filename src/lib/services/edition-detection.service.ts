@@ -3,8 +3,8 @@
  * Groups books by edition using multiple detection strategies
  */
 
-import { UIBook } from '@/lib/types/ui-book';
 import { BookEdition, BookBinding } from '@/lib/types/primary-book';
+import { UIBook } from '@/lib/types/ui-book';
 
 export interface EditionGroup {
   edition_number: number;
@@ -19,31 +19,38 @@ export class EditionDetectionService {
    */
   static groupByEdition(books: UIBook[]): EditionGroup[] {
     // First, identify print editions (non-audiobook formats)
-    const printBooks = books.filter(book => !this.isAudiobookFormat(book.print_type));
-    const audiobooks = books.filter(book => this.isAudiobookFormat(book.print_type));
-    
+    const printBooks = books.filter(
+      book => !this.isAudiobookFormat(book.print_type),
+    );
+    const audiobooks = books.filter(book =>
+      this.isAudiobookFormat(book.print_type),
+    );
+
     // Create initial groups from print books
     const editionGroups = new Map<string, EditionGroup>();
-    
+
     for (const book of printBooks) {
       const editionKey = this.detectEditionKey(book);
-      
+
       if (!editionGroups.has(editionKey)) {
         const editionType = this.extractEditionType(book);
         editionGroups.set(editionKey, {
           edition_number: this.extractEditionNumber(book),
           edition_type: editionType,
           publication_year: this.extractPublicationYear(book),
-          books: []
+          books: [],
         });
       }
-      
+
       editionGroups.get(editionKey)!.books.push(book);
     }
-    
+
     // Now process audiobooks with enhanced algorithm
     for (const audiobook of audiobooks) {
-      const audiobookGroup = this.groupAudiobookWithEdition(audiobook, editionGroups);
+      const audiobookGroup = this.groupAudiobookWithEdition(
+        audiobook,
+        editionGroups,
+      );
       if (audiobookGroup) {
         audiobookGroup.books.push(audiobook);
       } else {
@@ -55,24 +62,23 @@ export class EditionDetectionService {
             edition_number: this.extractEditionNumber(audiobook),
             edition_type: editionType,
             publication_year: this.extractPublicationYear(audiobook),
-            books: []
+            books: [],
           });
         }
         editionGroups.get(editionKey)!.books.push(audiobook);
       }
     }
-    
+
     // Sort by edition type first (special editions last), then by edition number descending
-    return Array.from(editionGroups.values())
-      .sort((a, b) => {
-        // Special editions come after numeric editions
-        if (a.edition_type && !b.edition_type) return 1;
-        if (!a.edition_type && b.edition_type) return -1;
-        if (a.edition_type && b.edition_type) {
-          return a.edition_type.localeCompare(b.edition_type);
-        }
-        return b.edition_number - a.edition_number;
-      });
+    return Array.from(editionGroups.values()).sort((a, b) => {
+      // Special editions come after numeric editions
+      if (a.edition_type && !b.edition_type) return 1;
+      if (!a.edition_type && b.edition_type) return -1;
+      if (a.edition_type && b.edition_type) {
+        return a.edition_type.localeCompare(b.edition_type);
+      }
+      return b.edition_number - a.edition_number;
+    });
   }
 
   /**
@@ -80,20 +86,20 @@ export class EditionDetectionService {
    */
   private static isAudiobookFormat(printType?: string): boolean {
     if (!printType) return false;
-    
+
     const audioFormats = [
       'mp3 cd',
       'mp3_cd',
-      'audio cd', 
+      'audio cd',
       'audio_cd',
       'audiobook',
       'audible',
       'audio book',
       'audio_book',
       'audio',
-      'cd'
+      'cd',
     ];
-    
+
     const normalized = printType.toLowerCase().trim();
     return audioFormats.some(format => normalized.includes(format));
   }
@@ -102,8 +108,8 @@ export class EditionDetectionService {
    * Group audiobook with appropriate print edition based on title and date
    */
   private static groupAudiobookWithEdition(
-    audiobook: UIBook, 
-    editionGroups: Map<string, EditionGroup>
+    audiobook: UIBook,
+    editionGroups: Map<string, EditionGroup>,
   ): EditionGroup | null {
     // Primary strategy: Check if audiobook title contains edition information
     const titleEdition = this.extractEditionFromTitle(audiobook.title);
@@ -115,47 +121,49 @@ export class EditionDetectionService {
         }
       }
     }
-    
+
     // Secondary strategy: Date-based grouping
     const audiobookYear = this.extractPublicationYear(audiobook);
     if (audiobookYear) {
-      
       // Get all print editions sorted by edition number
       const printEditions = Array.from(editionGroups.values())
         .filter(group => !group.edition_type) // Only numeric editions
         .sort((a, b) => a.edition_number - b.edition_number);
-      
+
       if (printEditions.length > 0) {
         // Find the appropriate edition based on date ranges
         for (let i = 0; i < printEditions.length; i++) {
           const currentEdition = printEditions[i];
           const nextEdition = printEditions[i + 1];
-          
+
           const currentEditionYear = currentEdition.publication_year;
           const nextEditionYear = nextEdition?.publication_year;
-          
+
           if (currentEditionYear) {
             // Check if audiobook falls within this edition's date range
             const isAfterCurrent = audiobookYear >= currentEditionYear;
-            const isBeforeNext = !nextEditionYear || audiobookYear < nextEditionYear;
-            
+            const isBeforeNext =
+              !nextEditionYear || audiobookYear < nextEditionYear;
+
             // If audiobook is within the date range, group it with this edition
             if (isAfterCurrent && isBeforeNext) {
               return currentEdition;
             }
           }
         }
-        
+
         // If no specific match found, check if it's close to any edition (within 2 years)
         for (const edition of printEditions) {
-          if (edition.publication_year && 
-              Math.abs(audiobookYear - edition.publication_year) <= 2) {
+          if (
+            edition.publication_year &&
+            Math.abs(audiobookYear - edition.publication_year) <= 2
+          ) {
             return edition;
           }
         }
       }
     }
-    
+
     return null;
   }
 
@@ -166,10 +174,21 @@ export class EditionDetectionService {
     // Handle special content_version values that aren't numeric editions
     if (book.content_version && book.content_version !== '') {
       const versionStr = book.content_version.toLowerCase();
-      
+
       // Special edition types that should be treated as separate editions
-      const specialEditions = ['unabridged', 'abridged', 'revised', 'updated', 'expanded', 'annotated', 'illustrated', 'deluxe', 'limited', 'special'];
-      
+      const specialEditions = [
+        'unabridged',
+        'abridged',
+        'revised',
+        'updated',
+        'expanded',
+        'annotated',
+        'illustrated',
+        'deluxe',
+        'limited',
+        'special',
+      ];
+
       for (const special of specialEditions) {
         if (versionStr.includes(special)) {
           const key = `edition-${special}`;
@@ -177,7 +196,7 @@ export class EditionDetectionService {
         }
       }
     }
-    
+
     // Use normalized edition number to create consistent keys for numeric editions
     const editionNum = this.extractEditionNumber(book);
     const key = `edition-${editionNum}`;
@@ -190,17 +209,28 @@ export class EditionDetectionService {
   private static extractEditionType(book: UIBook): string | undefined {
     if (book.content_version && book.content_version !== '') {
       const versionStr = book.content_version.toLowerCase();
-      
+
       // Special edition types that should be treated as separate editions
-      const specialEditions = ['unabridged', 'abridged', 'revised', 'updated', 'expanded', 'annotated', 'illustrated', 'deluxe', 'limited', 'special'];
-      
+      const specialEditions = [
+        'unabridged',
+        'abridged',
+        'revised',
+        'updated',
+        'expanded',
+        'annotated',
+        'illustrated',
+        'deluxe',
+        'limited',
+        'special',
+      ];
+
       for (const special of specialEditions) {
         if (versionStr.includes(special)) {
           return special;
         }
       }
     }
-    
+
     return undefined;
   }
 
@@ -212,7 +242,7 @@ export class EditionDetectionService {
     if (book.content_version && book.content_version !== '') {
       // Handle different content_version formats
       const versionStr = book.content_version.toLowerCase();
-      
+
       // Extract number from formats like "2nd", "2", "1st", "1"
       let editionNum: number;
       if (versionStr.includes('2nd') || versionStr === '2') {
@@ -225,20 +255,20 @@ export class EditionDetectionService {
         // Try to parse as integer
         editionNum = parseInt(versionStr, 10);
       }
-      
+
       // Filter out numbers that are too high to be realistic edition numbers
       // Years like "2011" should not be treated as editions
       if (!isNaN(editionNum) && editionNum > 0 && editionNum <= 99) {
         return editionNum;
       }
     }
-    
+
     // Strategy 2: Extract from title
     const titleEdition = this.extractEditionFromTitle(book.title);
     if (titleEdition > 1) {
       return titleEdition;
     }
-    
+
     // Strategy 3: Use publication year as rough edition indicator
     const year = this.extractPublicationYear(book);
     if (year) {
@@ -246,16 +276,16 @@ export class EditionDetectionService {
       // This is imperfect but gives some ordering
       return year >= 2020 ? 2 : 1;
     }
-    
+
     return 1; // Default to first edition
   }
 
   /**
    * Extract edition number from book title
    */
-    private static extractEditionFromTitle(title: string): number {
+  private static extractEditionFromTitle(title: string): number {
     if (!title) return 1;
-    
+
     // Common patterns for edition in titles
     const patterns = [
       /(\d+)(?:st|nd|rd|th)?\s+edition/i,
@@ -264,7 +294,7 @@ export class EditionDetectionService {
       /ed\.?\s+(\d+)/i,
       /revised\s+edition/i, // Treat as 2nd edition
       /updated\s+edition/i, // Treat as 2nd edition
-      /new\s+edition/i,     // Treat as 2nd edition
+      /new\s+edition/i, // Treat as 2nd edition
     ];
 
     for (const pattern of patterns) {
@@ -298,7 +328,7 @@ export class EditionDetectionService {
         return year;
       }
     }
-    
+
     // Strategy 2: Try published_date field (alternative naming)
     if (book.published_date) {
       const year = parseInt(book.published_date.substring(0, 4), 10);
@@ -306,7 +336,7 @@ export class EditionDetectionService {
         return year;
       }
     }
-    
+
     // Strategy 3: Extract from title (sometimes has year)
     const titleYearMatch = book.title.match(/\((\d{4})\)/);
     if (titleYearMatch) {
@@ -315,7 +345,7 @@ export class EditionDetectionService {
         return year;
       }
     }
-    
+
     return undefined;
   }
 
@@ -324,7 +354,7 @@ export class EditionDetectionService {
    */
   static convertToBookEditions(
     editionGroups: EditionGroup[],
-    primaryBookId: string
+    primaryBookId: string,
   ): BookEdition[] {
     return editionGroups.map(group => ({
       id: '', // Will be generated by database
@@ -332,14 +362,17 @@ export class EditionDetectionService {
       edition_number: group.edition_number,
       publication_year: group.publication_year,
       created_at: new Date().toISOString(),
-      bindings: this.convertToBookBindings(group.books, '')
+      bindings: this.convertToBookBindings(group.books, ''),
     }));
   }
 
   /**
    * Convert UI books to book bindings
    */
-  private static convertToBookBindings(books: UIBook[], editionId: string): BookBinding[] {
+  private static convertToBookBindings(
+    books: UIBook[],
+    editionId: string,
+  ): BookBinding[] {
     return books.map(book => {
       return {
         id: '', // Will be generated by database
@@ -352,7 +385,7 @@ export class EditionDetectionService {
         description: book.description,
         pages: book.page_count,
         language: book.language || 'en',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
     });
   }
@@ -364,45 +397,45 @@ export class EditionDetectionService {
     if (!binding) {
       return 'unknown';
     }
-    
+
     const normalized = binding.toLowerCase().trim();
-    
+
     // Map common variations to standard types
     const bindingMap: { [key: string]: string } = {
-      'hardcover': 'hardcover',
-      'hardback': 'hardcover',
+      hardcover: 'hardcover',
+      hardback: 'hardcover',
       'hard cover': 'hardcover',
-      'hc': 'hardcover',
-      
-      'paperback': 'paperback',
-      'softcover': 'paperback',
+      hc: 'hardcover',
+
+      paperback: 'paperback',
+      softcover: 'paperback',
       'soft cover': 'paperback',
-      'pb': 'paperback',
+      pb: 'paperback',
       'trade paperback': 'paperback',
-      
-      'ebook': 'ebook',
+
+      ebook: 'ebook',
       'e-book': 'ebook',
-      'digital': 'ebook',
-      'kindle': 'ebook',
+      digital: 'ebook',
+      kindle: 'ebook',
       'kindle edition': 'ebook',
-      'epub': 'ebook',
-      
-      'audiobook': 'audiobook',
+      epub: 'ebook',
+
+      audiobook: 'audiobook',
       'audio book': 'audiobook',
-      'audio_book': 'audiobook',
-      'audio': 'audiobook',
+      audio_book: 'audiobook',
+      audio: 'audiobook',
       'mp3 cd': 'audiobook',
-      'mp3_cd': 'audiobook',
+      mp3_cd: 'audiobook',
       'audio cd': 'audiobook',
-      'audio_cd': 'audiobook',
-      'audible': 'audiobook',
-      'cd': 'audiobook',
-      
+      audio_cd: 'audiobook',
+      audible: 'audiobook',
+      cd: 'audiobook',
+
       'mass market': 'mass market paperback',
       'mass market paperback': 'mass market paperback',
-      'mmpb': 'mass market paperback'
+      mmpb: 'mass market paperback',
     };
-    
+
     const result = bindingMap[normalized] || normalized;
     return result;
   }
@@ -413,13 +446,19 @@ export class EditionDetectionService {
   static getEditionDisplayName(edition: EditionGroup): string {
     if (edition.edition_type) {
       // Special edition type - capitalize first letter
-      const displayType = edition.edition_type.charAt(0).toUpperCase() + edition.edition_type.slice(1);
-      const year = edition.publication_year ? ` (${edition.publication_year})` : '';
+      const displayType =
+        edition.edition_type.charAt(0).toUpperCase() +
+        edition.edition_type.slice(1);
+      const year = edition.publication_year
+        ? ` (${edition.publication_year})`
+        : '';
       return `${displayType} Edition${year}`;
     } else {
       // Numeric edition
       const ordinal = this.getOrdinal(edition.edition_number);
-      const year = edition.publication_year ? ` (${edition.publication_year})` : '';
+      const year = edition.publication_year
+        ? ` (${edition.publication_year})`
+        : '';
       return `${ordinal} Edition${year}`;
     }
   }
@@ -432,4 +471,4 @@ export class EditionDetectionService {
     const v = num % 100;
     return num + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
   }
-} 
+}

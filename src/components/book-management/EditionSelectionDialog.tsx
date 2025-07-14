@@ -1,14 +1,31 @@
-'use client'
+'use client';
 
-import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, BookOpen, Calendar, Building, Languages } from 'lucide-react';
-import { UIBook } from '@/lib/types/ui-book';
-import { EditionDetectionService, EditionGroup } from '@/lib/services/edition-detection.service';
+import {
+  Search,
+  Loader2,
+  BookOpen,
+  Calendar,
+  Building,
+  Languages,
+} from 'lucide-react';
+import { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  EditionDetectionService,
+  EditionGroup,
+} from '@/lib/services/edition-detection.service';
 import { PrimaryBookService } from '@/lib/services/primary-book.service';
+import { UIBook } from '@/lib/types/ui-book';
 
 interface EditionSelectionDialogProps {
   children: React.ReactNode;
@@ -17,18 +34,20 @@ interface EditionSelectionDialogProps {
   onBookAdded?: () => void;
 }
 
-export function EditionSelectionDialog({ 
-  children, 
-  isOpen, 
-  onOpenChange, 
-  onBookAdded
+export function EditionSelectionDialog({
+  children,
+  isOpen,
+  onOpenChange,
+  onBookAdded,
 }: EditionSelectionDialogProps) {
   const { user } = useUser();
   const [bookTitle, setBookTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [searchResults, setSearchResults] = useState<UIBook[]>([]);
   const [editionGroups, setEditionGroups] = useState<EditionGroup[]>([]);
-  const [selectedEdition, setSelectedEdition] = useState<EditionGroup | null>(null);
+  const [selectedEdition, setSelectedEdition] = useState<EditionGroup | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // const [searchType, setSearchType] = useState<'title-author' | 'isbn'>('title-author'); // TODO: Implement search type selection
@@ -56,20 +75,25 @@ export function EditionSelectionDialog({
       let groups: EditionGroup[] = [];
 
       // Auto-detect if input looks like ISBN
-      const isISBN = /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(bookTitle.trim());
-      
+      const isISBN =
+        /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(
+          bookTitle.trim(),
+        );
+
       if (isISBN) {
         // setSearchType('isbn'); // TODO: Implement search type selection
-        const response = await fetch(`/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`);
-        
+        const response = await fetch(
+          `/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`,
+        );
+
         if (!response.ok) {
           throw new Error('Failed to search by ISBN');
         }
-        
+
         const result = await response.json();
         const books = result.books || [];
         setSearchResults(books);
-        
+
         // Group results by edition for ISBN search
         groups = EditionDetectionService.groupByEdition(books);
         setEditionGroups(groups);
@@ -78,17 +102,17 @@ export function EditionSelectionDialog({
         const queryParams = new URLSearchParams();
         if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
         if (author.trim()) queryParams.append('author', author.trim());
-        
+
         const response = await fetch(`/api/books/title-author?${queryParams}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to search books');
         }
-        
+
         const result = await response.json();
         const books = result.books || [];
         setSearchResults(books);
-        
+
         // Group results by edition for title-author search
         groups = EditionDetectionService.groupByEdition(books);
         setEditionGroups(groups);
@@ -103,7 +127,11 @@ export function EditionSelectionDialog({
       setStep('select-edition');
     } catch (error) {
       console.error('Search error:', error);
-      setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.');
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : 'Search failed. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +146,7 @@ export function EditionSelectionDialog({
       const existing = await PrimaryBookService.findExistingPrimaryBook(
         user.id,
         bookTitle,
-        author
+        author,
       );
 
       if (existing) {
@@ -132,13 +160,13 @@ export function EditionSelectionDialog({
         bookTitle,
         author,
         selectedEdition.books,
-        selectedEdition.edition_number
+        selectedEdition.edition_number,
       );
 
       // Clear search and close dialog
       clearSearch();
       onOpenChange(false);
-      
+
       // Refresh the book list
       if (onBookAdded) {
         onBookAdded();
@@ -178,7 +206,7 @@ export function EditionSelectionDialog({
 
   const groupBindings = (books: UIBook[]) => {
     const bindingGroups = new Map<string, UIBook[]>();
-    
+
     books.forEach(book => {
       const formattedBinding = formatBindingType(book.print_type || 'unknown');
       if (!bindingGroups.has(formattedBinding)) {
@@ -198,14 +226,14 @@ export function EditionSelectionDialog({
           <Search className="w-5 h-5 text-muted-foreground" />
           <h3 className="text-lg font-semibold">Search for Book</h3>
         </div>
-        
+
         {/* Search Error Display */}
         {searchError && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
             <p className="text-sm text-destructive">{searchError}</p>
           </div>
         )}
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="bookTitle" className="text-sm font-medium">
@@ -215,7 +243,7 @@ export function EditionSelectionDialog({
               id="bookTitle"
               type="text"
               value={bookTitle}
-              onChange={(e) => setBookTitle(e.target.value)}
+              onChange={e => setBookTitle(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Enter book title or ISBN"
               className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
@@ -225,7 +253,7 @@ export function EditionSelectionDialog({
               Enter book title or ISBN number
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <label htmlFor="author" className="text-sm font-medium">
               Author
@@ -234,7 +262,7 @@ export function EditionSelectionDialog({
               id="author"
               type="text"
               value={author}
-              onChange={(e) => setAuthor(e.target.value)}
+              onChange={e => setAuthor(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Enter author name"
               className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
@@ -245,7 +273,7 @@ export function EditionSelectionDialog({
             </p>
           </div>
         </div>
-        
+
         <div className="flex justify-end">
           <Button
             onClick={handleUnifiedSearch}
@@ -267,15 +295,20 @@ export function EditionSelectionDialog({
       </div>
 
       {/* No Results Message */}
-      {!isLoading && searchResults.length === 0 && (bookTitle.trim() || author.trim()) && !searchError && (
-        <div className="border rounded-lg p-8 text-center">
-          <div className="text-muted-foreground">
-            <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-lg mb-2">No books found</p>
-            <p className="text-sm">Try adjusting your search terms or check spelling</p>
+      {!isLoading &&
+        searchResults.length === 0 &&
+        (bookTitle.trim() || author.trim()) &&
+        !searchError && (
+          <div className="border rounded-lg p-8 text-center">
+            <div className="text-muted-foreground">
+              <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-lg mb-2">No books found</p>
+              <p className="text-sm">
+                Try adjusting your search terms or check spelling
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 
@@ -298,11 +331,11 @@ export function EditionSelectionDialog({
       {editionGroups.length > 0 && (
         <div className="space-y-4">
           {editionGroups.map((edition, index) => (
-            <div 
+            <div
               key={index}
               className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                selectedEdition === edition 
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                selectedEdition === edition
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                   : 'border-border hover:border-primary/50'
               }`}
               onClick={() => setSelectedEdition(edition)}
@@ -318,7 +351,7 @@ export function EditionSelectionDialog({
                       <Badge variant="secondary">Selected</Badge>
                     )}
                   </div>
-                  
+
                   {/* Edition Info */}
                   <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
                     {edition.publication_year && (
@@ -328,7 +361,10 @@ export function EditionSelectionDialog({
                       </div>
                     )}
                     <div className="flex items-center gap-1">
-                      <span>{edition.books.length} book{edition.books.length !== 1 ? 's' : ''}</span>
+                      <span>
+                        {edition.books.length} book
+                        {edition.books.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
                   </div>
 
@@ -336,23 +372,20 @@ export function EditionSelectionDialog({
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Available Bindings:</p>
                     <div className="flex flex-wrap gap-2">
-                      {Array.from(groupBindings(edition.books)).map(([bindingType, books]) => (
-                        <Badge 
-                          key={bindingType}
-                          variant="outline"
-                        >
-                          {books.length > 1 ? (
-                            `${bindingType} (${books.length})`
-                          ) : (
-                            bindingType
-                          )}
-                          {books[0].msrp && (
-                            <span className="ml-1 opacity-70">
-                              ${books[0].msrp}
-                            </span>
-                          )}
-                        </Badge>
-                      ))}
+                      {Array.from(groupBindings(edition.books)).map(
+                        ([bindingType, books]) => (
+                          <Badge key={bindingType} variant="outline">
+                            {books.length > 1
+                              ? `${bindingType} (${books.length})`
+                              : bindingType}
+                            {books[0].msrp && (
+                              <span className="ml-1 opacity-70">
+                                ${books[0].msrp}
+                              </span>
+                            )}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -376,7 +409,7 @@ export function EditionSelectionDialog({
                           </div>
                         )}
                       </div>
-                      
+
                       {edition.books[0].description && (
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                           {edition.books[0].description}
@@ -396,7 +429,7 @@ export function EditionSelectionDialog({
         <Button variant="outline" onClick={clearSearch}>
           Clear Search
         </Button>
-        <Button 
+        <Button
           onClick={handleCreatePrimaryBook}
           disabled={!selectedEdition || isSaving}
         >
@@ -422,18 +455,16 @@ export function EditionSelectionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {step === 'search' ? 'Add New Book' : 'Select Primary Edition'}
           </DialogTitle>
         </DialogHeader>
-        
+
         {step === 'search' ? renderSearchStep() : renderEditionSelectionStep()}
       </DialogContent>
     </Dialog>
   );
-} 
+}

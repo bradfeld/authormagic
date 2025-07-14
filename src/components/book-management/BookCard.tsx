@@ -1,16 +1,25 @@
-'use client'
+'use client';
 
-import { UIBook } from '@/lib/types/ui-book'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Calendar, Users, Building, Edit, Trash2, Eye } from 'lucide-react'
+import {
+  BookOpen,
+  Calendar,
+  Users,
+  Building,
+  Edit,
+  Trash2,
+  Eye,
+} from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UIBook } from '@/lib/types/ui-book';
 
 interface BookCardProps {
-  book: UIBook
-  onView?: (book: UIBook) => void
-  onEdit?: (book: UIBook) => void
-  onDelete?: (book: UIBook) => void
+  book: UIBook;
+  onView?: (book: UIBook) => void;
+  onEdit?: (book: UIBook) => void;
+  onDelete?: (book: UIBook) => void;
 }
 
 export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
@@ -25,10 +34,12 @@ export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
           {book.authors && book.authors.length > 0 && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">{book.authors.join(', ')}</span>
+              <span className="text-sm text-gray-600">
+                {book.authors.join(', ')}
+              </span>
             </div>
           )}
-          
+
           {/* Publisher */}
           {book.publisher && (
             <div className="flex items-center gap-2">
@@ -36,23 +47,27 @@ export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
               <span className="text-sm text-gray-600">{book.publisher}</span>
             </div>
           )}
-          
+
           {/* Published Date */}
           {book.published_date && (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">{book.published_date}</span>
+              <span className="text-sm text-gray-600">
+                {book.published_date}
+              </span>
             </div>
           )}
-          
+
           {/* ISBN */}
           {book.isbn && (
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-mono text-gray-600">{book.isbn}</span>
+              <span className="text-sm font-mono text-gray-600">
+                {book.isbn}
+              </span>
             </div>
           )}
-          
+
           {/* Categories */}
           {book.categories && book.categories.length > 0 && (
             <div className="space-y-1">
@@ -70,14 +85,14 @@ export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
               </div>
             </div>
           )}
-          
+
           {/* Description */}
           {book.description && (
             <p className="text-sm text-gray-600 line-clamp-3">
               {book.description}
             </p>
           )}
-          
+
           {/* Actions */}
           <div className="flex gap-2 pt-2">
             {onView && (
@@ -91,7 +106,7 @@ export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
                 View
               </Button>
             )}
-            
+
             {onEdit && (
               <Button
                 variant="outline"
@@ -103,7 +118,7 @@ export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
                 Edit
               </Button>
             )}
-            
+
             {onDelete && (
               <Button
                 variant="outline"
@@ -118,5 +133,5 @@ export function BookCard({ book, onView, onEdit, onDelete }: BookCardProps) {
         </div>
       </CardContent>
     </Card>
-  )
-} 
+  );
+}

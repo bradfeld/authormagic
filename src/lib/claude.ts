@@ -1,65 +1,78 @@
-import Anthropic from '@anthropic-ai/sdk'
+import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+  apiKey: process.env['ANTHROPIC_API_KEY']!,
+});
 
-export async function generateContent(
+export interface GenerateTextOptions {
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+  systemPrompt?: string;
+}
+
+export async function generateText(
   prompt: string,
-  options: {
-    model?: string
-    maxTokens?: number
-    temperature?: number
-    systemPrompt?: string
-  } = {}
-) {
+  options: GenerateTextOptions = {},
+): Promise<string> {
   const {
-    model = 'claude-3-5-sonnet-20241022',
-    maxTokens = 4000,
+    model = 'claude-3-sonnet-20240229',
+    maxTokens = 1000,
     temperature = 0.7,
-    systemPrompt
-  } = options
+    systemPrompt,
+  } = options;
 
   try {
-    const messages: Anthropic.MessageParam[] = [
+    const messages: Anthropic.Messages.MessageParam[] = [
       {
         role: 'user',
-        content: prompt
-      }
-    ]
+        content: prompt,
+      },
+    ];
 
-    const response = await anthropic.messages.create({
+    const messageParams: Anthropic.Messages.MessageCreateParamsNonStreaming = {
       model,
       max_tokens: maxTokens,
       temperature,
-      system: systemPrompt,
-      messages
-    })
+      messages,
+    };
 
-    const content = response.content[0]
-    if (content.type === 'text') {
-      return content.text
+    // Only add system prompt if it exists
+    if (systemPrompt) {
+      messageParams.system = systemPrompt;
     }
-    
-    throw new Error('Unexpected response type from Claude')
+
+    const response = await anthropic.messages.create(messageParams);
+
+    const content = response.content[0];
+    if (content && content.type === 'text') {
+      return content.text;
+    }
+
+    throw new Error('Unexpected response format from Claude API');
   } catch (error) {
-    console.error('Claude API error:', error)
-    throw error
+    // Re-throw error for proper handling by caller
+    throw error;
   }
 }
 
 export async function generateMarketingContent(
-  contentType: 'social_post' | 'email' | 'blog_post' | 'press_release' | 'book_description',
+  contentType:
+    | 'social_post'
+    | 'email'
+    | 'blog_post'
+    | 'press_release'
+    | 'book_description',
   bookData: {
-    title: string
-    author: string
-    genre: string
-    description?: string
-    targetAudience?: string
+    title: string;
+    author: string;
+    genre: string;
+    description?: string;
+    targetAudience?: string;
   },
-  additionalContext?: string
+  additionalContext?: string,
 ) {
-  const systemPrompt = `You are an expert book marketing copywriter. Create compelling, professional marketing content that drives engagement and sales. Focus on the book's unique value proposition and target audience.`
+  const systemPrompt = `You are an expert book marketing copywriter. Create compelling, professional marketing content that drives engagement and sales. Focus on the book's unique value proposition and target audience.`;
 
   const contentPrompts = {
     social_post: `Create 3 engaging social media posts for the book "${bookData.title}" by ${bookData.author}. 
@@ -68,44 +81,44 @@ export async function generateMarketingContent(
     ${additionalContext ? `Additional context: ${additionalContext}` : ''}
     
     Make them shareable, include relevant hashtags, and vary the tone (professional, conversational, intriguing).`,
-    
+
     email: `Write a compelling email campaign for "${bookData.title}" by ${bookData.author}.
     Genre: ${bookData.genre}
     ${bookData.description ? `Description: ${bookData.description}` : ''}
     ${additionalContext ? `Additional context: ${additionalContext}` : ''}
     
     Include: Subject line, engaging opening, book benefits, call-to-action, and professional closing.`,
-    
+
     blog_post: `Create a blog post outline and introduction for "${bookData.title}" by ${bookData.author}.
     Genre: ${bookData.genre}
     ${bookData.description ? `Description: ${bookData.description}` : ''}
     ${additionalContext ? `Additional context: ${additionalContext}` : ''}
     
     Focus on providing value to readers while naturally promoting the book.`,
-    
+
     press_release: `Write a professional press release for "${bookData.title}" by ${bookData.author}.
     Genre: ${bookData.genre}
     ${bookData.description ? `Description: ${bookData.description}` : ''}
     ${additionalContext ? `Additional context: ${additionalContext}` : ''}
     
     Include newsworthy angle, author credentials, and media contact information.`,
-    
+
     book_description: `Create an optimized book description for "${bookData.title}" by ${bookData.author}.
     Genre: ${bookData.genre}
     ${bookData.description ? `Current description: ${bookData.description}` : ''}
     ${additionalContext ? `Additional context: ${additionalContext}` : ''}
     
-    Make it compelling, SEO-friendly, and conversion-focused for online retailers.`
-  }
+    Make it compelling, SEO-friendly, and conversion-focused for online retailers.`,
+  };
 
-  return await generateContent(contentPrompts[contentType], {
+  return await generateText(contentPrompts[contentType], {
     systemPrompt,
-    temperature: 0.8
-  })
+    temperature: 0.8,
+  });
 }
 
 export async function analyzeBookPerformance(salesData: unknown[]) {
-  const systemPrompt = `You are a book marketing analytics expert. Analyze sales data and provide actionable insights for improving book performance and marketing strategies.`
+  const systemPrompt = `You are a book marketing analytics expert. Analyze sales data and provide actionable insights for improving book performance and marketing strategies.`;
 
   const prompt = `Analyze the following book sales data and provide insights:
   ${JSON.stringify(salesData, null, 2)}
@@ -117,19 +130,19 @@ export async function analyzeBookPerformance(salesData: unknown[]) {
   4. Actionable recommendations for improvement
   5. Revenue optimization strategies
   
-  Format the response in clear sections with specific, actionable advice.`
+  Format the response in clear sections with specific, actionable advice.`;
 
-  return await generateContent(prompt, { systemPrompt })
+  return await generateText(prompt, { systemPrompt });
 }
 
 export async function generateAuthorWebsite(authorData: {
-  name: string
-  bio: string
-  books: Array<{ title: string; description: string; genre: string }>
-  genre: string
-  website_url?: string
+  name: string;
+  bio: string;
+  books: Array<{ title: string; description: string; genre: string }>;
+  genre: string;
+  website_url?: string;
 }) {
-  const systemPrompt = `You are an expert web copywriter specializing in author websites. Create compelling, professional content that showcases the author's brand and drives book sales.`
+  const systemPrompt = `You are an expert web copywriter specializing in author websites. Create compelling, professional content that showcases the author's brand and drives book sales.`;
 
   const prompt = `Create professional website content for author ${authorData.name}:
   
@@ -145,7 +158,7 @@ export async function generateAuthorWebsite(authorData: {
   5. SEO meta description
   6. Call-to-action suggestions
   
-  Make it professional, engaging, and conversion-focused.`
+  Make it professional, engaging, and conversion-focused.`;
 
-  return await generateContent(prompt, { systemPrompt })
-} 
+  return await generateText(prompt, { systemPrompt });
+}

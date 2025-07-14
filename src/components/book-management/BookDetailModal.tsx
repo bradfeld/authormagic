@@ -1,65 +1,92 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { UIBook } from '@/lib/types/ui-book'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BookOpen, Edit, Save, X, Calendar, Users, Building, FileText, Tag } from 'lucide-react'
+import {
+  BookOpen,
+  Edit,
+  Save,
+  X,
+  Calendar,
+  Users,
+  Building,
+  FileText,
+  Tag,
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { UIBook } from '@/lib/types/ui-book';
 
 interface BookDetailModalProps {
-  book: UIBook | null
-  open: boolean
-  onClose: () => void
-  onSave?: (book: UIBook) => void
+  book: UIBook | null;
+  open: boolean;
+  onClose: () => void;
+  onSave?: (book: UIBook) => void;
 }
 
-export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModalProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedBook, setEditedBook] = useState<UIBook | null>(null)
+export function BookDetailModal({
+  book,
+  open,
+  onClose,
+  onSave,
+}: BookDetailModalProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedBook, setEditedBook] = useState<UIBook | null>(null);
 
   // Reset state when book changes
   useEffect(() => {
     if (book) {
-      setEditedBook({ ...book })
-      setIsEditing(false)
+      setEditedBook({ ...book });
+      setIsEditing(false);
     }
-  }, [book])
+  }, [book]);
 
   const handleSave = () => {
     if (editedBook && onSave) {
-      onSave(editedBook)
-      setIsEditing(false)
+      onSave(editedBook);
+      setIsEditing(false);
     }
-  }
+  };
 
   const handleCancel = () => {
     if (book) {
-      setEditedBook({ ...book })
-      setIsEditing(false)
+      setEditedBook({ ...book });
+      setIsEditing(false);
     }
-  }
+  };
 
-  const handleFieldChange = (field: keyof UIBook, value: string | string[] | number | undefined) => {
+  const handleFieldChange = (
+    field: keyof UIBook,
+    value: string | string[] | number | undefined,
+  ) => {
     if (editedBook) {
       setEditedBook({
         ...editedBook,
-        [field]: value
-      })
+        [field]: value,
+      });
     }
-  }
+  };
 
   const handleCategoryChange = (categories: string) => {
-    const categoryArray = categories.split(',').map(cat => cat.trim()).filter(cat => cat.length > 0)
-    handleFieldChange('categories', categoryArray)
-  }
+    const categoryArray = categories
+      .split(',')
+      .map(cat => cat.trim())
+      .filter(cat => cat.length > 0);
+    handleFieldChange('categories', categoryArray);
+  };
 
   if (!book || !editedBook) {
-    return null
+    return null;
   }
 
   return (
@@ -84,18 +111,11 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
               )}
               {isEditing && (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleCancel}>
                     <X className="h-4 w-4 mr-2" />
                     Cancel
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                  >
+                  <Button size="sm" onClick={handleSave}>
                     <Save className="h-4 w-4 mr-2" />
                     Save
                   </Button>
@@ -118,11 +138,13 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
               <div className="space-y-4">
                 {/* Title */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Title</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Title
+                  </label>
                   {isEditing ? (
                     <Input
                       value={editedBook.title}
-                      onChange={(e) => handleFieldChange('title', e.target.value)}
+                      onChange={e => handleFieldChange('title', e.target.value)}
                       className="w-full"
                     />
                   ) : (
@@ -139,12 +161,19 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                   {isEditing ? (
                     <Input
                       value={editedBook.authors?.join(', ') || ''}
-                      onChange={(e) => handleFieldChange('authors', e.target.value.split(',').map(a => a.trim()))}
+                      onChange={e =>
+                        handleFieldChange(
+                          'authors',
+                          e.target.value.split(',').map(a => a.trim()),
+                        )
+                      }
                       placeholder="Separate multiple authors with commas"
                       className="w-full"
                     />
                   ) : (
-                    <p className="text-gray-600">{book.authors?.join(', ') || 'Unknown'}</p>
+                    <p className="text-gray-600">
+                      {book.authors?.join(', ') || 'Unknown'}
+                    </p>
                   )}
                 </div>
 
@@ -157,11 +186,15 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                   {isEditing ? (
                     <Input
                       value={editedBook.publisher || ''}
-                      onChange={(e) => handleFieldChange('publisher', e.target.value)}
+                      onChange={e =>
+                        handleFieldChange('publisher', e.target.value)
+                      }
                       className="w-full"
                     />
                   ) : (
-                    <p className="text-gray-600">{book.publisher || 'Unknown'}</p>
+                    <p className="text-gray-600">
+                      {book.publisher || 'Unknown'}
+                    </p>
                   )}
                 </div>
 
@@ -174,11 +207,15 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                   {isEditing ? (
                     <Input
                       value={editedBook.published_date || ''}
-                      onChange={(e) => handleFieldChange('published_date', e.target.value)}
+                      onChange={e =>
+                        handleFieldChange('published_date', e.target.value)
+                      }
                       className="w-full"
                     />
                   ) : (
-                    <p className="text-gray-600">{book.published_date || 'Unknown'}</p>
+                    <p className="text-gray-600">
+                      {book.published_date || 'Unknown'}
+                    </p>
                   )}
                 </div>
               </div>
@@ -194,11 +231,13 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                   {isEditing ? (
                     <Input
                       value={editedBook.isbn || ''}
-                      onChange={(e) => handleFieldChange('isbn', e.target.value)}
+                      onChange={e => handleFieldChange('isbn', e.target.value)}
                       className="w-full font-mono"
                     />
                   ) : (
-                    <p className="text-gray-600 font-mono">{book.isbn || 'Unknown'}</p>
+                    <p className="text-gray-600 font-mono">
+                      {book.isbn || 'Unknown'}
+                    </p>
                   )}
                 </div>
 
@@ -211,7 +250,7 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                   {isEditing ? (
                     <Input
                       value={editedBook.categories?.join(', ') || ''}
-                      onChange={(e) => handleCategoryChange(e.target.value)}
+                      onChange={e => handleCategoryChange(e.target.value)}
                       placeholder="Separate categories with commas"
                       className="w-full"
                     />
@@ -221,37 +260,54 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                         <Badge key={index} variant="secondary">
                           {category}
                         </Badge>
-                      )) || <span className="text-gray-500">No categories</span>}
+                      )) || (
+                        <span className="text-gray-500">No categories</span>
+                      )}
                     </div>
                   )}
                 </div>
 
                 {/* Page Count */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Pages</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Pages
+                  </label>
                   {isEditing ? (
                     <Input
                       type="number"
                       value={editedBook.page_count || ''}
-                      onChange={(e) => handleFieldChange('page_count', parseInt(e.target.value) || undefined)}
+                      onChange={e =>
+                        handleFieldChange(
+                          'page_count',
+                          parseInt(e.target.value) || undefined,
+                        )
+                      }
                       className="w-full"
                     />
                   ) : (
-                    <p className="text-gray-600">{book.page_count || 'Unknown'}</p>
+                    <p className="text-gray-600">
+                      {book.page_count || 'Unknown'}
+                    </p>
                   )}
                 </div>
 
                 {/* Language */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Language</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Language
+                  </label>
                   {isEditing ? (
                     <Input
                       value={editedBook.language || ''}
-                      onChange={(e) => handleFieldChange('language', e.target.value)}
+                      onChange={e =>
+                        handleFieldChange('language', e.target.value)
+                      }
                       className="w-full"
                     />
                   ) : (
-                    <p className="text-gray-600">{book.language || 'Unknown'}</p>
+                    <p className="text-gray-600">
+                      {book.language || 'Unknown'}
+                    </p>
                   )}
                 </div>
               </div>
@@ -267,7 +323,9 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
               {isEditing ? (
                 <Textarea
                   value={editedBook.description || ''}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onChange={e =>
+                    handleFieldChange('description', e.target.value)
+                  }
                   className="w-full min-h-[200px]"
                   placeholder="Enter book description..."
                 />
@@ -290,17 +348,29 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Data Source</label>
-                    <p className="text-sm text-gray-600">{book.data_source || 'Unknown'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">External ID</label>
-                    <p className="text-sm text-gray-600 font-mono">{book.external_id || 'None'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Last Updated</label>
+                    <label className="text-sm font-medium text-gray-700">
+                      Data Source
+                    </label>
                     <p className="text-sm text-gray-600">
-                      {book.updated_at ? new Date(book.updated_at).toLocaleDateString() : 'Unknown'}
+                      {book.data_source || 'Unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      External ID
+                    </label>
+                    <p className="text-sm text-gray-600 font-mono">
+                      {book.external_id || 'None'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Last Updated
+                    </label>
+                    <p className="text-sm text-gray-600">
+                      {book.updated_at
+                        ? new Date(book.updated_at).toLocaleDateString()
+                        : 'Unknown'}
                     </p>
                   </div>
                 </CardContent>
@@ -309,20 +379,34 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
               {/* Additional Metadata */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Additional Information</CardTitle>
+                  <CardTitle className="text-lg">
+                    Additional Information
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Maturity Rating</label>
-                    <p className="text-sm text-gray-600">{book.maturity_rating || 'Not specified'}</p>
+                    <label className="text-sm font-medium text-gray-700">
+                      Maturity Rating
+                    </label>
+                    <p className="text-sm text-gray-600">
+                      {book.maturity_rating || 'Not specified'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Print Type</label>
-                    <p className="text-sm text-gray-600">{book.print_type || 'Unknown'}</p>
+                    <label className="text-sm font-medium text-gray-700">
+                      Print Type
+                    </label>
+                    <p className="text-sm text-gray-600">
+                      {book.print_type || 'Unknown'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Content Version</label>
-                    <p className="text-sm text-gray-600">{book.content_version || 'Unknown'}</p>
+                    <label className="text-sm font-medium text-gray-700">
+                      Content Version
+                    </label>
+                    <p className="text-sm text-gray-600">
+                      {book.content_version || 'Unknown'}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -331,5 +415,5 @@ export function BookDetailModal({ book, open, onClose, onSave }: BookDetailModal
         </Tabs>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

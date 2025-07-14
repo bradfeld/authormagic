@@ -1,42 +1,46 @@
-'use client'
+'use client';
 
 // EXAMPLE: Generated from v0.dev and adapted for AuthorMagic
 // Prompt used: "Create a modern author statistics card showing book sales, reviews, and ratings using shadcn/ui Card component"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Star, TrendingUp, Users } from 'lucide-react'
+import { BookOpen, Star, TrendingUp, Users } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AuthorStatsCardProps {
-  authorName: string
-  totalBooks: number
-  totalSales: number
-  averageRating: number
-  reviewCount: number
-  trend: 'up' | 'down' | 'stable'
+  authorName: string;
+  totalBooks: number;
+  totalSales: number;
+  averageRating: number;
+  reviewCount: number;
+  trend: 'up' | 'down' | 'stable';
 }
 
-export function AuthorStatsCard({ 
-  authorName, 
-  totalBooks, 
-  totalSales, 
-  averageRating, 
-  reviewCount, 
-  trend 
+export function AuthorStatsCard({
+  authorName,
+  totalBooks,
+  totalSales,
+  averageRating,
+  reviewCount,
+  trend,
 }: AuthorStatsCardProps) {
   const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
 
   const getTrendColor = () => {
     switch (trend) {
-      case 'up': return 'text-green-600'
-      case 'down': return 'text-red-600'
-      default: return 'text-gray-500'
+      case 'up':
+        return 'text-green-600';
+      case 'down':
+        return 'text-red-600';
+      default:
+        return 'text-gray-500';
     }
-  }
+  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -68,7 +72,9 @@ export function AuthorStatsCard({
               </div>
               <div>
                 <p className="text-sm text-gray-500">Sales</p>
-                <p className="text-lg font-semibold">{formatNumber(totalSales)}</p>
+                <p className="text-lg font-semibold">
+                  {formatNumber(totalSales)}
+                </p>
               </div>
             </div>
 
@@ -79,7 +85,9 @@ export function AuthorStatsCard({
               </div>
               <div>
                 <p className="text-sm text-gray-500">Rating</p>
-                <p className="text-lg font-semibold">{averageRating.toFixed(1)}</p>
+                <p className="text-lg font-semibold">
+                  {averageRating.toFixed(1)}
+                </p>
               </div>
             </div>
 
@@ -90,7 +98,9 @@ export function AuthorStatsCard({
               </div>
               <div>
                 <p className="text-sm text-gray-500">Reviews</p>
-                <p className="text-lg font-semibold">{formatNumber(reviewCount)}</p>
+                <p className="text-lg font-semibold">
+                  {formatNumber(reviewCount)}
+                </p>
               </div>
             </div>
           </div>
@@ -102,7 +112,11 @@ export function AuthorStatsCard({
               <div className="flex items-center gap-1">
                 <TrendingUp className={`h-3 w-3 ${getTrendColor()}`} />
                 <span className={getTrendColor()}>
-                  {trend === 'up' ? 'Trending Up' : trend === 'down' ? 'Declining' : 'Stable'}
+                  {trend === 'up'
+                    ? 'Trending Up'
+                    : trend === 'down'
+                      ? 'Declining'
+                      : 'Stable'}
                 </span>
               </div>
             </div>
@@ -110,5 +124,5 @@ export function AuthorStatsCard({
         </div>
       </CardContent>
     </Card>
-  )
-} 
+  );
+}
