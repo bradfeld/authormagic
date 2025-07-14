@@ -1,0 +1,12 @@
+# Build output
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env*
+
+# Scripts directory - these are Node.js scripts, not Next.js code
+scripts/ 

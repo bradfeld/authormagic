@@ -1,36 +1,210 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AuthorMagic.com
 
-## Getting Started
+A Next.js application for author book management with Clerk authentication and Supabase database.
 
-First, run the development server:
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Authentication**: Clerk
+- **Database**: Supabase
+- **Styling**: Tailwind CSS
+- **Deployment**: Vercel
+- **Language**: TypeScript
+
+## Development Setup
+
+### Prerequisites
+
+1. Node.js 18+ installed
+2. Git configured
+3. Environment variables configured (see [SETUP.md](SETUP.md))
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd authormagic.com
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+npm run env:setup
+
+# Validate environment
+npm run env:validate
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development Workflow
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. **Enhanced Pre-commit Validation**
 
-## Learn More
+This project includes automatic validation to prevent production deployment issues:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Automatic validation on git commit
+git commit -m "Your commit message"
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Manual validation before deployment
+npm run validate-production
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. **Available Scripts**
 
-## Deploy on Vercel
+```bash
+# Development
+npm run dev              # Start development server
+npm run build           # Build for production
+npm run start           # Start production server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Code Quality
+npm run lint            # Run ESLint
+npm run lint:fix        # Fix ESLint issues automatically
+npm run type-check      # Check TypeScript types
+npm run validate-production  # Full production validation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Environment Management
+npm run env:validate    # Validate environment variables
+npm run env:backup      # Backup environment variables
+npm run env:restore     # Restore environment variables
+npm run env:guide       # Show environment help
+```
+
+### 3. **Pre-commit Hooks**
+
+Automatically configured to run on every commit:
+
+- **Lint-staged**: Formats and lints staged files
+- **Type checking**: Validates TypeScript types
+- **ESLint**: Catches potential errors and style issues
+- **Production build**: Ensures code builds successfully
+
+### 4. **Stricter Development Environment**
+
+This project uses stricter TypeScript and ESLint configurations to match production requirements:
+
+- **TypeScript**: Strict mode with additional safety checks
+- **ESLint**: Production-matching rules to catch issues early
+- **Prettier**: Consistent code formatting
+
+## Common Issues & Troubleshooting
+
+### Quick Fixes
+
+```bash
+# Fix common linting issues
+npm run lint:fix
+
+# Check for type errors
+npm run type-check
+
+# Validate environment setup
+npm run env:validate
+
+# Run full production validation
+npm run validate-production
+```
+
+### Detailed Troubleshooting
+
+For comprehensive troubleshooting guidance, see:
+
+- [DEVELOPMENT_TROUBLESHOOTING.md](DEVELOPMENT_TROUBLESHOOTING.md)
+- [SETUP.md](SETUP.md)
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Authentication pages
+│   ├── (dashboard)/       # Dashboard pages
+│   └── api/               # API routes
+├── components/            # Reusable UI components
+├── lib/                   # Utilities and services
+│   ├── services/          # Business logic services
+│   ├── supabase/         # Database clients
+│   └── types/            # TypeScript type definitions
+└── middleware.ts          # Next.js middleware
+```
+
+## Environment Variables
+
+Required environment variables are documented in [SETUP.md](SETUP.md).
+
+Use the environment management scripts:
+
+```bash
+npm run env:guide    # Show all required variables
+npm run env:validate # Validate current setup
+```
+
+## Deployment
+
+### Production Deployment
+
+1. **Validate locally first**:
+
+   ```bash
+   npm run validate-production
+   ```
+
+2. **Deploy to Vercel**:
+
+   ```bash
+   git push origin main
+   ```
+
+3. **Manual deployment**:
+   ```bash
+   vercel --prod
+   ```
+
+### Pre-deployment Checklist
+
+- [ ] All tests pass locally
+- [ ] Production build succeeds
+- [ ] Environment variables configured in Vercel
+- [ ] Database migrations applied
+- [ ] Authentication providers configured
+
+## Features
+
+- **User Authentication**: Clerk integration with custom UI
+- **Book Management**: Add, edit, and organize books
+- **Author Profiles**: Enhanced user profiles with book tracking
+- **Search Integration**: Multiple book data sources (ISBN DB, Google Books)
+- **Responsive Design**: Mobile-first UI with Tailwind CSS
+
+## API Integration
+
+- **Clerk**: Authentication and user management
+- **Supabase**: Database and real-time features
+- **ISBN DB**: Book metadata lookup
+- **Google Books**: Additional book information
+- **Claude AI**: AI-powered features
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Run `npm run validate-production` to ensure quality
+4. Create a pull request
+5. Wait for pre-commit hooks to validate
+
+## Support
+
+- Check [DEVELOPMENT_TROUBLESHOOTING.md](DEVELOPMENT_TROUBLESHOOTING.md) for common issues
+- Review recent git commits for similar problems
+- Consult Notion development documentation
+- Run `npm run env:guide` for environment help
+
+## License
+
+Private repository - All rights reserved.

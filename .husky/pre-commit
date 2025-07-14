@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running pre-commit validations..."
+
+# Run lint-staged for staged files
+npx lint-staged
+
+# Run production validation to catch build issues early
+echo "🏗️  Running production build validation..."
+npm run validate-production
+
+echo "✅ All validations passed!"
