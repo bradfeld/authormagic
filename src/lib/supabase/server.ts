@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -23,6 +24,10 @@ export async function createClient() {
             // user sessions.
           }
         },
+      },
+      accessToken: async () => {
+        const { getToken } = await auth();
+        return await getToken();
       },
     },
   );

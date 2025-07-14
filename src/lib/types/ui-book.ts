@@ -79,10 +79,10 @@ export function convertBookToUIBook(book: Book): UIBook {
 
 export function convertCompleteBookToUIBook(book: CompleteBook): UIBook {
   const firstEdition = book.book_editions?.[0];
-  const authors =
-    book.book_authors
-      ?.map(ba => ba.authors.name)
-      .filter((name): name is string => name !== null) || [];
+
+  // TODO: Author names now handled by Clerk - need to fetch from Clerk API
+  // For now, use placeholder until we implement Clerk metadata lookup
+  const authors = book.book_authors?.map(() => 'Author') || [];
 
   return {
     id: book.id,

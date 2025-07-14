@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 
 import { BookManagementDashboard } from '@/components/book-management/BookManagementDashboard';
 import { CustomUserButton } from '@/components/ui/custom-user-button';
-import { authorProfileService } from '@/lib/services/author-profile.service';
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -14,16 +13,12 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  // Ensure user has an author profile
-  const authorProfile = await authorProfileService.getOrCreateProfile(user.id, {
-    clerk_user_id: user.id,
-    name:
-      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-      'Unknown Author',
-    first_name: user.firstName || null,
-    last_name: user.lastName || null,
-    email: user.emailAddresses?.[0]?.emailAddress || '',
-  });
+  // Extract only the serializable properties we need
+  const userInfo = {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    userId: user.id,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,7 +39,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <BookManagementDashboard authorProfile={authorProfile} />
+        <BookManagementDashboard userInfo={userInfo} />
       </div>
     </div>
   );
