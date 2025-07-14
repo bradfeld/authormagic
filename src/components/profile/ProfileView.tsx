@@ -1,6 +1,5 @@
 'use client'
 
-import { User } from '@clerk/nextjs/server'
 import { Author } from '@/lib/services/author-profile.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -8,13 +7,20 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Mail, Globe, Twitter, Linkedin, Facebook, Github, BookOpen } from 'lucide-react'
 
+interface UserPlainData {
+  firstName: string
+  lastName: string
+  imageUrl: string
+  email: string
+}
+
 interface ProfileViewProps {
-  user: User | null
+  userPlainData: UserPlainData | null
   authorProfile: Author | null
 }
 
-export function ProfileView({ user, authorProfile }: ProfileViewProps) {
-  if (!user || !authorProfile) {
+export function ProfileView({ userPlainData, authorProfile }: ProfileViewProps) {
+  if (!userPlainData || !authorProfile) {
     return (
       <Card className="max-w-2xl mx-auto">
         <CardContent className="p-8 text-center">
@@ -25,7 +31,7 @@ export function ProfileView({ user, authorProfile }: ProfileViewProps) {
   }
 
   // Get initials for avatar fallback
-  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
+  const initials = `${userPlainData.firstName?.[0] || ''}${userPlainData.lastName?.[0] || ''}`.toUpperCase()
 
   // Social media links
   const socialLinks = [
@@ -83,12 +89,12 @@ export function ProfileView({ user, authorProfile }: ProfileViewProps) {
             {/* Avatar and Basic Info */}
             <div className="flex flex-col items-center md:items-start space-y-4">
               <Avatar className="w-32 h-32">
-                <AvatarImage src={user.imageUrl} alt={`${user.firstName} ${user.lastName}`} />
+                <AvatarImage src={userPlainData.imageUrl} alt={`${userPlainData.firstName} ${userPlainData.lastName}`} />
                 <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
               </Avatar>
               <div className="text-center md:text-left">
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {authorProfile.first_name || user.firstName} {authorProfile.last_name || user.lastName}
+                  {authorProfile.first_name || userPlainData.firstName} {authorProfile.last_name || userPlainData.lastName}
                 </h3>
                 <p className="text-sm text-gray-500 flex items-center gap-1 justify-center md:justify-start">
                   <Mail className="w-4 h-4" />

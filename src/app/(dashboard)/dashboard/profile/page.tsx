@@ -25,6 +25,14 @@ export default async function ProfilePage() {
 
   const firstName = user?.firstName || 'Author'
 
+  // Extract only the plain values we need from the user object
+  const userPlainData = user ? {
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    imageUrl: user.imageUrl || '',
+    email: user.emailAddresses[0]?.emailAddress || ''
+  } : null
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -53,7 +61,7 @@ export default async function ProfilePage() {
 
         {/* Profile Content */}
         <ProfileView 
-          user={user}
+          userPlainData={userPlainData}
           authorProfile={authorProfile}
         />
       </main>
