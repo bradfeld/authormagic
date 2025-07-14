@@ -20,7 +20,7 @@ export default async function DashboardPage() {
       name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
       first_name: user.firstName || null,
       last_name: user.lastName || null,
-      email: user.emailAddresses?.[0]?.emailAddress || null,
+      email: user.emailAddresses?.[0]?.emailAddress || '',
     })
   }
 

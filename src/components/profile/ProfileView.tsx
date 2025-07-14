@@ -21,7 +21,7 @@ interface AuthorPlainData {
   last_name: string | null
   email: string | null
   bio: string | null
-  website: string | null
+  website_url: string | null
   twitter_username: string | null
   linkedin_url: string | null
   facebook_url: string | null
@@ -123,16 +123,16 @@ export function ProfileView({ userPlainData, authorProfile }: ProfileViewProps) 
                   <Mail className="w-4 h-4 text-gray-400" />
                   <span className="text-sm">{authorProfile.email || userPlainData.email}</span>
                 </div>
-                {authorProfile.website && (
+                {authorProfile.website_url && (
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-gray-400" />
                     <a 
-                      href={authorProfile.website} 
+                      href={authorProfile.website_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
-                      {authorProfile.website}
+                      {authorProfile.website_url}
                     </a>
                   </div>
                 )}

@@ -21,7 +21,7 @@ export default async function ProfilePage() {
       name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
       first_name: user.firstName || null,
       last_name: user.lastName || null,
-      email: user.emailAddresses?.[0]?.emailAddress || null,
+      email: user.emailAddresses?.[0]?.emailAddress || '',
     })
   }
 
@@ -42,7 +42,7 @@ export default async function ProfilePage() {
     last_name: authorProfile.last_name,
     email: authorProfile.email,
     bio: authorProfile.bio,
-    website: authorProfile.website,
+    website_url: authorProfile.website_url,
     twitter_username: authorProfile.twitter_username,
     linkedin_url: authorProfile.linkedin_url,
     facebook_url: authorProfile.facebook_url,
