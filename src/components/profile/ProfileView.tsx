@@ -1,6 +1,5 @@
 'use client'
 
-import { Author } from '@/lib/services/author-profile.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -14,175 +13,171 @@ interface UserPlainData {
   email: string
 }
 
+interface AuthorPlainData {
+  id: string
+  clerk_user_id: string
+  name: string | null
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  bio: string | null
+  website: string | null
+  twitter_username: string | null
+  linkedin_url: string | null
+  facebook_url: string | null
+  github_username: string | null
+  goodreads_url: string | null
+  created_at: string
+  updated_at: string
+}
+
 interface ProfileViewProps {
   userPlainData: UserPlainData | null
-  authorProfile: Author | null
+  authorProfile: AuthorPlainData | null
 }
 
 export function ProfileView({ userPlainData, authorProfile }: ProfileViewProps) {
   if (!userPlainData || !authorProfile) {
     return (
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="p-8 text-center">
-          <p className="text-gray-500">Unable to load profile information</p>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8">
+        <p className="text-gray-500">Unable to load profile data</p>
+      </div>
     )
   }
 
-  // Get initials for avatar fallback
-  const initials = `${userPlainData.firstName?.[0] || ''}${userPlainData.lastName?.[0] || ''}`.toUpperCase()
+  const displayName = authorProfile.name || `${userPlainData.firstName} ${userPlainData.lastName}`.trim() || 'Unknown User'
+  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase()
 
-  // Social media links
   const socialLinks = [
     {
-      platform: 'Twitter',
+      name: 'Twitter',
       icon: Twitter,
-      value: authorProfile.twitter_username,
       url: authorProfile.twitter_username ? `https://twitter.com/${authorProfile.twitter_username}` : null,
-      color: 'text-blue-400'
+      value: authorProfile.twitter_username
     },
     {
-      platform: 'LinkedIn',
+      name: 'LinkedIn',
       icon: Linkedin,
-      value: authorProfile.linkedin_url,
       url: authorProfile.linkedin_url,
-      color: 'text-blue-600'
+      value: authorProfile.linkedin_url
     },
     {
-      platform: 'Facebook',
+      name: 'Facebook',
       icon: Facebook,
-      value: authorProfile.facebook_url,
       url: authorProfile.facebook_url,
-      color: 'text-blue-800'
+      value: authorProfile.facebook_url
     },
     {
-      platform: 'GitHub',
+      name: 'GitHub',
       icon: Github,
-      value: authorProfile.github_username,
       url: authorProfile.github_username ? `https://github.com/${authorProfile.github_username}` : null,
-      color: 'text-gray-800'
+      value: authorProfile.github_username
     },
     {
-      platform: 'Goodreads',
+      name: 'Goodreads',
       icon: BookOpen,
-      value: authorProfile.goodreads_url,
       url: authorProfile.goodreads_url,
-      color: 'text-amber-600'
+      value: authorProfile.goodreads_url
     }
   ]
 
+  const activeSocialLinks = socialLinks.filter(link => link.value)
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Main Profile Card */}
+    <div className="space-y-6">
+      {/* Profile Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Profile</h2>
+        <p className="text-gray-600">Manage your author profile and social connections</p>
+      </div>
+
+      {/* Profile Information Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl">Author Profile</CardTitle>
-            <Button variant="outline" disabled>
+          <CardTitle className="flex items-center gap-3">
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={userPlainData.imageUrl} alt={displayName} />
+              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-xl font-semibold">{displayName}</h3>
+              <p className="text-gray-600">{authorProfile.email || userPlainData.email}</p>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Basic Information</h4>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">First Name:</span>
+                  <span className="text-sm">{authorProfile.first_name || userPlainData.firstName || 'Not set'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Last Name:</span>
+                  <span className="text-sm">{authorProfile.last_name || userPlainData.lastName || 'Not set'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm">{authorProfile.email || userPlainData.email}</span>
+                </div>
+                {authorProfile.website && (
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-gray-400" />
+                    <a 
+                      href={authorProfile.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      {authorProfile.website}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bio Section */}
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Bio</h4>
+              <p className="text-sm text-gray-600">
+                {authorProfile.bio || 'No bio added yet'}
+              </p>
+            </div>
+          </div>
+
+          {/* Social Media Links */}
+          {activeSocialLinks.length > 0 && (
+            <div>
+              <h4 className="font-medium text-gray-700 mb-3">Social Media Connections</h4>
+              <div className="flex flex-wrap gap-2">
+                {activeSocialLinks.map((link) => (
+                  <Badge key={link.name} variant="outline" className="flex items-center gap-2">
+                    <link.icon className="w-3 h-3" />
+                    <span className="text-xs">{link.name}</span>
+                    {link.url && (
+                      <a 
+                        href={link.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 ml-1"
+                      >
+                        View
+                      </a>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Edit Profile Button */}
+          <div className="pt-4 border-t">
+            <Button variant="outline" className="w-full md:w-auto">
               Edit Profile
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Avatar and Basic Info */}
-            <div className="flex flex-col items-center md:items-start space-y-4">
-              <Avatar className="w-32 h-32">
-                <AvatarImage src={userPlainData.imageUrl} alt={`${userPlainData.firstName} ${userPlainData.lastName}`} />
-                <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
-              </Avatar>
-              <div className="text-center md:text-left">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {authorProfile.first_name || userPlainData.firstName} {authorProfile.last_name || userPlainData.lastName}
-                </h3>
-                <p className="text-sm text-gray-500 flex items-center gap-1 justify-center md:justify-start">
-                  <Mail className="w-4 h-4" />
-                  {authorProfile.email}
-                </p>
-              </div>
-            </div>
-
-            {/* Profile Details */}
-            <div className="flex-1 space-y-4">
-              {/* Bio */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Bio</h4>
-                <p className="text-gray-600 text-sm">
-                  {authorProfile.bio || 'No bio provided yet.'}
-                </p>
-              </div>
-
-              {/* Website */}
-              {authorProfile.website_url && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Website</h4>
-                  <a 
-                    href={authorProfile.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center gap-1"
-                  >
-                    <Globe className="w-4 h-4" />
-                    {authorProfile.website_url}
-                  </a>
-                </div>
-              )}
-
-              {/* Account Details */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Account Information</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>Member since: {new Date(authorProfile.created_at).toLocaleDateString()}</p>
-                  <p>Last updated: {new Date(authorProfile.updated_at).toLocaleDateString()}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Social Media Links */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Social Media Connections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {socialLinks.map((social) => {
-              const Icon = social.icon
-              return (
-                <div key={social.platform} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-5 h-5 ${social.color}`} />
-                    <span className="font-medium">{social.platform}</span>
-                  </div>
-                  <div>
-                    {social.value ? (
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          Connected
-                        </Badge>
-                        {social.url && (
-                          <a
-                            href={social.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-600 hover:text-indigo-800 text-xs"
-                          >
-                            View →
-                          </a>
-                        )}
-                      </div>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">
-                        Not connected
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
           </div>
         </CardContent>
       </Card>

@@ -18,14 +18,14 @@ export default async function ProfilePage() {
   if (user) {
     authorProfile = await authorProfileService.getOrCreateProfile(user.id, {
       clerk_user_id: user.id,
-      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
-      email: user.emailAddresses?.[0]?.emailAddress || ''
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
+      first_name: user.firstName || null,
+      last_name: user.lastName || null,
+      email: user.emailAddresses?.[0]?.emailAddress || null
     })
   }
 
-  const firstName = user?.firstName || 'Author'
-
-  // Extract only the plain values we need from the user object
+  // Extract plain data for Client Components
   const userPlainData = user ? {
     firstName: user.firstName || '',
     lastName: user.lastName || '',
@@ -33,44 +33,58 @@ export default async function ProfilePage() {
     email: user.emailAddresses?.[0]?.emailAddress || ''
   } : null
 
+  // Extract plain data from authorProfile
+  const authorPlainData = authorProfile ? {
+    id: authorProfile.id,
+    clerk_user_id: authorProfile.clerk_user_id,
+    name: authorProfile.name,
+    first_name: authorProfile.first_name,
+    last_name: authorProfile.last_name,
+    email: authorProfile.email,
+    bio: authorProfile.bio,
+    website: authorProfile.website,
+    twitter_username: authorProfile.twitter_username,
+    linkedin_url: authorProfile.linkedin_url,
+    facebook_url: authorProfile.facebook_url,
+    github_username: authorProfile.github_username,
+    goodreads_url: authorProfile.goodreads_url,
+    created_at: authorProfile.created_at,
+    updated_at: authorProfile.updated_at
+  } : null
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <BookOpen className="h-8 w-8 text-indigo-600" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <BookOpen className="w-8 h-8 text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-900">AuthorMagic</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome back, {firstName}!</span>
-              <UserButton afterSignOutUrl="/">
-                <UserButton.MenuItems>
-                  <UserButton.Link
-                    label="View Profile"
-                    labelIcon={<User size={16} />}
-                    href="/dashboard/profile"
-                  />
-                </UserButton.MenuItems>
-              </UserButton>
-            </div>
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10"
+                }
+              }}
+            >
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="View Profile"
+                  labelIcon={<User size={16} />}
+                  href="/dashboard/profile"
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Profile Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Profile</h2>
-          <p className="text-gray-600">Manage your author profile and social connections</p>
-        </div>
-
-        {/* Profile Content */}
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <ProfileView 
-          userPlainData={userPlainData}
-          authorProfile={authorProfile}
+          userPlainData={userPlainData} 
+          authorProfile={authorPlainData} 
         />
       </main>
     </div>
