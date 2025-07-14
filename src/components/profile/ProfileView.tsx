@@ -8,12 +8,19 @@ import {
   Facebook,
   Github,
   BookOpen,
+  Edit,
 } from 'lucide-react';
+import { useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Database } from '@/lib/database.types';
+
+import { ProfileEditDialog } from './ProfileEditDialog';
+
+type AuthorProfileDB = Database['public']['Tables']['authors']['Row'];
 
 interface UserPlainData {
   firstName: string;
@@ -49,7 +56,12 @@ export function ProfileView({
   userPlainData,
   authorProfile,
 }: ProfileViewProps) {
-  if (!userPlainData || !authorProfile) {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentProfile, setCurrentProfile] = useState<AuthorPlainData | null>(
+    authorProfile,
+  );
+
+  if (!userPlainData || !currentProfile) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">Unable to load profile data</p>
@@ -57,8 +69,34 @@ export function ProfileView({
     );
   }
 
+  const handleEditProfile = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleProfileUpdate = (updatedProfile: AuthorProfileDB) => {
+    // Convert the DB profile to the plain data format
+    const plainProfile: AuthorPlainData = {
+      id: updatedProfile.id,
+      clerk_user_id: updatedProfile.clerk_user_id,
+      name: updatedProfile.name,
+      first_name: updatedProfile.first_name,
+      last_name: updatedProfile.last_name,
+      email: updatedProfile.email,
+      bio: updatedProfile.bio,
+      website_url: updatedProfile.website_url,
+      twitter_username: updatedProfile.twitter_username,
+      linkedin_url: updatedProfile.linkedin_url,
+      facebook_url: updatedProfile.facebook_url,
+      github_username: updatedProfile.github_username,
+      goodreads_url: updatedProfile.goodreads_url,
+      created_at: updatedProfile.created_at,
+      updated_at: updatedProfile.updated_at,
+    };
+    setCurrentProfile(plainProfile);
+  };
+
   const displayName =
-    authorProfile.name ||
+    currentProfile.name ||
     `${userPlainData.firstName} ${userPlainData.lastName}`.trim() ||
     'Unknown User';
   const initials = displayName
@@ -71,36 +109,36 @@ export function ProfileView({
     {
       name: 'Twitter',
       icon: Twitter,
-      url: authorProfile.twitter_username
-        ? `https://twitter.com/${authorProfile.twitter_username}`
+      url: currentProfile.twitter_username
+        ? `https://twitter.com/${currentProfile.twitter_username}`
         : null,
-      value: authorProfile.twitter_username,
+      value: currentProfile.twitter_username,
     },
     {
       name: 'LinkedIn',
       icon: Linkedin,
-      url: authorProfile.linkedin_url,
-      value: authorProfile.linkedin_url,
+      url: currentProfile.linkedin_url,
+      value: currentProfile.linkedin_url,
     },
     {
       name: 'Facebook',
       icon: Facebook,
-      url: authorProfile.facebook_url,
-      value: authorProfile.facebook_url,
+      url: currentProfile.facebook_url,
+      value: currentProfile.facebook_url,
     },
     {
       name: 'GitHub',
       icon: Github,
-      url: authorProfile.github_username
-        ? `https://github.com/${authorProfile.github_username}`
+      url: currentProfile.github_username
+        ? `https://github.com/${currentProfile.github_username}`
         : null,
-      value: authorProfile.github_username,
+      value: currentProfile.github_username,
     },
     {
       name: 'Goodreads',
       icon: BookOpen,
-      url: authorProfile.goodreads_url,
-      value: authorProfile.goodreads_url,
+      url: currentProfile.goodreads_url,
+      value: currentProfile.goodreads_url,
     },
   ];
 
@@ -127,7 +165,7 @@ export function ProfileView({
             <div>
               <h3 className="text-xl font-semibold">{displayName}</h3>
               <p className="text-gray-600">
-                {authorProfile.email || userPlainData.email}
+                {currentProfile.email || userPlainData.email}
               </p>
             </div>
           </CardTitle>
@@ -143,7 +181,7 @@ export function ProfileView({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">First Name:</span>
                   <span className="text-sm">
-                    {authorProfile.first_name ||
+                    {currentProfile.first_name ||
                       userPlainData.firstName ||
                       'Not set'}
                   </span>
@@ -151,7 +189,7 @@ export function ProfileView({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Last Name:</span>
                   <span className="text-sm">
-                    {authorProfile.last_name ||
+                    {currentProfile.last_name ||
                       userPlainData.lastName ||
                       'Not set'}
                   </span>
@@ -159,19 +197,19 @@ export function ProfileView({
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-gray-400" />
                   <span className="text-sm">
-                    {authorProfile.email || userPlainData.email}
+                    {currentProfile.email || userPlainData.email}
                   </span>
                 </div>
-                {authorProfile.website_url && (
+                {currentProfile.website_url && (
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-gray-400" />
                     <a
-                      href={authorProfile.website_url}
+                      href={currentProfile.website_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
-                      {authorProfile.website_url}
+                      {currentProfile.website_url}
                     </a>
                   </div>
                 )}
@@ -182,7 +220,7 @@ export function ProfileView({
             <div>
               <h4 className="font-medium text-gray-700 mb-2">Bio</h4>
               <p className="text-sm text-gray-600">
-                {authorProfile.bio || 'No bio added yet'}
+                {currentProfile.bio || 'No bio added yet'}
               </p>
             </div>
           </div>
@@ -220,12 +258,25 @@ export function ProfileView({
 
           {/* Edit Profile Button */}
           <div className="pt-4 border-t">
-            <Button variant="outline" className="w-full md:w-auto">
+            <Button
+              variant="outline"
+              className="w-full md:w-auto"
+              onClick={handleEditProfile}
+            >
+              <Edit className="w-4 h-4 mr-2" />
               Edit Profile
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Profile Dialog */}
+      <ProfileEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        profile={currentProfile as AuthorProfileDB}
+        onProfileUpdate={handleProfileUpdate}
+      />
     </div>
   );
 }
