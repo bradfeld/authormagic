@@ -1,9 +1,9 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { UserButton } from '@clerk/nextjs'
-import { BookOpen, User } from 'lucide-react'
+import { BookOpen } from 'lucide-react'
 import { BookManagementDashboard } from "@/components/book-management/BookManagementDashboard"
 import { authorProfileService } from '@/lib/services/author-profile.service'
+import { CustomUserButton } from '@/components/ui/custom-user-button'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -35,21 +35,7 @@ export default async function DashboardPage() {
               <h1 className="ml-2 text-2xl font-bold text-gray-900">AuthorMagic</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <UserButton 
-                appearance={{
-                  elements: {
-                    avatarBox: "h-10 w-10"
-                  }
-                }}
-              >
-                <UserButton.MenuItems>
-                  <UserButton.UserProfileLink 
-                    label="View Profile"
-                    labelIcon={<User className="h-4 w-4" />}
-                    href="/dashboard/profile"
-                  />
-                </UserButton.MenuItems>
-              </UserButton>
+              <CustomUserButton />
             </div>
           </div>
         </div>
