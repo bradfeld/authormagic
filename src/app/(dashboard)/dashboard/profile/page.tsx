@@ -1,7 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, User } from 'lucide-react'
 import { ProfileView } from '@/components/profile/ProfileView'
 import { authorProfileService } from '@/lib/services/author-profile.service'
 
@@ -19,7 +19,7 @@ export default async function ProfilePage() {
     authorProfile = await authorProfileService.getOrCreateProfile(user.id, {
       clerk_user_id: user.id,
       name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
-      email: user.emailAddresses[0]?.emailAddress || ''
+      email: user.emailAddresses?.[0]?.emailAddress || ''
     })
   }
 
@@ -30,7 +30,7 @@ export default async function ProfilePage() {
     firstName: user.firstName || '',
     lastName: user.lastName || '',
     imageUrl: user.imageUrl || '',
-    email: user.emailAddresses[0]?.emailAddress || ''
+    email: user.emailAddresses?.[0]?.emailAddress || ''
   } : null
 
   return (
@@ -45,7 +45,15 @@ export default async function ProfilePage() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome back, {firstName}!</span>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton afterSignOutUrl="/">
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="View Profile"
+                    labelIcon={<User size={16} />}
+                    href="/dashboard/profile"
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
             </div>
           </div>
         </div>
