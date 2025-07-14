@@ -18,22 +18,22 @@ export default async function ProfilePage() {
   if (user) {
     authorProfile = await authorProfileService.getOrCreateProfile(user.id, {
       clerk_user_id: user.id,
-      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
       first_name: user.firstName || null,
       last_name: user.lastName || null,
-      email: user.emailAddresses?.[0]?.emailAddress || null
+      email: user.emailAddresses?.[0]?.emailAddress || null,
     })
   }
 
-  // Extract plain data for Client Components
+  // Extract plain data for client components
   const userPlainData = user ? {
     firstName: user.firstName || '',
     lastName: user.lastName || '',
     imageUrl: user.imageUrl || '',
-    email: user.emailAddresses?.[0]?.emailAddress || ''
+    email: user.emailAddresses?.[0]?.emailAddress || '',
   } : null
 
-  // Extract plain data from authorProfile
+  // Extract plain data from author profile
   const authorPlainData = authorProfile ? {
     id: authorProfile.id,
     clerk_user_id: authorProfile.clerk_user_id,
@@ -49,44 +49,42 @@ export default async function ProfilePage() {
     github_username: authorProfile.github_username,
     goodreads_url: authorProfile.goodreads_url,
     created_at: authorProfile.created_at,
-    updated_at: authorProfile.updated_at
+    updated_at: authorProfile.updated_at,
   } : null
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <BookOpen className="w-8 h-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">AuthorMagic</h1>
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <BookOpen className="h-8 w-8 text-blue-600" />
+              <h1 className="ml-2 text-2xl font-bold text-gray-900">AuthorMagic</h1>
             </div>
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-10 h-10"
-                }
-              }}
-            >
-              <UserButton.MenuItems>
-                <UserButton.Link
-                  label="View Profile"
-                  labelIcon={<User size={16} />}
-                  href="/dashboard/profile"
-                />
-              </UserButton.MenuItems>
-            </UserButton>
+            <div className="flex items-center space-x-4">
+              <UserButton 
+                appearance={{
+                  elements: {
+                    avatarBox: "h-10 w-10"
+                  }
+                }}
+              >
+                <UserButton.MenuItems>
+                  <UserButton.UserProfileLink 
+                    label="View Profile"
+                    labelIcon={<User className="h-4 w-4" />}
+                    href="/dashboard/profile"
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
+            </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <ProfileView 
-          userPlainData={userPlainData} 
-          authorProfile={authorPlainData} 
-        />
-      </main>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <ProfileView userPlainData={userPlainData} authorProfile={authorPlainData} />
+      </div>
     </div>
   )
 } 
