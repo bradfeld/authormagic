@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Author } from '@/lib/services/author-profile.service'
 
 interface BookManagementDashboardProps {
-  authorProfile: Author | null
+  authorProfile?: Author | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

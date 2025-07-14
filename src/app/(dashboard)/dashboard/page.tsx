@@ -18,19 +18,20 @@ export default async function DashboardPage() {
   if (user) {
     authorProfile = await authorProfileService.getOrCreateProfile(user.id, {
       clerk_user_id: user.id,
-      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown Author',
-      email: user.emailAddresses[0]?.emailAddress || ''
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      email: user.emailAddresses[0]?.emailAddress || '',
+      first_name: user.firstName || '',
+      last_name: user.lastName || '',
     })
   }
 
-  const firstName = user?.firstName || 'Author'
+  const firstName = user?.firstName || 'there'
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-indigo-600" />
               <h1 className="text-2xl font-bold text-gray-900">AuthorMagic</h1>
@@ -47,30 +48,19 @@ export default async function DashboardPage() {
                     github: ['user:email']
                   }
                 }}
-              >
-                <UserButton.MenuItems>
-                  <UserButton.Link
-                    label="View Profile"
-                    labelIcon={<BookOpen className="h-4 w-4" />}
-                    href="/dashboard/profile"
-                  />
-                </UserButton.MenuItems>
-              </UserButton>
+              />
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
-          <p className="text-gray-600">Manage your books, track sales, and create amazing marketing content.</p>
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Book Library</h2>
+            <BookManagementDashboard />
+          </div>
         </div>
-
-        {/* Book Management Dashboard */}
-        <BookManagementDashboard authorProfile={authorProfile} />
       </main>
     </div>
   )
