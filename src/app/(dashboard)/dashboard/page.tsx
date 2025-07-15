@@ -3,7 +3,9 @@ import { BookOpen } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 import { BookManagementDashboard } from '@/components/book-management/BookManagementDashboard';
+import { AuthorProfilePreview } from '@/components/profile/AuthorProfilePreview';
 import { CustomUserButton } from '@/components/ui/custom-user-button';
+import { AuthorProfileService } from '@/lib/services/author-profile.service';
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -19,6 +21,10 @@ export default async function DashboardPage() {
     lastName: user.lastName,
     userId: user.id,
   };
+
+  // Get complete author profile data
+  const authorService = new AuthorProfileService();
+  const completeProfile = await authorService.getOrCreateProfile(userId);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,7 +45,17 @@ export default async function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <BookManagementDashboard userInfo={userInfo} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Section */}
+          <div className="lg:col-span-1">
+            <AuthorProfilePreview profile={completeProfile} />
+          </div>
+
+          {/* Book Management Section */}
+          <div className="lg:col-span-2">
+            <BookManagementDashboard userInfo={userInfo} />
+          </div>
+        </div>
       </div>
     </div>
   );

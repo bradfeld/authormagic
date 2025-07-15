@@ -45,8 +45,7 @@ export async function GET(request: NextRequest) {
         { status: 404 },
       );
     }
-  } catch (error) {
-    console.error('Title-Author search error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

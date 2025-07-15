@@ -87,7 +87,6 @@ export function AddBookDialog({
         setSearchResults(result.books || []);
       }
     } catch (error) {
-      console.error('Search error:', error);
       setSearchError(
         error instanceof Error
           ? error.message
@@ -100,7 +99,6 @@ export function AddBookDialog({
 
   const handleAddBook = async (book: UIBook) => {
     if (!userId) {
-      console.error('User not authenticated');
       return;
     }
 
@@ -168,8 +166,7 @@ export function AddBookDialog({
       if (onBookAdded) {
         onBookAdded();
       }
-    } catch (error) {
-      console.error('Error adding book:', error);
+    } catch {
       setSearchError('Failed to add book. Please try again.');
     }
   };

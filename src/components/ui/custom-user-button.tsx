@@ -10,6 +10,14 @@ export function CustomUserButton() {
           avatarBox: 'h-10 w-10',
         },
       }}
-    />
+    >
+      <UserButton.MenuItems>
+        <UserButton.Link
+          label="Profile"
+          href="/profile"
+          labelIcon={<span>👤</span>}
+        />
+      </UserButton.MenuItems>
+    </UserButton>
   );
 }

@@ -1,0 +1,91 @@
+'use client';
+
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import { CompleteAuthorProfile } from '@/lib/services/author-profile.service';
+import { AuthorMetadata } from '@/lib/utils/clerk-metadata';
+
+import { ProfileDisplay } from './ProfileDisplay';
+import { ProfileEditForm } from './ProfileEditForm';
+
+interface ProfileManagerProps {
+  initialProfile: CompleteAuthorProfile;
+  isOwnProfile?: boolean;
+  onProfileUpdate?: (profile: CompleteAuthorProfile) => void;
+}
+
+export function ProfileManager({
+  initialProfile,
+  isOwnProfile = false,
+  onProfileUpdate,
+}: ProfileManagerProps) {
+  const [profile, setProfile] = useState<CompleteAuthorProfile>(initialProfile);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleEditStart = () => {
+    setIsEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleSave = async (updates: Partial<AuthorMetadata>) => {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
+
+      const { profile: updatedProfile } = await response.json();
+
+      // Update local state
+      setProfile(updatedProfile);
+      setIsEditing(false);
+
+      // Call parent callback if provided
+      if (onProfileUpdate) {
+        onProfileUpdate(updatedProfile);
+      }
+
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update profile',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full flex justify-center">
+      {isEditing ? (
+        <ProfileEditForm
+          profile={profile}
+          onSave={handleSave}
+          onCancel={handleEditCancel}
+          isLoading={isLoading}
+        />
+      ) : (
+        <ProfileDisplay
+          profile={profile}
+          onEdit={handleEditStart}
+          isOwnProfile={isOwnProfile}
+        />
+      )}
+    </div>
+  );
+}

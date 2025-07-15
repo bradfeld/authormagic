@@ -1,9 +1,40 @@
+import { clerkClient } from '@clerk/nextjs/server';
+
 import { Database } from '@/lib/database.types';
 import { createServiceClient } from '@/lib/supabase/server';
+import {
+  AuthorMetadata,
+  getUserAuthorMetadata,
+  updateUserAuthorMetadata,
+  initializeUserAuthorMetadata,
+} from '@/lib/utils/clerk-metadata';
 
 export type Author = Database['public']['Tables']['authors']['Row'];
 type AuthorProfile = Database['public']['Tables']['authors']['Row'];
-type NewAuthorProfile = Database['public']['Tables']['authors']['Insert'];
+
+// Combined profile type that includes Clerk metadata
+export interface CompleteAuthorProfile {
+  // Supabase fields
+  id: string;
+  clerk_user_id: string;
+  created_at: string;
+  updated_at: string;
+
+  // Clerk basic profile data
+  name: string;
+  email: string;
+  profile_image_url: string | null;
+
+  // Clerk metadata (author-specific fields)
+  bio: string | null;
+  website_url: string | null;
+  twitter_username: string | null;
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  github_username: string | null;
+  goodreads_url: string | null;
+  amazon_author_url: string | null;
+}
 
 export class AuthorProfileService {
   private _supabase: ReturnType<typeof createServiceClient> | null = null;
@@ -30,68 +61,124 @@ export class AuthorProfileService {
           // No rows returned - profile doesn't exist yet
           return null;
         }
-        console.error('Error fetching author profile:', error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in getProfileByClerkUserId:', error);
       throw error;
     }
   }
 
-  async createProfile(profileData: NewAuthorProfile): Promise<AuthorProfile> {
+  async getCompleteProfileByClerkUserId(
+    clerkUserId: string,
+  ): Promise<CompleteAuthorProfile | null> {
     try {
-      const { data, error } = await this.getSupabase()
-        .from('authors')
-        .insert(profileData)
-        .select()
-        .single();
+      // Get Supabase profile data
+      const supabaseProfile = await this.getProfileByClerkUserId(clerkUserId);
 
-      if (error) {
-        console.error('Error creating author profile:', error);
-        throw error;
+      // Get Clerk user data
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(clerkUserId);
+
+      // Get author metadata from Clerk
+      const authorMetadata = await getUserAuthorMetadata(clerkUserId);
+
+      if (!supabaseProfile) {
+        return null;
       }
 
-      return data;
+      // Combine all data
+      const completeProfile: CompleteAuthorProfile = {
+        // Supabase fields
+        id: supabaseProfile.id,
+        clerk_user_id: supabaseProfile.clerk_user_id,
+        created_at: supabaseProfile.created_at,
+        updated_at: supabaseProfile.updated_at,
+
+        // Clerk basic profile data
+        name:
+          clerkUser.fullName ||
+          `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+        email: clerkUser.emailAddresses[0]?.emailAddress || '',
+        profile_image_url: clerkUser.imageUrl || null,
+
+        // Clerk metadata (author-specific fields)
+        bio: authorMetadata.bio ?? null,
+        website_url: authorMetadata.website_url ?? null,
+        twitter_username: authorMetadata.twitter_username ?? null,
+        linkedin_url: authorMetadata.linkedin_url ?? null,
+        facebook_url: authorMetadata.facebook_url ?? null,
+        github_username: authorMetadata.github_username ?? null,
+        goodreads_url: authorMetadata.goodreads_url ?? null,
+        amazon_author_url: authorMetadata.amazon_author_url ?? null,
+      };
+
+      return completeProfile;
     } catch (error) {
-      console.error('Error in createProfile:', error);
       throw error;
     }
   }
 
-  async updateProfile(
-    id: string,
-    updates: Partial<NewAuthorProfile>,
-  ): Promise<AuthorProfile> {
+  async createProfile(profileData: {
+    clerk_user_id: string;
+    initialMetadata?: Partial<AuthorMetadata>;
+  }): Promise<CompleteAuthorProfile> {
     try {
-      const { data, error } = await this.getSupabase()
+      // Create Supabase profile record
+      const { error } = await this.getSupabase()
         .from('authors')
-        .update(updates)
-        .eq('id', id)
+        .insert({
+          clerk_user_id: profileData.clerk_user_id,
+          // Note: bio and other fields are now handled by Clerk metadata
+        })
         .select()
         .single();
 
       if (error) {
-        console.error('Error updating author profile:', error);
         throw error;
       }
 
-      return data;
+      // Initialize author metadata in Clerk
+      await initializeUserAuthorMetadata(
+        profileData.clerk_user_id,
+        profileData.initialMetadata || {},
+      );
+
+      // Return complete profile
+      const completeProfile = await this.getCompleteProfileByClerkUserId(
+        profileData.clerk_user_id,
+      );
+
+      if (!completeProfile) {
+        throw new Error('Failed to retrieve complete profile after creation');
+      }
+
+      return completeProfile;
     } catch (error) {
-      console.error('Error in updateProfile:', error);
+      throw error;
+    }
+  }
+
+  async updateAuthorMetadata(
+    clerkUserId: string,
+    updates: Partial<AuthorMetadata>,
+  ): Promise<AuthorMetadata> {
+    try {
+      return await updateUserAuthorMetadata(clerkUserId, updates);
+    } catch (error) {
       throw error;
     }
   }
 
   async getOrCreateProfile(
     clerkUserId: string,
-    defaultData: Omit<NewAuthorProfile, 'id' | 'created_at' | 'updated_at'>,
-  ): Promise<AuthorProfile> {
+    defaultMetadata?: Partial<AuthorMetadata>,
+  ): Promise<CompleteAuthorProfile> {
     try {
-      // Try to get existing profile
-      const existingProfile = await this.getProfileByClerkUserId(clerkUserId);
+      // Try to get existing complete profile
+      const existingProfile =
+        await this.getCompleteProfileByClerkUserId(clerkUserId);
 
       if (existingProfile) {
         return existingProfile;
@@ -99,11 +186,91 @@ export class AuthorProfileService {
 
       // Create new profile if it doesn't exist
       return await this.createProfile({
-        ...defaultData,
         clerk_user_id: clerkUserId,
+        initialMetadata: defaultMetadata,
       });
     } catch (error) {
-      console.error('Error in getOrCreateProfile:', error);
+      throw error;
+    }
+  }
+
+  // Legacy method for backwards compatibility
+  async updateProfile(
+    id: string,
+    updates: Partial<AuthorMetadata>,
+  ): Promise<CompleteAuthorProfile> {
+    try {
+      // Get the author by ID to find clerk_user_id
+      const { data: author, error } = await this.getSupabase()
+        .from('authors')
+        .select('clerk_user_id')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Update metadata in Clerk
+      await this.updateAuthorMetadata(author.clerk_user_id, updates);
+
+      // Return complete profile
+      const completeProfile = await this.getCompleteProfileByClerkUserId(
+        author.clerk_user_id,
+      );
+
+      if (!completeProfile) {
+        throw new Error('Failed to retrieve complete profile after update');
+      }
+
+      return completeProfile;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Utility method to get author metadata only
+  async getAuthorMetadata(clerkUserId: string): Promise<AuthorMetadata> {
+    try {
+      return await getUserAuthorMetadata(clerkUserId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Clean up method to ensure profile exists in both systems
+  async ensureProfileConsistency(
+    clerkUserId: string,
+  ): Promise<CompleteAuthorProfile> {
+    try {
+      // Check if Supabase profile exists
+      const supabaseProfile = await this.getProfileByClerkUserId(clerkUserId);
+
+      if (!supabaseProfile) {
+        // Create Supabase profile if it doesn't exist
+        return await this.createProfile({
+          clerk_user_id: clerkUserId,
+        });
+      }
+
+      // Ensure author metadata is initialized in Clerk
+      try {
+        await getUserAuthorMetadata(clerkUserId);
+      } catch {
+        // Initialize metadata if it doesn't exist
+        await initializeUserAuthorMetadata(clerkUserId);
+      }
+
+      // Return complete profile
+      const completeProfile =
+        await this.getCompleteProfileByClerkUserId(clerkUserId);
+
+      if (!completeProfile) {
+        throw new Error('Failed to ensure profile consistency');
+      }
+
+      return completeProfile;
+    } catch (error) {
       throw error;
     }
   }

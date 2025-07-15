@@ -126,7 +126,6 @@ export function EditionSelectionDialog({
       // Move to edition selection step
       setStep('select-edition');
     } catch (error) {
-      console.error('Search error:', error);
       setSearchError(
         error instanceof Error
           ? error.message
@@ -171,8 +170,7 @@ export function EditionSelectionDialog({
       if (onBookAdded) {
         onBookAdded();
       }
-    } catch (error) {
-      console.error('Error creating primary book:', error);
+    } catch {
       setSearchError('Failed to add book. Please try again.');
     } finally {
       setIsSaving(false);
