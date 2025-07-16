@@ -188,7 +188,7 @@ npm run env:validate # Validate current setup
 - **Supabase**: Database and real-time features
 - **ISBN DB**: Book metadata lookup
 - **Google Books**: Additional book information
-- **Claude AI**: AI-powered features
+- **AI (Vercel AI SDK)**: Unified provider API for OpenAI, Anthropic, and future models (see `src/lib/services/ai.service.ts`)
 
 ## Contributing
 
