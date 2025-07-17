@@ -1,13 +1,13 @@
-'use client';
-
-import { Search, Filter, Grid, List, BookOpen } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { BookOpen, Filter, Grid, List, Search } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UIBook } from '@/lib/types/ui-book';
 
+import { AddBookDialog } from './AddBookDialog';
 import { BookCard } from './BookCard';
 
 interface BookLibraryProps {
@@ -26,6 +26,8 @@ export function BookLibrary({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const { user } = useUser();
 
   // Get all unique categories from books
   const categories = useMemo(() => {
@@ -73,12 +75,33 @@ export function BookLibrary({
         <p className="text-gray-600 mb-4">
           Start building your library by adding your first book!
         </p>
+        <AddBookDialog
+          isOpen={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          userId={user?.id}
+          firstName={user?.firstName ?? undefined}
+          lastName={user?.lastName ?? undefined}
+        >
+          <Button onClick={() => setAddDialogOpen(true)}>Add Book</Button>
+        </AddBookDialog>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Add Book Button */}
+      <div className="flex justify-end mb-4">
+        <AddBookDialog
+          isOpen={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          userId={user?.id}
+          firstName={user?.firstName ?? undefined}
+          lastName={user?.lastName ?? undefined}
+        >
+          <Button onClick={() => setAddDialogOpen(true)}>Add Book</Button>
+        </AddBookDialog>
+      </div>
       {/* Search and Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex-1 max-w-md">

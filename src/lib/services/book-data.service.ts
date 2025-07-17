@@ -326,7 +326,20 @@ class BookDataService {
     isbn?: string;
     maxResults?: number;
   }): Promise<ApiResponse<NormalizedBookData[]>> {
-    const response = await isbnDbService.searchBooks(params);
+    let response;
+    if (params.title && params.author) {
+      response = await isbnDbService.searchTitleAuthor(
+        params.title,
+        params.author,
+      );
+    } else if (params.title) {
+      response = await isbnDbService.searchBooksByTitle(params.title);
+    } else if (params.author) {
+      // Fallback: get books by author
+      response = await isbnDbService.getBooksByAuthor(params.author);
+    } else {
+      return { success: false, error: 'No search parameters provided' };
+    }
 
     if (!response.success || !response.data) {
       return {
@@ -335,7 +348,7 @@ class BookDataService {
       };
     }
 
-    const normalizedData = response.data.map(book =>
+    const normalizedData = response.data.map((book: ISBNDBBookResponse) =>
       this.normalizeISBNDBData(book),
     );
     return {

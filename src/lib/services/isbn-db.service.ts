@@ -55,30 +55,32 @@ export class ISBNDBService {
     }
   }
 
-  // Search books by title, author, or publisher
-  async searchBooks(params: {
-    title?: string;
-    author?: string;
-    publisher?: string;
-    subject?: string;
-    page?: number;
-    pageSize?: number;
-  }): Promise<ApiResponse<ISBNDBBookResponse[]>> {
-    const { title, author, publisher, subject } = params;
-
-    if (!title && !author && !publisher && !subject) {
-      return {
-        success: false,
-        error: 'At least one search parameter is required',
-      };
+  // Search books by title only (use /search/books?text={title})
+  async searchBooksByTitle(
+    title: string,
+    page: number = 1,
+    pageSize: number = SEARCH_PARAMS.DEFAULT_RESULTS,
+  ): Promise<ApiResponse<ISBNDBBookResponse[]>> {
+    if (!title) {
+      return { success: false, error: 'Title is required' };
     }
-
-    const cacheKey = buildCacheKey(CACHE_KEYS.ISBN_DB_SEARCH, params);
-
+    const cacheKey = buildCacheKey(CACHE_KEYS.ISBN_DB_SEARCH, {
+      title,
+      page,
+      pageSize,
+    });
     try {
       return await cacheWrapper(
         cacheKey,
-        () => this.performSearch(params),
+        async () => {
+          const url = `${this.baseUrl}/search/books?text=${encodeURIComponent(title)}&page=${page}&pageSize=${pageSize}`;
+          const res = await fetch(url, {
+            headers: { Authorization: this.apiKey },
+          });
+          if (!res.ok) throw new Error(`ISBNDB API error: ${res.status}`);
+          const data = await res.json();
+          return { success: true, data: data.data || [] };
+        },
         API_CONFIG.ISBN_DB.CACHE_TTL,
       );
     } catch (error) {
@@ -164,12 +166,11 @@ export class ISBNDBService {
           }
 
           // Strategy 2: Try separate title and author parameters (fallback)
-          const separateResult = await this.performSearch({
+          const separateResult = await this.searchBooksByTitle(
             title,
-            author,
             page,
-            pageSize: Math.max(pageSize, 20),
-          });
+            Math.max(pageSize, 20),
+          );
 
           if (
             separateResult.success &&
@@ -183,7 +184,7 @@ export class ISBNDBService {
           }
 
           // Strategy 3: Author-first search (only if others fail)
-          const authorResult = await this.getBooksByAuthor(author, 1, 50); // Reduced from 100 to 50
+          const authorResult = await this.searchTitleAuthor('', author, 1, 50); // Reduced from 100 to 50
 
           if (
             authorResult.success &&
@@ -257,7 +258,7 @@ export class ISBNDBService {
     page: number = 1,
     pageSize: number = SEARCH_PARAMS.DEFAULT_RESULTS,
   ): Promise<ApiResponse<ISBNDBBookResponse[]>> {
-    return this.searchBooks({ author, page, pageSize });
+    return this.searchTitleAuthor('', author, page, pageSize);
   }
 
   // Get books by publisher
@@ -266,7 +267,8 @@ export class ISBNDBService {
     page: number = 1,
     pageSize: number = SEARCH_PARAMS.DEFAULT_RESULTS,
   ): Promise<ApiResponse<ISBNDBBookResponse[]>> {
-    return this.searchBooks({ publisher, page, pageSize });
+    // No direct method for publisher; fallback to searchByText
+    return this.searchByText(publisher, page, pageSize);
   }
 
   // Get books by subject
@@ -275,7 +277,8 @@ export class ISBNDBService {
     page: number = 1,
     pageSize: number = SEARCH_PARAMS.DEFAULT_RESULTS,
   ): Promise<ApiResponse<ISBNDBBookResponse[]>> {
-    return this.searchBooks({ subject, page, pageSize });
+    // No direct method for subject; fallback to searchByText
+    return this.searchByText(subject, page, pageSize);
   }
 
   // Book ranking utilities for surfacing primary editions first

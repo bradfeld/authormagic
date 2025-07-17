@@ -129,7 +129,9 @@ export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
     external_id: book.isbn13 || book.isbn || undefined,
     maturity_rating: undefined,
     print_type: book.print_type || book.binding || undefined,
-    content_version: book.content_version || book.edition || undefined,
+    binding: book.binding || book.print_type || undefined, // <-- Added for grouping/UI
+    edition: book.edition || undefined, // <-- Map edition field directly
+    content_version: book.content_version || undefined, // <-- Keep content_version separate
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

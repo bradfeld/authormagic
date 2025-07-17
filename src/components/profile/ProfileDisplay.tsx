@@ -1,16 +1,17 @@
 'use client';
 
 import {
-  Edit,
-  Globe,
-  Twitter,
-  Linkedin,
-  Github,
   Book,
-  Facebook,
   Calendar,
+  Edit,
+  Facebook,
+  Github,
+  Globe,
+  Linkedin,
   ShoppingCart,
+  Twitter,
 } from 'lucide-react';
+import Image from 'next/image';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -125,9 +126,11 @@ export function ProfileDisplay({
         <div className="flex items-start gap-4">
           <Avatar className="h-20 w-20">
             {profile.profile_image_url ? (
-              <img
+              <Image
                 src={profile.profile_image_url}
                 alt={profile.name}
+                width={80}
+                height={80}
                 className="h-full w-full object-cover rounded-full"
               />
             ) : (

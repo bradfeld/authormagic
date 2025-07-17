@@ -2,12 +2,12 @@
 
 import { useUser } from '@clerk/nextjs';
 import {
-  Search,
-  Loader2,
   BookOpen,
-  Calendar,
   Building,
+  Calendar,
   Languages,
+  Loader2,
+  Search,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
   EditionDetectionService,
   EditionGroup,
@@ -50,7 +51,6 @@ export function EditionSelectionDialog({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  // const [searchType, setSearchType] = useState<'title-author' | 'isbn'>('title-author'); // TODO: Implement search type selection
   const [searchError, setSearchError] = useState<string | null>(null);
   const [step, setStep] = useState<'search' | 'select-edition'>('search');
 
@@ -81,7 +81,6 @@ export function EditionSelectionDialog({
         );
 
       if (isISBN) {
-        // setSearchType('isbn'); // TODO: Implement search type selection
         const response = await fetch(
           `/api/books/isbn/${encodeURIComponent(bookTitle.trim())}`,
         );
@@ -98,7 +97,6 @@ export function EditionSelectionDialog({
         groups = EditionDetectionService.groupByEdition(books);
         setEditionGroups(groups);
       } else {
-        // setSearchType('title-author'); // TODO: Implement search type selection
         const queryParams = new URLSearchParams();
         if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
         if (author.trim()) queryParams.append('author', author.trim());
@@ -137,8 +135,11 @@ export function EditionSelectionDialog({
   };
 
   const handleCreatePrimaryBook = async () => {
-    if (!user || !selectedEdition) return;
-
+    if (!selectedEdition) return;
+    if (!user) {
+      setSearchError('You must be signed in to add a book.');
+      return;
+    }
     setIsSaving(true);
     try {
       // Check if user already has this book
@@ -184,7 +185,6 @@ export function EditionSelectionDialog({
     setEditionGroups([]);
     setSelectedEdition(null);
     setSearchError(null);
-    // setSearchType('title-author'); // TODO: Implement search type selection
     setStep('search');
   };
 
@@ -227,25 +227,60 @@ export function EditionSelectionDialog({
 
         {/* Search Error Display */}
         {searchError && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-            <p className="text-sm text-destructive">{searchError}</p>
+          <div
+            className="bg-destructive/10 border border-destructive/20 rounded-lg p-3"
+            role="alert"
+            aria-live="assertive"
+          >
+            <p className="text-sm text-destructive" id="search-error-message">
+              {searchError}
+            </p>
           </div>
         )}
+        {/* Loading Spinner */}
+        {isLoading && (
+          <div
+            className="flex justify-center items-center py-8"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
+            <span className="sr-only">Loading...</span>
+          </div>
+        )}
+        {/* No Results Message */}
+        {step === 'select-edition' &&
+          !isLoading &&
+          !searchError &&
+          editionGroups.length === 0 && (
+            <div
+              className="flex flex-col items-center py-8"
+              role="status"
+              aria-live="polite"
+            >
+              <p className="text-base text-muted-foreground">
+                No books found for your search.
+              </p>
+            </div>
+          )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="bookTitle" className="text-sm font-medium">
               Book Title
             </label>
-            <input
+            <Input
               id="bookTitle"
               type="text"
               value={bookTitle}
               onChange={e => setBookTitle(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Enter book title or ISBN"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               disabled={isLoading}
+              aria-invalid={!!searchError}
+              aria-describedby={
+                searchError ? 'search-error-message' : undefined
+              }
             />
             <p className="text-xs text-muted-foreground">
               Enter book title or ISBN number
@@ -256,15 +291,18 @@ export function EditionSelectionDialog({
             <label htmlFor="author" className="text-sm font-medium">
               Author
             </label>
-            <input
+            <Input
               id="author"
               type="text"
               value={author}
               onChange={e => setAuthor(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Enter author name"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               disabled={isLoading}
+              aria-invalid={!!searchError}
+              aria-describedby={
+                searchError ? 'search-error-message' : undefined
+              }
             />
             <p className="text-xs text-muted-foreground">
               Author name helps improve search accuracy
