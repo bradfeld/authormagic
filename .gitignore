@@ -74,3 +74,6 @@ pids
 
 # Environment backups (should never be committed)
 backups/
+
+# Cache persistence
+.cache/
