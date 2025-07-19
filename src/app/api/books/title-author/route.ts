@@ -4,6 +4,7 @@ import { BookDataMergerService } from '@/lib/services/book-data-merger.service';
 import { EditionDetectionService } from '@/lib/services/edition-detection.service';
 import { GoogleBooksService } from '@/lib/services/google-books.service';
 import { isbnDbService } from '@/lib/services/isbn-db.service';
+import { ISBNDBBookResponse } from '@/lib/types/api';
 import { convertISBNDBToUIBook, UIBook } from '@/lib/types/ui-book';
 
 export async function GET(request: NextRequest) {
@@ -116,81 +117,78 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper function for ISBNDB search with progressive strategy
+// Helper function for ISBNDB search with optimized parallel strategy
 async function searchISBNDB(title: string, author?: string) {
-  const allResults = new Map<string, any>(); // Use Map to deduplicate by ISBN
+  const allResults = new Map<string, ISBNDBBookResponse>(); // Use Map to deduplicate by ISBN
 
-  // Strategy 1: Direct title search (most comprehensive)
+  // Enhanced parallel strategy: run multiple search approaches simultaneously
+  const searchPromises = [];
+
+  // Strategy 1: Direct title searches (run in parallel)
   const titleSearches = [
     title, // "Startup Life"
     `"${title}"`, // Quoted search
     `${title} surviving`, // With common subtitle words
     `${title} relationship`,
     `${title} entrepreneur`,
-    `startup life surviving thriving`, // Full subtitle
-    `startup life relationship entrepreneur`, // Alternative subtitle
   ];
 
-  for (const searchTerm of titleSearches) {
-    const result = await isbnDbService.searchBooksByTitle(searchTerm, 1, 50);
-
-    if (result.success && result.data) {
-      // Successfully searched ISBNDB for books
-
-      result.data.forEach(book => {
-        if (book.isbn) {
-          allResults.set(book.isbn, book);
-        }
-      });
-    }
-  }
-
-  // Strategy 2: Author search if we have author
-  if (author) {
-    const authorResult = await isbnDbService.searchTitleAuthor(
-      title,
-      author,
-      1,
-      100,
+  titleSearches.forEach(searchTerm => {
+    searchPromises.push(
+      isbnDbService
+        .searchBooksByTitle(searchTerm, 1, 30)
+        .catch(() => ({ success: false, data: [] })),
     );
+  });
 
-    if (authorResult.success && authorResult.data) {
-      // Successfully searched ISBNDB by author
+  // Strategy 2: Author-specific searches (if we have author)
+  if (author) {
+    searchPromises.push(
+      isbnDbService
+        .searchTitleAuthor(title, author, 1, 50)
+        .catch(() => ({ success: false, data: [] })),
+      isbnDbService
+        .searchBooksByTitle(`"${title}" "${author}"`, 1, 30)
+        .catch(() => ({ success: false, data: [] })),
+      isbnDbService
+        .searchBooksByTitle(`${title} ${author}`, 1, 30)
+        .catch(() => ({ success: false, data: [] })),
+    );
+  }
 
-      authorResult.data.forEach(book => {
+  // Execute all searches in parallel with timeout protection
+  const results = await Promise.allSettled(
+    searchPromises.map(promise =>
+      Promise.race([
+        promise,
+        new Promise(
+          (_, reject) =>
+            setTimeout(() => reject(new Error('Search timeout')), 8000), // 8 second total timeout
+        ),
+      ]),
+    ),
+  );
+
+  // Collect all successful results
+  results.forEach(result => {
+    if (
+      result.status === 'fulfilled' &&
+      result.value &&
+      typeof result.value === 'object' &&
+      'success' in result.value &&
+      result.value.success &&
+      'data' in result.value &&
+      Array.isArray(result.value.data)
+    ) {
+      result.value.data.forEach((book: ISBNDBBookResponse) => {
         if (book.isbn) {
           allResults.set(book.isbn, book);
         }
       });
     }
-  }
-
-  // Strategy 3: Try text search with author name
-  if (author) {
-    const textSearches = [
-      `"${title}" "${author}"`,
-      `startup life brad feld`,
-      `startup life amy batchelor`,
-      `surviving thriving relationship entrepreneur brad feld`,
-    ];
-
-    for (const searchTerm of textSearches) {
-      const result = await isbnDbService.searchBooksByTitle(searchTerm, 1, 50);
-
-      if (result.success && result.data) {
-        // Successfully performed text search
-
-        result.data.forEach(book => {
-          if (book.isbn) {
-            allResults.set(book.isbn, book);
-          }
-        });
-      }
-    }
-  }
+  });
 
   const uniqueBooks = Array.from(allResults.values());
-  // ISBNDB search completed with unique books found
 
   if (uniqueBooks.length > 0) {
     return {

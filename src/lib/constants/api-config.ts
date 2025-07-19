@@ -11,37 +11,39 @@ export const API_CONFIG = {
       PUBLISHERS: '/publishers',
       SUBJECT: '/subject',
       SUBJECTS: '/subjects',
-      STATS: '/stats'
+      STATS: '/stats',
     },
     RATE_LIMIT: {
       requestsPerMinute: 100,
       requestsPerDay: 1000,
-      burstLimit: 10
+      burstLimit: 10,
     },
     CACHE_TTL: 60 * 60 * 24, // 24 hours
-    RETRY_ATTEMPTS: 3,
-    RETRY_DELAY: 1000, // 1 second
-    TIMEOUT: 10000 // 10 seconds
+    RETRY_ATTEMPTS: 2, // Reduced from 3 for faster failure
+    RETRY_DELAY: 500, // Reduced from 1000ms
+    TIMEOUT: 4000, // Reduced from 10000ms (4 seconds)
+    TIMEOUT_FALLBACK: 8000, // Longer timeout for fallback operations
   },
-  
+
   GOOGLE_BOOKS: {
     BASE_URL: 'https://www.googleapis.com/books/v1',
     ENDPOINTS: {
       VOLUMES: '/volumes',
       VOLUME: '/volumes/{id}',
-      MYLIBRARY: '/mylibrary'
+      MYLIBRARY: '/mylibrary',
     },
     RATE_LIMIT: {
       requestsPerMinute: 1000,
       requestsPerDay: 100000,
-      burstLimit: 100
+      burstLimit: 100,
     },
     CACHE_TTL: 60 * 60 * 12, // 12 hours
-    RETRY_ATTEMPTS: 2,
-    RETRY_DELAY: 500, // 500ms
-    TIMEOUT: 8000 // 8 seconds
-  }
-} as const
+    RETRY_ATTEMPTS: 1, // Reduced from 2 for faster failure
+    RETRY_DELAY: 300, // Reduced from 500ms
+    TIMEOUT: 3000, // Reduced from 8000ms (3 seconds)
+    TIMEOUT_FALLBACK: 6000, // Longer timeout for fallback operations
+  },
+} as const;
 
 // Common HTTP status codes
 export const HTTP_STATUS = {
@@ -53,8 +55,8 @@ export const HTTP_STATUS = {
   NOT_FOUND: 404,
   RATE_LIMITED: 429,
   INTERNAL_SERVER_ERROR: 500,
-  SERVICE_UNAVAILABLE: 503
-} as const
+  SERVICE_UNAVAILABLE: 503,
+} as const;
 
 // API Error Types
 export const API_ERROR_TYPES = {
@@ -64,8 +66,8 @@ export const API_ERROR_TYPES = {
   NETWORK_ERROR: 'NETWORK_ERROR',
   TIMEOUT: 'TIMEOUT',
   INVALID_RESPONSE: 'INVALID_RESPONSE',
-  API_ERROR: 'API_ERROR'
-} as const
+  API_ERROR: 'API_ERROR',
+} as const;
 
 // Binding types from ISBN DB API
 export const BINDING_TYPES = {
@@ -83,16 +85,16 @@ export const BINDING_TYPES = {
   PDF: 'PDF',
   AUDIOBOOK: 'Audiobook',
   DIGITAL: 'Digital',
-  UNKNOWN: 'Unknown'
-} as const
+  UNKNOWN: 'Unknown',
+} as const;
 
 // Search parameters
 export const SEARCH_PARAMS = {
   MAX_RESULTS: 40,
   DEFAULT_RESULTS: 10,
   MIN_QUERY_LENGTH: 2,
-  MAX_QUERY_LENGTH: 500
-} as const
+  MAX_QUERY_LENGTH: 500,
+} as const;
 
 // Cache keys
 export const CACHE_KEYS = {
@@ -101,5 +103,5 @@ export const CACHE_KEYS = {
   GOOGLE_BOOKS_VOLUME: 'google_books:volume:',
   GOOGLE_BOOKS_SEARCH: 'google_books:search:',
   BOOK_HIERARCHY: 'book_hierarchy:',
-  AUTHOR_BOOKS: 'author_books:'
-} as const 
+  AUTHOR_BOOKS: 'author_books:',
+} as const;

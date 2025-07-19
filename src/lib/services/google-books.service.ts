@@ -55,11 +55,21 @@ export class GoogleBooksService {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env['GOOGLE_BOOKS_API_KEY'] || '';
-    this.backoff = new ExponentialBackoff(2, 500, 5000, true);
+    this.backoff = new ExponentialBackoff(
+      API_CONFIG.GOOGLE_BOOKS.RETRY_ATTEMPTS,
+      API_CONFIG.GOOGLE_BOOKS.RETRY_DELAY,
+      3000,
+      true,
+    );
 
     if (!this.apiKey) {
       // Service will have limited functionality without API key
     }
+  }
+
+  // Check if Google Books API is properly configured
+  isAvailable(): boolean {
+    return Boolean(this.apiKey);
   }
 
   // Search books by title and author
@@ -286,11 +296,6 @@ export class GoogleBooksService {
       googleBooksId: volume.id,
       source: 'google-books' as const,
     };
-  }
-
-  // Check if service is available
-  isAvailable(): boolean {
-    return Boolean(this.apiKey);
   }
 
   // Get service status

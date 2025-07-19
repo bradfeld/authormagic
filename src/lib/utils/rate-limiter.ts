@@ -2,86 +2,93 @@
 // Simple in-memory rate limiter with sliding window approach
 
 interface RateLimitConfig {
-  requestsPerMinute: number
-  requestsPerDay: number
-  burstLimit: number
+  requestsPerMinute: number;
+  requestsPerDay: number;
+  burstLimit: number;
 }
 
 interface RateLimitState {
-  requests: number[]
-  dailyRequests: number
-  dailyResetTime: number
+  requests: number[];
+  dailyRequests: number;
+  dailyResetTime: number;
 }
 
 class RateLimiter {
-  private limits: Map<string, RateLimitState> = new Map()
-  private config: RateLimitConfig
+  private limits: Map<string, RateLimitState> = new Map();
+  private config: RateLimitConfig;
 
   constructor(config: RateLimitConfig) {
-    this.config = config
+    this.config = config;
   }
 
   async checkLimit(identifier: string): Promise<boolean> {
-    const now = Date.now()
-    const state = this.getOrCreateState(identifier)
-    
+    const now = Date.now();
+    const state = this.getOrCreateState(identifier);
+
     // Clean up old requests (older than 1 minute)
-    const oneMinuteAgo = now - 60 * 1000
-    state.requests = state.requests.filter(timestamp => timestamp > oneMinuteAgo)
-    
+    const oneMinuteAgo = now - 60 * 1000;
+    state.requests = state.requests.filter(
+      timestamp => timestamp > oneMinuteAgo,
+    );
+
     // Check daily limit reset
     if (now > state.dailyResetTime) {
-      state.dailyRequests = 0
-      state.dailyResetTime = this.getTomorrowMidnight()
+      state.dailyRequests = 0;
+      state.dailyResetTime = this.getTomorrowMidnight();
     }
-    
+
     // Check limits
-    const canMakeRequest = 
+    const canMakeRequest =
       state.requests.length < this.config.requestsPerMinute &&
       state.dailyRequests < this.config.requestsPerDay &&
-      state.requests.length < this.config.burstLimit
-    
+      state.requests.length < this.config.burstLimit;
+
     if (canMakeRequest) {
-      state.requests.push(now)
-      state.dailyRequests++
-      return true
+      state.requests.push(now);
+      state.dailyRequests++;
+      return true;
     }
-    
-    return false
+
+    return false;
   }
 
   async waitForSlot(identifier: string): Promise<void> {
-    const state = this.getOrCreateState(identifier)
-    const now = Date.now()
-    
+    const state = this.getOrCreateState(identifier);
+    const now = Date.now();
+
     if (state.requests.length >= this.config.burstLimit) {
       // Wait for the oldest request to expire
-      const oldestRequest = Math.min(...state.requests)
-      const waitTime = (oldestRequest + 60 * 1000) - now
-      
+      const oldestRequest = Math.min(...state.requests);
+      const waitTime = oldestRequest + 60 * 1000 - now;
+
       if (waitTime > 0) {
-        await this.sleep(waitTime)
+        await this.sleep(waitTime);
       }
     }
   }
 
   getRemainingRequests(identifier: string): {
-    perMinute: number
-    perDay: number
-    resetTime: number
+    perMinute: number;
+    perDay: number;
+    resetTime: number;
   } {
-    const state = this.getOrCreateState(identifier)
-    const now = Date.now()
-    
+    const state = this.getOrCreateState(identifier);
+    const now = Date.now();
+
     // Clean up old requests
-    const oneMinuteAgo = now - 60 * 1000
-    state.requests = state.requests.filter(timestamp => timestamp > oneMinuteAgo)
-    
+    const oneMinuteAgo = now - 60 * 1000;
+    state.requests = state.requests.filter(
+      timestamp => timestamp > oneMinuteAgo,
+    );
+
     return {
-      perMinute: Math.max(0, this.config.requestsPerMinute - state.requests.length),
+      perMinute: Math.max(
+        0,
+        this.config.requestsPerMinute - state.requests.length,
+      ),
       perDay: Math.max(0, this.config.requestsPerDay - state.dailyRequests),
-      resetTime: state.dailyResetTime
-    }
+      resetTime: state.dailyResetTime,
+    };
   }
 
   private getOrCreateState(identifier: string): RateLimitState {
@@ -89,94 +96,134 @@ class RateLimiter {
       this.limits.set(identifier, {
         requests: [],
         dailyRequests: 0,
-        dailyResetTime: this.getTomorrowMidnight()
-      })
+        dailyResetTime: this.getTomorrowMidnight(),
+      });
     }
-    return this.limits.get(identifier)!
+    return this.limits.get(identifier)!;
   }
 
   private getTomorrowMidnight(): number {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(0, 0, 0, 0)
-    return tomorrow.getTime()
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow.getTime();
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
 // Global rate limiter instances
-const rateLimiters = new Map<string, RateLimiter>()
+const rateLimiters = new Map<string, RateLimiter>();
 
-export function createRateLimiter(key: string, config: RateLimitConfig): RateLimiter {
+export function createRateLimiter(
+  key: string,
+  config: RateLimitConfig,
+): RateLimiter {
   if (!rateLimiters.has(key)) {
-    rateLimiters.set(key, new RateLimiter(config))
+    rateLimiters.set(key, new RateLimiter(config));
   }
-  return rateLimiters.get(key)!
+  return rateLimiters.get(key)!;
 }
 
 export function getRateLimiter(key: string): RateLimiter | undefined {
-  return rateLimiters.get(key)
+  return rateLimiters.get(key);
 }
 
 // Exponential backoff utility
 export class ExponentialBackoff {
-  private attempt: number = 0
-  private maxAttempts: number
-  private baseDelay: number
-  private maxDelay: number
-  private jitter: boolean
+  private attempts: number;
+  private delay: number;
+  private maxDelay: number;
+  private jitter: boolean;
 
   constructor(
-    maxAttempts: number = 3,
-    baseDelay: number = 1000,
-    maxDelay: number = 30000,
-    jitter: boolean = true
+    attempts: number = 3,
+    initialDelay: number = 1000,
+    maxDelay: number = 10000,
+    jitter: boolean = true,
   ) {
-    this.maxAttempts = maxAttempts
-    this.baseDelay = baseDelay
-    this.maxDelay = maxDelay
-    this.jitter = jitter
+    this.attempts = attempts;
+    this.delay = initialDelay;
+    this.maxDelay = maxDelay;
+    this.jitter = jitter;
   }
 
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
-    while (this.attempt < this.maxAttempts) {
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError: Error | unknown;
+
+    for (let attempt = 1; attempt <= this.attempts; attempt++) {
       try {
-        const result = await fn()
-        this.reset()
-        return result
+        return await operation();
       } catch (error) {
-        this.attempt++
-        
-        if (this.attempt >= this.maxAttempts) {
-          throw error
+        lastError = error;
+
+        if (attempt === this.attempts) {
+          throw error;
         }
-        
-        await this.delay()
+
+        const backoffDelay = Math.min(
+          this.delay * Math.pow(2, attempt - 1),
+          this.maxDelay,
+        );
+
+        const actualDelay = this.jitter
+          ? backoffDelay + Math.random() * 1000
+          : backoffDelay;
+
+        await this.sleep(actualDelay);
       }
     }
-    
-    throw new Error('Max attempts reached')
+
+    throw lastError;
   }
 
-  private async delay(): Promise<void> {
-    const delay = Math.min(
-      this.baseDelay * Math.pow(2, this.attempt - 1),
-      this.maxDelay
-    )
-    
-    const jitterDelay = this.jitter 
-      ? delay + Math.random() * 1000 
-      : delay
-    
-    await new Promise(resolve => setTimeout(resolve, jitterDelay))
-  }
-
-  private reset(): void {
-    this.attempt = 0
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
-export { RateLimiter, type RateLimitConfig, type RateLimitState } 
+// Performance-optimized backoff for time-sensitive operations
+export class FastBackoff {
+  private attempts: number;
+  private delay: number;
+  private maxDelay: number;
+
+  constructor(
+    attempts: number = 2,
+    initialDelay: number = 200,
+    maxDelay: number = 1000,
+  ) {
+    this.attempts = attempts;
+    this.delay = initialDelay;
+    this.maxDelay = maxDelay;
+  }
+
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError: Error | unknown;
+
+    for (let attempt = 1; attempt <= this.attempts; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+
+        if (attempt === this.attempts) {
+          throw error;
+        }
+
+        const backoffDelay = Math.min(this.delay * attempt, this.maxDelay);
+        await this.sleep(backoffDelay);
+      }
+    }
+
+    throw lastError;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+export { RateLimiter, type RateLimitConfig, type RateLimitState };

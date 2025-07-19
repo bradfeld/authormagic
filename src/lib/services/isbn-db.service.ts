@@ -13,7 +13,11 @@ import {
   ApiResponse,
 } from '../types/api';
 import { cacheWrapper, buildCacheKey } from '../utils/api-cache';
-import { createRateLimiter, ExponentialBackoff } from '../utils/rate-limiter';
+import {
+  createRateLimiter,
+  ExponentialBackoff,
+  FastBackoff,
+} from '../utils/rate-limiter';
 
 export class ISBNDBService {
   private baseUrl = 'https://api2.isbndb.com';
@@ -23,10 +27,17 @@ export class ISBNDBService {
     API_CONFIG.ISBN_DB.RATE_LIMIT,
   );
   private backoff: ExponentialBackoff;
+  private fastBackoff: FastBackoff;
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env['ISBNDB_API_KEY'] || '';
-    this.backoff = new ExponentialBackoff(3, 1000, 10000, true);
+    this.backoff = new ExponentialBackoff(
+      API_CONFIG.ISBN_DB.RETRY_ATTEMPTS,
+      API_CONFIG.ISBN_DB.RETRY_DELAY,
+      5000,
+      true,
+    );
+    this.fastBackoff = new FastBackoff(2, 200, 1000);
 
     if (!this.apiKey) {
       // Service will have limited functionality without API key
@@ -243,6 +254,112 @@ export class ISBNDBService {
           return {
             success: false,
             error: 'No books found with any search strategy',
+          };
+        },
+        API_CONFIG.ISBN_DB.CACHE_TTL,
+      );
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // NEW: Parallel search method for maximum speed
+  async searchTitleAuthorParallel(
+    title: string,
+    author: string,
+    page: number = 1,
+    pageSize: number = SEARCH_PARAMS.DEFAULT_RESULTS,
+  ): Promise<ApiResponse<ISBNDBBookResponse[]>> {
+    const cacheKey = buildCacheKey(CACHE_KEYS.ISBN_DB_SEARCH, {
+      title: title + '_parallel',
+      author,
+      page,
+      pageSize,
+    });
+
+    try {
+      return await cacheWrapper(
+        cacheKey,
+        async () => {
+          // Execute multiple search strategies in parallel
+          const searchPromises = [
+            // Strategy 1: Direct quoted search (fastest, most accurate)
+            this.performParallelTextSearch(`"${title}" "${author}"`, 1, 30),
+
+            // Strategy 2: Title search with author filtering
+            this.performParallelTextSearch(title, 1, 20),
+
+            // Strategy 3: Flexible text search
+            this.performParallelTextSearch(`${title} ${author}`, 1, 25),
+          ];
+
+          // Wait for all searches with timeout
+          const results = await Promise.allSettled(
+            searchPromises.map(promise =>
+              Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                  setTimeout(
+                    () => reject(new Error('Search timeout')),
+                    API_CONFIG.ISBN_DB.TIMEOUT,
+                  ),
+                ),
+              ]),
+            ),
+          );
+
+          // Merge and deduplicate results
+          const allBooks = new Map<string, ISBNDBBookResponse>();
+
+          results.forEach(result => {
+            if (
+              result.status === 'fulfilled' &&
+              result.value &&
+              typeof result.value === 'object' &&
+              'success' in result.value &&
+              result.value.success &&
+              'data' in result.value &&
+              Array.isArray(result.value.data)
+            ) {
+              result.value.data.forEach((book: ISBNDBBookResponse) => {
+                if (book.isbn) {
+                  allBooks.set(book.isbn, book);
+                }
+              });
+            }
+          });
+
+          const uniqueBooks = Array.from(allBooks.values());
+
+          if (uniqueBooks.length > 0) {
+            // Apply smart filtering for title/author match
+            const filteredBooks = uniqueBooks.filter(book => {
+              const titleMatch =
+                book.title.toLowerCase().includes(title.toLowerCase()) ||
+                title.toLowerCase().includes(book.title.toLowerCase());
+
+              const authorMatch =
+                book.authors?.some(
+                  a =>
+                    a.toLowerCase().includes(author.toLowerCase()) ||
+                    author.toLowerCase().includes(a.toLowerCase()),
+                ) || false;
+
+              // For parallel search, be more inclusive - OR logic instead of AND
+              return titleMatch || authorMatch;
+            });
+
+            if (filteredBooks.length > 0) {
+              return {
+                success: true,
+                data: this.rankBooks(filteredBooks, title),
+              };
+            }
+          }
+
+          return {
+            success: false,
+            error: 'No books found with parallel search strategies',
           };
         },
         API_CONFIG.ISBN_DB.CACHE_TTL,
@@ -536,13 +653,83 @@ export class ISBNDBService {
     });
   }
 
+  // NEW: Parallel text search method for faster execution
+  private async performParallelTextSearch(
+    searchText: string,
+    page: number = 1,
+    pageSize: number = SEARCH_PARAMS.DEFAULT_RESULTS,
+  ): Promise<ApiResponse<ISBNDBBookResponse[]>> {
+    const canMakeRequest = await this.rateLimiter.checkLimit('isbn-db');
+
+    if (!canMakeRequest) {
+      await this.rateLimiter.waitForSlot('isbn-db');
+    }
+
+    return this.fastBackoff.execute(async () => {
+      const searchParams = new URLSearchParams();
+
+      searchParams.append('text', searchText.trim());
+      if (page) searchParams.append('page', page.toString());
+      if (pageSize) searchParams.append('pageSize', pageSize.toString());
+
+      const url = `${this.baseUrl}/search${API_CONFIG.ISBN_DB.ENDPOINTS.BOOKS}?${searchParams}`;
+      const response = await this.makeRequestFast(url);
+
+      // The search endpoint returns data in a 'data' array
+      const books = response.data || [];
+
+      // Apply intelligent ranking to surface primary editions first
+      const rankedBooks = this.rankBooks(books, searchText);
+
+      return {
+        success: true,
+        data: rankedBooks,
+      };
+    });
+  }
+
+  // Fast request method with shorter timeout
+  private async makeRequestFast(
+    url: string,
+  ): Promise<ISBNDBApiResponse<ISBNDBBookResponse>> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      API_CONFIG.ISBN_DB.TIMEOUT, // Uses the optimized 4s timeout
+    );
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+
+  // Original request method with longer timeout for fallback operations
   private async makeRequest(
     url: string,
   ): Promise<ISBNDBApiResponse<ISBNDBBookResponse>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
-      API_CONFIG.ISBN_DB.TIMEOUT,
+      API_CONFIG.ISBN_DB.TIMEOUT_FALLBACK, // Uses the longer 8s timeout for fallbacks
     );
 
     try {
