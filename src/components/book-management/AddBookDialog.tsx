@@ -130,6 +130,27 @@ export function AddBookDialog({
     return bindingGroups;
   };
 
+  // Helper to sort binding entries in preferred display order
+  const sortBindingEntries = (entries: [string, UIBook[]][]) => {
+    const bindingOrder = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+    return entries.sort(([bindingA], [bindingB]) => {
+      const indexA = bindingOrder.indexOf(bindingA);
+      const indexB = bindingOrder.indexOf(bindingB);
+
+      // If both bindings are in our order list, sort by their position
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+
+      // If only one is in the list, it comes first
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+
+      // If neither is in the list, sort alphabetically
+      return bindingA.localeCompare(bindingB);
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -196,22 +217,17 @@ export function AddBookDialog({
             <div className="space-y-6 mt-2">
               {editionGroups.map((edition, idx) => {
                 const bindingGroups = groupBindings(edition.books);
-                // Pick the best binding for edition summary
-                const getBestBinding = () => {
-                  if (bindingGroups['hardcover'])
-                    return bindingGroups['hardcover'][0];
-                  if (bindingGroups['paperback'])
-                    return bindingGroups['paperback'][0];
-                  if (bindingGroups['ebook'] || bindingGroups['kindle'])
-                    return (
-                      bindingGroups['ebook']?.[0] ||
-                      bindingGroups['kindle']?.[0]
-                    );
-                  // Fallback: first available binding
-                  const all = Object.values(bindingGroups).flat();
-                  return all[0] || null;
+                // Get best metadata using priority logic
+                const bestMetadata = EditionDetectionService.getBestMetadata(
+                  edition.books,
+                );
+                const bestBook = edition.books[0]; // For basic info like title, authors
+
+                // Merge best metadata with basic book info
+                const displayBook = {
+                  ...bestBook,
+                  ...bestMetadata,
                 };
-                const bestBook = getBestBinding();
                 const editionDisplay =
                   EditionDetectionService.getEditionDisplayName(edition);
                 return (
@@ -222,17 +238,21 @@ export function AddBookDialog({
                     {/* Edition-level details with thumbnail */}
                     <div className="mb-3 flex flex-col md:flex-row gap-6 bg-muted/30 rounded-lg p-4 items-start w-full">
                       {/* Thumbnail */}
-                      {bestBook?.thumbnail || bestBook?.image ? (
+                      {displayBook?.thumbnail || displayBook?.image ? (
                         <Image
                           src={
-                            bestBook.thumbnail ||
-                            bestBook.image ||
+                            displayBook.thumbnail ||
+                            displayBook.image ||
                             '/window.svg'
                           }
-                          alt={bestBook.title || 'Book cover'}
+                          alt={displayBook.title || 'Book cover'}
                           width={128}
                           height={192}
                           className="w-32 h-48 object-cover rounded shadow-md border border-border flex-shrink-0"
+                          onError={e => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/window.svg';
+                          }}
                         />
                       ) : (
                         <div className="w-32 h-48 bg-gray-200 rounded flex items-center justify-center text-gray-400 border border-border flex-shrink-0">
@@ -242,11 +262,11 @@ export function AddBookDialog({
                       {/* Details */}
                       <div className="flex-1 min-w-0 w-full">
                         <div className="font-medium text-lg truncate w-full">
-                          {bestBook?.title || '—'}
+                          {displayBook?.title || '—'}
                         </div>
-                        {bestBook?.subtitle && (
+                        {displayBook?.subtitle && (
                           <div className="block text-sm text-muted-foreground truncate w-full">
-                            {bestBook.subtitle}
+                            {displayBook.subtitle}
                           </div>
                         )}
                         {/* Edition info immediately after subtitle */}
@@ -255,58 +275,60 @@ export function AddBookDialog({
                         </div>
                         <div className="mt-2 text-sm">
                           <span className="font-medium">Authors:</span>{' '}
-                          {bestBook?.authors?.join(', ') || '—'}
+                          {displayBook?.authors?.join(', ') || '—'}
                         </div>
                         <div className="mt-1 text-sm">
                           <span className="font-medium">Publisher:</span>{' '}
-                          {bestBook?.publisher || '—'}
+                          {displayBook?.publisher || '—'}
                         </div>
                         <div className="mt-1 text-sm">
                           <span className="font-medium">Publication Date:</span>{' '}
-                          {bestBook?.published_date || '—'}
+                          {displayBook?.published_date || '—'}
                         </div>
                         <div className="mt-1 text-sm">
                           <span className="font-medium">ISBN:</span>{' '}
-                          {bestBook?.isbn || '—'}
+                          {displayBook?.isbn || '—'}
                         </div>
                         <div className="mt-1 text-sm">
                           <span className="font-medium">Page Count:</span>{' '}
-                          {bestBook?.page_count || '—'}
+                          {displayBook?.page_count || '—'}
                         </div>
                       </div>
                     </div>
                     {/* Binding badges and per-binding details as before */}
                     <div className="flex flex-wrap gap-2 mb-2">
-                      {Object.entries(bindingGroups).map(([binding, books]) => (
-                        <Badge
-                          key={binding}
-                          variant={
-                            selectedEdition === edition &&
-                            selectedBinding === binding
-                              ? 'default'
-                              : 'outline'
-                          }
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setSelectedEdition(edition);
-                            setSelectedBinding(binding);
-                          }}
-                          tabIndex={0}
-                          onKeyPress={e => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                      {sortBindingEntries(Object.entries(bindingGroups)).map(
+                        ([binding, books]) => (
+                          <Badge
+                            key={binding}
+                            variant={
+                              selectedEdition === edition &&
+                              selectedBinding === binding
+                                ? 'default'
+                                : 'outline'
+                            }
+                            className="cursor-pointer"
+                            onClick={() => {
                               setSelectedEdition(edition);
                               setSelectedBinding(binding);
+                            }}
+                            tabIndex={0}
+                            onKeyPress={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                setSelectedEdition(edition);
+                                setSelectedBinding(binding);
+                              }
+                            }}
+                            aria-pressed={
+                              selectedEdition === edition &&
+                              selectedBinding === binding
                             }
-                          }}
-                          aria-pressed={
-                            selectedEdition === edition &&
-                            selectedBinding === binding
-                          }
-                        >
-                          {binding.charAt(0).toUpperCase() + binding.slice(1)}
-                          {books.length > 1 && ` (${books.length})`}
-                        </Badge>
-                      ))}
+                          >
+                            {binding.charAt(0).toUpperCase() + binding.slice(1)}
+                            {books.length > 1 && ` (${books.length})`}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                     {/* Show sample book details for selected binding */}
                     {selectedEdition === edition &&

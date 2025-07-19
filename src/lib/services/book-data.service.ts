@@ -9,6 +9,7 @@ import {
   ApiResponse,
 } from '../types/api';
 import { BookHierarchyData } from '../types/book';
+import { UIBook } from '../types/ui-book';
 import { cacheWithFallback, buildCacheKey } from '../utils/api-cache';
 
 import { GoogleBooksService } from './google-books.service';
@@ -302,16 +303,19 @@ class BookDataService {
     isbn: string,
   ): Promise<ApiResponse<NormalizedBookData>> {
     const googleBooksService = new GoogleBooksService();
-    const response = await googleBooksService.searchByIsbn(isbn);
+    // Use general search with ISBN as query
+    const response = await googleBooksService.searchBooks(isbn);
 
-    if (!response.success || !response.data) {
+    if (!response.success || !response.data || response.data.length === 0) {
       return {
         success: false,
-        error: response.error || 'Unknown error',
+        error: response.error || 'No books found',
       };
     }
 
-    const normalizedData = this.normalizeGoogleBooksBook(response.data);
+    // Take the first result that matches the ISBN
+    const book = response.data.find(b => b.isbn === isbn) || response.data[0];
+    const normalizedData = this.normalizeUIBookToNormalizedData(book);
     return {
       success: true,
       data: normalizedData,
@@ -374,19 +378,17 @@ class BookDataService {
     if (params.subject) query += `subject:${params.subject} `;
     if (params.isbn) query += `isbn:${params.isbn} `;
 
-    const response = await googleBooksService.searchBooks(query.trim(), {
-      maxResults: params.maxResults || 10,
-    });
+    const response = await googleBooksService.searchBooks(query.trim());
 
-    if (!response.success || !response.data || !response.data.items) {
+    if (!response.success || !response.data) {
       return {
         success: false,
-        error: response.error || 'Unknown error',
+        error: response.error || 'No books found',
       };
     }
 
-    const normalizedData = response.data.items.map((book: GoogleBooksVolume) =>
-      this.normalizeGoogleBooksBook(book),
+    const normalizedData = response.data.map((book: UIBook) =>
+      this.normalizeUIBookToNormalizedData(book),
     );
     return {
       success: true,
@@ -413,7 +415,7 @@ class BookDataService {
       genre: book.subjects || [],
       language: book.language || 'en',
       description: book.synopsis || book.overview || book.excerpt,
-      cover_image_url: undefined, // Not typically provided by ISBN DB
+      cover_image_url: book.image || book.cover_image, // Extract ISBNDB image URL
       editions: [
         {
           edition_name: book.edition || '1st',
@@ -444,6 +446,54 @@ class BookDataService {
           source: 'isbndb',
           external_id: book.isbn13 || book.isbn,
           data: book as unknown as Record<string, unknown>,
+        },
+      ],
+    };
+  }
+
+  private normalizeUIBookToNormalizedData(book: UIBook): NormalizedBookData {
+    return {
+      title: book.title,
+      subtitle: book.subtitle,
+      series: undefined,
+      series_number: undefined,
+      primary_isbn: book.isbn,
+      publication_year:
+        book.year ||
+        (book.published_date
+          ? new Date(book.published_date).getFullYear()
+          : undefined),
+      genre: book.subjects || book.categories || [],
+      language: book.language || 'en',
+      description: book.description,
+      cover_image_url: book.image || book.thumbnail,
+      editions: [
+        {
+          edition_name: '1st',
+          isbn_10: book.isbn?.length === 10 ? book.isbn : undefined,
+          isbn_13: book.isbn?.length === 13 ? book.isbn : undefined,
+          publisher: book.publisher,
+          publication_date: book.published_date,
+          page_count: book.pages || book.page_count,
+          language: book.language || 'en',
+          dimensions: undefined,
+          bindings: [
+            {
+              binding_type: book.binding || 'Unknown',
+              isbn_10: book.isbn?.length === 10 ? book.isbn : undefined,
+              isbn_13: book.isbn?.length === 13 ? book.isbn : undefined,
+            },
+          ],
+        },
+      ],
+      external_data: [
+        {
+          source: 'google_books' as ExternalDataSource,
+          external_id: book.googleBooksId || book.isbn || '',
+          data: {
+            authors: book.authors || [],
+            source: book.source,
+          },
         },
       ],
     };
@@ -578,9 +628,7 @@ class BookDataService {
       (async () => {
         try {
           const googleBooksService = new GoogleBooksService();
-          const response = await googleBooksService.searchBooks('test', {
-            maxResults: 1,
-          });
+          const response = await googleBooksService.searchBooks('test');
           return response.success;
         } catch {
           return false;

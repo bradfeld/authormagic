@@ -132,6 +132,10 @@ export function ProfileDisplay({
                 width={80}
                 height={80}
                 className="h-full w-full object-cover rounded-full"
+                onError={e => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
               />
             ) : (
               <div className="h-full w-full bg-gray-200 rounded-full flex items-center justify-center">

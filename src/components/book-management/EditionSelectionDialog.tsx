@@ -216,6 +216,27 @@ export function EditionSelectionDialog({
     return bindingGroups;
   };
 
+  // Helper to sort binding entries in preferred display order
+  const sortBindingEntries = (entries: [string, UIBook[]][]) => {
+    const bindingOrder = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+    return entries.sort(([bindingA], [bindingB]) => {
+      const indexA = bindingOrder.indexOf(bindingA.toLowerCase());
+      const indexB = bindingOrder.indexOf(bindingB.toLowerCase());
+
+      // If both bindings are in our order list, sort by their position
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+
+      // If only one is in the list, it comes first
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+
+      // If neither is in the list, sort alphabetically
+      return bindingA.localeCompare(bindingB);
+    });
+  };
+
   const renderSearchStep = () => (
     <div className="space-y-6">
       {/* Search Interface */}
@@ -408,20 +429,20 @@ export function EditionSelectionDialog({
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Available Bindings:</p>
                     <div className="flex flex-wrap gap-2">
-                      {Array.from(groupBindings(edition.books)).map(
-                        ([bindingType, books]) => (
-                          <Badge key={bindingType} variant="outline">
-                            {books.length > 1
-                              ? `${bindingType} (${books.length})`
-                              : bindingType}
-                            {books[0].msrp && (
-                              <span className="ml-1 opacity-70">
-                                ${books[0].msrp}
-                              </span>
-                            )}
-                          </Badge>
-                        ),
-                      )}
+                      {sortBindingEntries(
+                        Array.from(groupBindings(edition.books)),
+                      ).map(([bindingType, books]) => (
+                        <Badge key={bindingType} variant="outline">
+                          {books.length > 1
+                            ? `${bindingType} (${books.length})`
+                            : bindingType}
+                          {books[0].msrp && (
+                            <span className="ml-1 opacity-70">
+                              ${books[0].msrp}
+                            </span>
+                          )}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
 

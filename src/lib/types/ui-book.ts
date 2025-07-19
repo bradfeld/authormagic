@@ -50,6 +50,11 @@ export interface UIBook {
   pages?: number; // Maps to page_count
   date_published?: string; // Maps to published_date
   isbn13?: string; // Maps to isbn
+  year?: number; // Publication year as number
+
+  // Source tracking
+  source?: 'isbn-db' | 'google-books' | 'manual';
+  googleBooksId?: string; // Google Books volume ID
 }
 
 // Conversion utilities
@@ -126,6 +131,7 @@ export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
     page_count: book.pages || undefined,
     language: book.language || undefined,
     data_source: 'isbn_db',
+    source: 'isbn-db',
     external_id: book.isbn13 || book.isbn || undefined,
     maturity_rating: undefined,
     print_type: book.print_type || book.binding || undefined,
