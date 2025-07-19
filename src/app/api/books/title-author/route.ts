@@ -46,26 +46,7 @@ export async function GET(request: NextRequest) {
       googleBooksBooks,
     );
 
-    console.log(`📊 PRE-FILTER ANALYSIS:`);
-    console.log(`    - ISBNDB books: ${isbndbBooks.length}`);
-    console.log(`    - Google Books: ${googleBooksBooks.length}`);
-    console.log(`    - Merged total: ${mergedResults.books.length}`);
-
-    if (title.toLowerCase().includes('startup life')) {
-      console.log(`🔍 Raw "Startup Life" books from all sources:`);
-      mergedResults.books.forEach((book, i) => {
-        if (
-          book.title?.toLowerCase().includes('startup') ||
-          book.isbn?.includes('1118') ||
-          book.isbn?.includes('1480') ||
-          book.isbn?.includes('1531')
-        ) {
-          console.log(
-            `    ${i + 1}. ${book.isbn}: "${book.title}" by [${book.authors?.join(', ')}] (${book.source})`,
-          );
-        }
-      });
-    }
+    // Books merged and deduplicated successfully
 
     // Apply final filtering to merged results
     const filteredBooks = filterBooksByTitleAuthor(
@@ -74,13 +55,7 @@ export async function GET(request: NextRequest) {
       author.trim(),
     );
 
-    // Debug logging to understand filtering
-    console.log(`📊 ENHANCED FILTERING STATS:`);
-    console.log(`    - Total merged books: ${mergedResults.books.length}`);
-    console.log(`    - After title/author filtering: ${filteredBooks.length}`);
-    console.log(`    - Search terms: "${title.trim()}" + "${author.trim()}"`);
-
-    // Removed debug logging
+    // Books filtered by title and author
 
     // Apply binding corrections to filtered books
     const correctedBooks = filteredBooks.map(book => {
@@ -110,9 +85,9 @@ export async function GET(request: NextRequest) {
                 thumbnail: directLookup.data.image || book.thumbnail, // Use same image for thumbnail
               };
             }
-          } catch (error) {
+          } catch {
             // If direct lookup fails, continue with original book data
-            console.log(`⚠️ Failed to enhance book ${book.isbn}:`, error);
+            // Failed to enhance book metadata - using existing data
           }
         }
         return book;
@@ -160,9 +135,7 @@ async function searchISBNDB(title: string, author?: string) {
     const result = await isbnDbService.searchBooksByTitle(searchTerm, 1, 50);
 
     if (result.success && result.data) {
-      console.log(
-        `📚 ISBNDB title search "${searchTerm}" found ${result.data.length} books`,
-      );
+      // Successfully searched ISBNDB for books
 
       result.data.forEach(book => {
         if (book.isbn) {
@@ -182,9 +155,7 @@ async function searchISBNDB(title: string, author?: string) {
     );
 
     if (authorResult.success && authorResult.data) {
-      console.log(
-        `📚 ISBNDB author search found ${authorResult.data.length} books`,
-      );
+      // Successfully searched ISBNDB by author
 
       authorResult.data.forEach(book => {
         if (book.isbn) {
@@ -207,9 +178,7 @@ async function searchISBNDB(title: string, author?: string) {
       const result = await isbnDbService.searchBooksByTitle(searchTerm, 1, 50);
 
       if (result.success && result.data) {
-        console.log(
-          `📚 ISBNDB text search "${searchTerm}" found ${result.data.length} books`,
-        );
+        // Successfully performed text search
 
         result.data.forEach(book => {
           if (book.isbn) {
@@ -221,7 +190,7 @@ async function searchISBNDB(title: string, author?: string) {
   }
 
   const uniqueBooks = Array.from(allResults.values());
-  console.log(`📚 ISBNDB total unique books found: ${uniqueBooks.length}`);
+  // ISBNDB search completed with unique books found
 
   if (uniqueBooks.length > 0) {
     return {
