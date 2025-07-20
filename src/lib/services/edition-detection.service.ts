@@ -1117,8 +1117,8 @@ export class EditionDetectionService {
     const bindingPriority = [
       'hardcover',
       'paperback',
-      'ebook',
       'kindle',
+      'ebook',
       'audiobook',
       'unknown',
     ];
@@ -1759,7 +1759,13 @@ export class EditionDetectionService {
     // Remove debug logging
 
     // Priority order for metadata selection
-    const bindingPriority = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+    const bindingPriority = [
+      'hardcover',
+      'paperback',
+      'kindle',
+      'ebook',
+      'audiobook',
+    ];
 
     // Find the highest priority binding with useful metadata
     for (const bindingType of bindingPriority) {

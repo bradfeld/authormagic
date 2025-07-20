@@ -222,7 +222,13 @@ export function EditionSelectionDialog({
 
   // Helper to sort binding entries in preferred display order
   const sortBindingEntries = (entries: [string, UIBook[]][]) => {
-    const bindingOrder = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+    const bindingOrder = [
+      'hardcover',
+      'paperback',
+      'kindle',
+      'ebook',
+      'audiobook',
+    ];
     return entries.sort(([bindingA], [bindingB]) => {
       const indexA = bindingOrder.indexOf(bindingA.toLowerCase());
       const indexB = bindingOrder.indexOf(bindingB.toLowerCase());

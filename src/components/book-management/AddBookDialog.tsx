@@ -2,7 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,16 @@ export function AddBookDialog({
   const [bookTitle, setBookTitle] = useState('');
   const [editionGroups, setEditionGroups] = useState<EditionGroup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Reset search state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasSearched(false);
+      setEditionGroups([]);
+      setBookTitle('');
+    }
+  }, [isOpen]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -52,6 +62,7 @@ export function AddBookDialog({
   const handleUnifiedSearch = async () => {
     if (!bookTitle.trim()) return;
     setIsLoading(true);
+    setHasSearched(true);
     setEditionGroups([]); // Clear previous results immediately
     try {
       const isISBN =
@@ -118,6 +129,7 @@ export function AddBookDialog({
       await response.json();
       setEditionGroups([]);
       setBookTitle('');
+      setHasSearched(false);
       onOpenChange(false);
       if (onBookAdded) onBookAdded();
     } catch {
@@ -142,8 +154,14 @@ export function AddBookDialog({
   const detectPrimaryBookInEdition = (books: UIBook[]): UIBook | null => {
     if (!books || books.length === 0) return null;
 
-    // Priority order: hardcover → paperback → ebook → audiobook → others
-    const bindingPriority = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+    // Priority order: hardcover → paperback → kindle → ebook → audiobook → others
+    const bindingPriority = [
+      'hardcover',
+      'paperback',
+      'kindle',
+      'ebook',
+      'audiobook',
+    ];
 
     // Group books by binding type
     const bindingGroups = groupBindings(books);
@@ -178,7 +196,13 @@ export function AddBookDialog({
 
   // Helper to sort binding entries in preferred display order
   const sortBindingEntries = (entries: [string, UIBook[]][]) => {
-    const bindingOrder = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+    const bindingOrder = [
+      'hardcover',
+      'paperback',
+      'kindle',
+      'ebook',
+      'audiobook',
+    ];
     return entries.sort(([bindingA], [bindingB]) => {
       const indexA = bindingOrder.indexOf(bindingA);
       const indexB = bindingOrder.indexOf(bindingB);
@@ -247,7 +271,7 @@ export function AddBookDialog({
             </div>
           )}
           {/* No Results Message */}
-          {!isLoading && editionGroups.length === 0 && (
+          {!isLoading && editionGroups.length === 0 && hasSearched && (
             <div
               className="flex flex-col items-center py-8"
               role="status"
