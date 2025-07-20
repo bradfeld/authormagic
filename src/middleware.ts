@@ -15,13 +15,67 @@ export default clerkMiddleware((auth, req) => {
     return addSecurityHeaders(NextResponse.next(), req);
   }
 
-  // Only protect authenticated pages
+  // Handle admin routes (admin-only access)
+  if (req.nextUrl.pathname.startsWith('/admin')) {
+    try {
+      auth.protect();
+
+      // Check if user is admin (will be handled by the admin pages themselves)
+      // Just ensure they're authenticated here
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Admin auth middleware error:', error);
+      return NextResponse.redirect(new URL('/sign-in', req.url));
+    }
+  }
+
+  // Handle waitlist page (authenticated but waitlisted users only)
+  if (req.nextUrl.pathname === '/waitlist') {
+    try {
+      auth.protect();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Waitlist auth middleware error:', error);
+      return NextResponse.redirect(new URL('/sign-in', req.url));
+    }
+  }
+
+  // Protect authenticated pages (dashboard, profile) with status check
   if (
     req.nextUrl.pathname.startsWith('/dashboard') ||
     req.nextUrl.pathname.startsWith('/profile')
   ) {
     try {
-      auth.protect();
+      const { userId } = auth.protect();
+
+      if (userId) {
+        // Check user status and redirect if waitlisted
+        try {
+          const { WaitlistService } = await import(
+            '@/lib/services/waitlist.service'
+          );
+          const waitlistService = new WaitlistService();
+          const userStatus = await waitlistService.getUserStatus(userId);
+
+          if (userStatus?.status === 'waitlisted') {
+            return addSecurityHeaders(
+              NextResponse.redirect(new URL('/waitlist', req.url)),
+              req,
+            );
+          }
+
+          if (userStatus?.status === 'blocked') {
+            return addSecurityHeaders(
+              NextResponse.redirect(new URL('/sign-in', req.url)),
+              req,
+            );
+          }
+        } catch (statusError) {
+          // If we can't check status, log error but allow access
+          // eslint-disable-next-line no-console
+          console.error('Error checking user status:', statusError);
+        }
+      }
     } catch (error) {
       // Graceful error handling - redirect to sign-in instead of throwing
       // eslint-disable-next-line no-console

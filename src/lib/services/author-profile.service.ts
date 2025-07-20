@@ -20,6 +20,12 @@ export interface CompleteAuthorProfile {
   created_at: string;
   updated_at: string;
 
+  // Waitlist system fields
+  status: 'waitlisted' | 'approved' | 'blocked';
+  waitlist_position: number | null;
+  approved_at: string | null;
+  admin_notes: string | null;
+
   // Clerk basic profile data
   name: string;
   email: string;
@@ -96,6 +102,12 @@ export class AuthorProfileService {
         created_at: supabaseProfile.created_at,
         updated_at: supabaseProfile.updated_at,
 
+        // Waitlist system fields
+        status: supabaseProfile.status,
+        waitlist_position: supabaseProfile.waitlist_position,
+        approved_at: supabaseProfile.approved_at,
+        admin_notes: supabaseProfile.admin_notes,
+
         // Clerk basic profile data
         name:
           clerkUser.fullName ||
@@ -125,11 +137,29 @@ export class AuthorProfileService {
     initialMetadata?: Partial<AuthorMetadata>;
   }): Promise<CompleteAuthorProfile> {
     try {
-      // Create Supabase profile record
+      // Import waitlist service for admin detection
+      const { WaitlistService } = await import(
+        '@/lib/services/waitlist.service'
+      );
+      const waitlistService = new WaitlistService();
+
+      // Get user details from Clerk to check if this is brad@feld.com
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(profileData.clerk_user_id);
+      const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
+
+      // Determine initial status - auto-approve brad@feld.com, waitlist everyone else
+      const isInitialAdmin = userEmail === 'brad@feld.com';
+      const initialStatus = isInitialAdmin ? 'approved' : 'waitlisted';
+
+      // Create Supabase profile record with waitlist status
       const { error } = await this.getSupabase()
         .from('authors')
         .insert({
           clerk_user_id: profileData.clerk_user_id,
+          status: initialStatus,
+          // If approved, set approved_at timestamp
+          ...(isInitialAdmin && { approved_at: new Date().toISOString() }),
           // Note: bio and other fields are now handled by Clerk metadata
         })
         .select()
@@ -137,6 +167,16 @@ export class AuthorProfileService {
 
       if (error) {
         throw error;
+      }
+
+      // Setup initial admin if this is brad@feld.com
+      if (isInitialAdmin) {
+        try {
+          await waitlistService.setupInitialAdmin(profileData.clerk_user_id);
+        } catch (adminError) {
+          console.error('Failed to setup initial admin role:', adminError);
+          // Don't fail profile creation if admin setup fails
+        }
       }
 
       // Initialize author metadata in Clerk

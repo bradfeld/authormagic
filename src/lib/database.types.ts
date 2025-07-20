@@ -22,6 +22,11 @@ export type Database = {
           goodreads_url: string | null;
           created_at: string;
           updated_at: string;
+          // Waitlist system fields
+          status: 'waitlisted' | 'approved' | 'blocked';
+          waitlist_position: number | null;
+          approved_at: string | null;
+          admin_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -35,6 +40,11 @@ export type Database = {
           goodreads_url?: string | null;
           created_at?: string;
           updated_at?: string;
+          // Waitlist system fields
+          status?: 'waitlisted' | 'approved' | 'blocked';
+          waitlist_position?: number | null;
+          approved_at?: string | null;
+          admin_notes?: string | null;
         };
         Update: {
           id?: string;
@@ -48,6 +58,11 @@ export type Database = {
           goodreads_url?: string | null;
           created_at?: string;
           updated_at?: string;
+          // Waitlist system fields
+          status?: 'waitlisted' | 'approved' | 'blocked';
+          waitlist_position?: number | null;
+          approved_at?: string | null;
+          admin_notes?: string | null;
         };
         Relationships: [];
       };
@@ -671,6 +686,36 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      user_roles: {
+        Row: {
+          id: string;
+          clerk_user_id: string;
+          role: 'admin' | 'user';
+          granted_by: string | null;
+          granted_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          clerk_user_id: string;
+          role: 'admin' | 'user';
+          granted_by?: string | null;
+          granted_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          clerk_user_id?: string;
+          role?: 'admin' | 'user';
+          granted_by?: string | null;
+          granted_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: {
