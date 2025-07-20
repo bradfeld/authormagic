@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { PrimaryBookService } from '@/lib/services/primary-book.service';
@@ -59,6 +60,9 @@ export async function POST(request: NextRequest) {
       );
       message = 'Book added to library successfully';
     }
+
+    // Revalidate the dashboard page to show the new book
+    revalidatePath('/dashboard');
 
     return NextResponse.json({
       success: true,

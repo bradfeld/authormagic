@@ -2,10 +2,11 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { BookOpen } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
-import { BookManagementDashboard } from '@/components/book-management/BookManagementDashboard';
+import { BookLibraryGrid } from '@/components/dashboard/BookLibraryGrid';
 import { AuthorProfilePreview } from '@/components/profile/AuthorProfilePreview';
 import { CustomUserButton } from '@/components/ui/custom-user-button';
 import { AuthorProfileService } from '@/lib/services/author-profile.service';
+import { PrimaryBookService } from '@/lib/services/primary-book.service';
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -15,16 +16,14 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  // Extract only the serializable properties we need
-  const userInfo = {
-    firstName: user.firstName,
-    lastName: user.lastName,
-    userId: user.id,
-  };
+  // Note: userInfo no longer needed since BookManagementDashboard was removed
 
   // Get complete author profile data
   const authorService = new AuthorProfileService();
   const completeProfile = await authorService.getOrCreateProfile(userId);
+
+  // Get user's primary books
+  const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -51,9 +50,9 @@ export default async function DashboardPage() {
             <AuthorProfilePreview profile={completeProfile} />
           </div>
 
-          {/* Book Management Section */}
+          {/* Book Library Section */}
           <div className="lg:col-span-2">
-            <BookManagementDashboard userInfo={userInfo} />
+            <BookLibraryGrid books={userBooks} />
           </div>
         </div>
       </div>
