@@ -27,20 +27,45 @@ jobs:
         run: npm run type-check
 
       - name: Build with Bundle Analyzer
-        run: ANALYZE=true npm run build
+        env:
+          ANALYZE: true
+        run: npm run build
+
+      - name: Debug - Check bundle analyzer output
+        run: |
+          echo "Checking for bundle analyzer output..."
+          ls -la .next/ || echo "❌ No .next directory found"
+          ls -la .next/analyze/ || echo "❌ No .next/analyze directory found"
+          if [ -d ".next/analyze" ]; then
+            echo "✅ Bundle analyzer files found:"
+            ls -la .next/analyze/
+            du -h .next/analyze/*
+          fi
 
       - name: Upload bundle analyzer report
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-bundle-analyzer-report
           path: .next/analyze/
-          if-no-files-found: warn
+          if-no-files-found: error
+          retention-days: 30
 
-      # - name: Fail if bundle size exceeds threshold (example, customize as needed)
-      #   run: |
-      #     MAX_SIZE=500000 # 500 KB
-      #     ACTUAL_SIZE=$(du -sb .next/analyze | cut -f1)
-      #     if [ "$ACTUAL_SIZE" -gt "$MAX_SIZE" ]; then
-      #       echo "Bundle size $ACTUAL_SIZE exceeds threshold $MAX_SIZE" >&2
-      #       exit 1
-      #     fi 
+      - name: Check bundle size thresholds
+        run: |
+          echo "📊 Bundle Analysis Summary:"
+          if [ -f ".next/analyze/client.html" ]; then
+            CLIENT_SIZE=$(du -sb .next/analyze/client.html | cut -f1)
+            echo "Client bundle report: ${CLIENT_SIZE} bytes"
+            
+            # Optional: Add size threshold check (adjust as needed)
+            MAX_CLIENT_SIZE=1000000  # 1MB threshold for report file
+            if [ "$CLIENT_SIZE" -gt "$MAX_CLIENT_SIZE" ]; then
+              echo "⚠️  Client bundle report size ${CLIENT_SIZE} exceeds threshold ${MAX_CLIENT_SIZE}"
+              echo "This might indicate bundle size growth - review the analyzer report"
+            else
+              echo "✅ Client bundle report size within acceptable range"
+            fi
+          else
+            echo "❌ Client bundle report not found"
+            exit 1
+          fi 
