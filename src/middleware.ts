@@ -1,13 +1,8 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 
 export default clerkMiddleware((auth, req) => {
-  // Allow public access to book search APIs
-  if (req.nextUrl.pathname.startsWith('/api/books/')) {
-    return;
-  }
-
-  // Allow public access to cache analytics for monitoring
-  if (req.nextUrl.pathname.startsWith('/api/cache/')) {
+  // Allow API routes to handle their own authentication
+  if (req.nextUrl.pathname.startsWith('/api/')) {
     return;
   }
 

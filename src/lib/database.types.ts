@@ -767,13 +767,11 @@ export type Enums<
 
 // Convenient type aliases
 export type AuthorRow = Tables<'authors'>;
+// Author types (still used)
 export type AuthorInsert = TablesInsert<'authors'>;
 export type AuthorUpdate = TablesUpdate<'authors'>;
 
-export type BookRow = Tables<'books'>;
-export type BookInsert = TablesInsert<'books'>;
-export type BookUpdate = TablesUpdate<'books'>;
-
+// Primary Books system types (actively used)
 export type PrimaryBookRow = Tables<'primary_books'>;
 export type PrimaryBookInsert = TablesInsert<'primary_books'>;
 export type PrimaryBookUpdate = TablesUpdate<'primary_books'>;
@@ -785,3 +783,5 @@ export type PrimaryBookEditionUpdate = TablesUpdate<'primary_book_editions'>;
 export type PrimaryBookBindingRow = Tables<'primary_book_bindings'>;
 export type PrimaryBookBindingInsert = TablesInsert<'primary_book_bindings'>;
 export type PrimaryBookBindingUpdate = TablesUpdate<'primary_book_bindings'>;
+
+// Legacy exports removed: BookRow, BookInsert, BookUpdate (old books table)

@@ -42,10 +42,6 @@ export function AddBookDialog({
   const [bookTitle, setBookTitle] = useState('');
   const [editionGroups, setEditionGroups] = useState<EditionGroup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedEdition, setSelectedEdition] = useState<EditionGroup | null>(
-    null,
-  );
-  const [selectedBinding, setSelectedBinding] = useState<string | null>(null);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -57,8 +53,6 @@ export function AddBookDialog({
     if (!bookTitle.trim()) return;
     setIsLoading(true);
     setEditionGroups([]); // Clear previous results immediately
-    setSelectedEdition(null);
-    setSelectedBinding(null);
     try {
       const isISBN =
         /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s])*[0-9X]$)(?:[0-9]{1,5}[-\s]?){1,7}[0-9X]$)/i.test(
@@ -95,18 +89,28 @@ export function AddBookDialog({
     }
   };
 
-  const handleAddBook = async (book: UIBook) => {
+  const handleAddBook = async () => {
     if (!userId) return;
     try {
+      // Detect THE primary book across all edition groups
+      const primaryBook = detectGlobalPrimaryBook(editionGroups);
+      if (!primaryBook) {
+        throw new Error('No suitable primary book found');
+      }
+
+      // Flatten all books from all edition groups to pass to the API
+      const allBooks = editionGroups.flatMap(edition => edition.books);
+
+      // Store the primary book with all edition data for the PrimaryBookService
       const response = await fetch('/api/books', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          book: { ...book },
+          book: { ...primaryBook },
+          allEditionData: allBooks, // Pass all books for the PrimaryBookService to process
         }),
       });
-      if (!response.ok) throw new Error('Failed to add book');
+      if (!response.ok) throw new Error('Failed to add book collection');
       await response.json();
       setEditionGroups([]);
       setBookTitle('');
@@ -115,6 +119,44 @@ export function AddBookDialog({
     } catch {
       // Error handling removed - no state for error messages
     }
+  };
+
+  // Helper to automatically detect THE primary book across ALL edition groups
+  const detectGlobalPrimaryBook = (
+    editionGroups: EditionGroup[],
+  ): UIBook | null => {
+    if (!editionGroups || editionGroups.length === 0) return null;
+
+    // Find the most recent edition (edition groups are already sorted newest first)
+    const mostRecentEdition = editionGroups[0];
+
+    // Within the most recent edition, find the best binding
+    return detectPrimaryBookInEdition(mostRecentEdition.books);
+  };
+
+  // Helper to detect primary book within a single edition (for display purposes)
+  const detectPrimaryBookInEdition = (books: UIBook[]): UIBook | null => {
+    if (!books || books.length === 0) return null;
+
+    // Priority order: hardcover → paperback → ebook → audiobook → others
+    const bindingPriority = ['hardcover', 'paperback', 'ebook', 'audiobook'];
+
+    // Group books by binding type
+    const bindingGroups = groupBindings(books);
+
+    // Find the first available binding type in priority order
+    for (const preferredBinding of bindingPriority) {
+      if (
+        bindingGroups[preferredBinding] &&
+        bindingGroups[preferredBinding].length > 0
+      ) {
+        // Return the first book of this binding type
+        return bindingGroups[preferredBinding][0];
+      }
+    }
+
+    // If no priority binding found, return the first book
+    return books[0];
   };
 
   // Helper to group books by normalized binding type within an edition
@@ -233,7 +275,7 @@ export function AddBookDialog({
                 return (
                   <div
                     key={idx}
-                    className={`w-full border rounded-lg p-4 transition-all mb-2 ${selectedEdition === edition ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}
+                    className="w-full border rounded-lg p-4 transition-all mb-2 border-border hover:border-primary/50"
                   >
                     {/* Edition-level details with thumbnail */}
                     <div className="mb-3 flex flex-col md:flex-row gap-6 bg-muted/30 rounded-lg p-4 items-start w-full">
@@ -295,141 +337,135 @@ export function AddBookDialog({
                         </div>
                       </div>
                     </div>
-                    {/* Binding badges and per-binding details as before */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {sortBindingEntries(Object.entries(bindingGroups)).map(
-                        ([binding, books]) => (
-                          <Badge
-                            key={binding}
-                            variant={
-                              selectedEdition === edition &&
-                              selectedBinding === binding
-                                ? 'default'
-                                : 'outline'
-                            }
-                            className="cursor-pointer"
-                            onClick={() => {
-                              setSelectedEdition(edition);
-                              setSelectedBinding(binding);
-                            }}
-                            tabIndex={0}
-                            onKeyPress={e => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                setSelectedEdition(edition);
-                                setSelectedBinding(binding);
-                              }
-                            }}
-                            aria-pressed={
-                              selectedEdition === edition &&
-                              selectedBinding === binding
-                            }
-                          >
-                            {binding.charAt(0).toUpperCase() + binding.slice(1)}
-                            {books.length > 1 && ` (${books.length})`}
-                          </Badge>
-                        ),
-                      )}
+                    {/* Available bindings display */}
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium text-gray-700">
+                        Available Bindings:
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {sortBindingEntries(Object.entries(bindingGroups)).map(
+                          ([binding, books]) => {
+                            // Check if this binding in this edition is THE global primary
+                            const globalPrimary =
+                              detectGlobalPrimaryBook(editionGroups);
+                            const isGlobalPrimary =
+                              globalPrimary &&
+                              edition.books.some(
+                                book => book.id === globalPrimary.id,
+                              ) &&
+                              binding ===
+                                EditionDetectionService.normalizeBindingType(
+                                  globalPrimary.print_type ||
+                                    globalPrimary.binding,
+                                );
+
+                            return (
+                              <Badge
+                                key={binding}
+                                variant={
+                                  isGlobalPrimary ? 'default' : 'outline'
+                                }
+                                className={
+                                  isGlobalPrimary
+                                    ? 'bg-amber-500 hover:bg-amber-600'
+                                    : ''
+                                }
+                              >
+                                {binding.charAt(0).toUpperCase() +
+                                  binding.slice(1)}
+                                {books.length > 1 && ` (${books.length})`}
+                                {isGlobalPrimary && ' ⭐ PRIMARY'}
+                              </Badge>
+                            );
+                          },
+                        )}
+                      </div>
                     </div>
-                    {/* Show sample book details for selected binding */}
-                    {selectedEdition === edition &&
-                      selectedBinding &&
-                      bindingGroups[selectedBinding] && (
-                        <div className="mt-2 text-sm text-muted-foreground">
-                          <div className="flex flex-wrap gap-4 mb-1">
-                            {bindingGroups[selectedBinding][0].publisher && (
-                              <span>
-                                Publisher:{' '}
-                                {bindingGroups[selectedBinding][0].publisher}
-                              </span>
-                            )}
-                            {bindingGroups[selectedBinding][0].page_count && (
-                              <span>
-                                {bindingGroups[selectedBinding][0].page_count}{' '}
-                                pages
-                              </span>
-                            )}
-                            {bindingGroups[selectedBinding][0].language && (
-                              <span>
-                                Language:{' '}
-                                {bindingGroups[selectedBinding][0].language}
-                              </span>
-                            )}
-                          </div>
-                          {bindingGroups[selectedBinding][0].description && (
-                            <p className="mt-1">
-                              {bindingGroups[selectedBinding][0].description}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    {/* Book Details for Selected Binding */}
-                    {selectedEdition === edition &&
-                      selectedBinding &&
-                      bindingGroups[selectedBinding] && (
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 rounded-lg p-4">
-                          <div>
-                            <div className="font-medium text-lg">
-                              {bindingGroups[selectedBinding][0]?.title || '—'}
-                              {bindingGroups[selectedBinding][0]?.subtitle && (
-                                <span className="block text-sm text-muted-foreground">
-                                  {bindingGroups[selectedBinding][0].subtitle}
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-2 text-sm">
-                              <span className="font-medium">Authors:</span>{' '}
-                              {bindingGroups[selectedBinding][0]?.authors?.join(
-                                ', ',
-                              ) || '—'}
-                            </div>
-                            <div className="mt-1 text-sm">
-                              <span className="font-medium">Publisher:</span>{' '}
-                              {bindingGroups[selectedBinding][0]?.publisher ||
-                                '—'}
-                            </div>
-                            <div className="mt-1 text-sm">
-                              <span className="font-medium">
-                                Publication Date:
-                              </span>{' '}
-                              {bindingGroups[selectedBinding][0]
-                                ?.published_date || '—'}
-                            </div>
-                            <div className="mt-1 text-sm">
-                              <span className="font-medium">ISBN:</span>{' '}
-                              {bindingGroups[selectedBinding][0]?.isbn || '—'}
-                            </div>
-                            <div className="mt-1 text-sm">
-                              <span className="font-medium">Page Count:</span>{' '}
-                              {bindingGroups[selectedBinding][0]?.page_count ||
-                                '—'}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                   </div>
                 );
               })}
             </div>
           )}
-          {/* Add Book Button */}
-          {editionGroups.length > 0 && (
-            <div className="flex justify-end mt-4">
-              <Button
-                onClick={() => {
-                  if (!selectedEdition || !selectedBinding) return;
-                  // Find the first book in the selected edition/binding group
-                  const bindingGroups = groupBindings(selectedEdition.books);
-                  const bookToAdd = bindingGroups[selectedBinding]?.[0];
-                  if (bookToAdd) handleAddBook(bookToAdd);
-                }}
-                disabled={!selectedEdition || !selectedBinding || isLoading}
-                type="button"
-                aria-busy={isLoading}
-              >
-                Add Book
-              </Button>
-            </div>
-          )}
+          {/* Global Primary Book Summary and Add Button */}
+          {editionGroups.length > 0 &&
+            (() => {
+              const globalPrimary = detectGlobalPrimaryBook(editionGroups);
+              const mostRecentEdition = editionGroups[0];
+              const editionDisplay =
+                EditionDetectionService.getEditionDisplayName(
+                  mostRecentEdition,
+                );
+
+              return (
+                <div className="space-y-4 mt-6">
+                  <div className="border-t pt-4">
+                    {/* Primary Book Summary */}
+                    {globalPrimary && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-start gap-3">
+                          <div className="text-amber-600 text-lg">⭐</div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-amber-900 mb-1">
+                              Primary Book Selection
+                            </div>
+                            <div className="text-sm text-amber-800">
+                              <div className="font-medium">
+                                {globalPrimary.title}
+                              </div>
+                              {globalPrimary.subtitle && (
+                                <div className="text-amber-700">
+                                  {globalPrimary.subtitle}
+                                </div>
+                              )}
+                              <div className="mt-1">
+                                {editionDisplay} •{' '}
+                                {EditionDetectionService.normalizeBindingType(
+                                  globalPrimary.print_type ||
+                                    globalPrimary.binding,
+                                )}{' '}
+                                • {globalPrimary.publisher}
+                              </div>
+                              <div className="text-amber-600 text-xs mt-1">
+                                Selected from {editionGroups.length} edition
+                                {editionGroups.length !== 1 ? 's' : ''} •{' '}
+                                {globalPrimary.isbn &&
+                                  `ISBN: ${globalPrimary.isbn}`}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Edition Summary */}
+                    <div className="text-sm text-muted-foreground mb-4">
+                      Found {editionGroups.length} edition
+                      {editionGroups.length !== 1 ? 's' : ''} with{' '}
+                      {editionGroups.reduce(
+                        (total, edition) => total + edition.books.length,
+                        0,
+                      )}{' '}
+                      total books. The most recent edition ({editionDisplay})
+                      will be added to your library.
+                    </div>
+
+                    {/* Single Add Book Button */}
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={handleAddBook}
+                        disabled={isLoading || !globalPrimary}
+                        type="button"
+                        aria-busy={isLoading}
+                        size="lg"
+                        className="px-8"
+                      >
+                        {isLoading ? 'Adding...' : 'Add Book to Library'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
         </div>
       </DialogContent>
     </Dialog>

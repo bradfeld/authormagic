@@ -59,60 +59,7 @@ export interface UIBook {
 
 // Conversion utilities
 import { ISBNDBBookResponse } from './api';
-import { Book } from './book';
-import { CompleteBook } from './book';
-
-export function convertBookToUIBook(book: Book): UIBook {
-  return {
-    id: book.id,
-    title: book.title,
-    subtitle: book.subtitle || undefined,
-    authors: [], // Will be populated from relationships
-    publisher: undefined, // Will be populated from editions
-    published_date: book.publication_year
-      ? book.publication_year.toString()
-      : undefined,
-    isbn: book.primary_isbn || undefined,
-    categories: book.genre || [],
-    description: book.description || undefined,
-    page_count: undefined, // Will be populated from editions
-    language: book.language || undefined,
-    created_at: book.created_at,
-    updated_at: book.updated_at,
-  };
-}
-
-export function convertCompleteBookToUIBook(book: CompleteBook): UIBook {
-  const firstEdition = book.book_editions?.[0];
-
-  // TODO: Author names now handled by Clerk - need to fetch from Clerk API
-  // For now, use placeholder until we implement Clerk metadata lookup
-  const authors = book.book_authors?.map(() => 'Author') || [];
-
-  return {
-    id: book.id,
-    title: book.title,
-    subtitle: book.subtitle || undefined,
-    authors,
-    publisher: firstEdition?.publisher || undefined,
-    published_date:
-      firstEdition?.publication_date ||
-      (book.publication_year ? book.publication_year.toString() : undefined),
-    isbn:
-      book.primary_isbn ||
-      firstEdition?.isbn_13 ||
-      firstEdition?.isbn_10 ||
-      undefined,
-    categories: book.genre || [],
-    description: book.description || undefined,
-    page_count: firstEdition?.page_count || undefined,
-    language: book.language || firstEdition?.language || undefined,
-    data_source: book.external_book_data?.[0]?.source || undefined,
-    external_id: book.external_book_data?.[0]?.external_id || undefined,
-    created_at: book.created_at,
-    updated_at: book.updated_at,
-  };
-}
+// Legacy imports and functions removed - Book and CompleteBook no longer used
 
 export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
   return {

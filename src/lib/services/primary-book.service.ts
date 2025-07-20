@@ -87,6 +87,88 @@ export class PrimaryBookService {
   }
 
   /**
+   * Find existing primary book by user, title, and author
+   */
+  static async findExistingBook(
+    userId: string,
+    title: string,
+    author: string,
+  ): Promise<PrimaryBook | null> {
+    const { data: existingBook, error } = await this.getSupabase()
+      .from('primary_books')
+      .select(
+        `
+        *,
+        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+          *,
+          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+        )
+      `,
+      )
+      .eq('user_id', userId)
+      .eq('title', title)
+      .eq('author', author)
+      .single();
+
+    if (error) {
+      // If no book found, return null (this is expected)
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Failed to check for existing book: ${error.message}`);
+    }
+
+    return {
+      ...existingBook,
+      editions: existingBook.editions.map((edition: BookEdition) => ({
+        ...edition,
+        bindings: edition.bindings,
+      })),
+    };
+  }
+
+  /**
+   * Update existing book with new edition data
+   */
+  static async updateBookWithNewEditions(
+    primaryBookId: string,
+    searchResults: UIBook[],
+  ): Promise<PrimaryBook> {
+    // Group books by edition
+    const editionGroups = EditionDetectionService.groupByEdition(searchResults);
+
+    // Add new editions and bindings (existing ones will be skipped due to unique constraints)
+    await this.createEditionsWithBindings(primaryBookId, editionGroups);
+
+    // Get the updated book with all editions
+    const { data: updatedBook, error } = await this.getSupabase()
+      .from('primary_books')
+      .select(
+        `
+        *,
+        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+          *,
+          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+        )
+      `,
+      )
+      .eq('id', primaryBookId)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to fetch updated book: ${error.message}`);
+    }
+
+    return {
+      ...updatedBook,
+      editions: updatedBook.editions.map((edition: BookEdition) => ({
+        ...edition,
+        bindings: edition.bindings,
+      })),
+    };
+  }
+
+  /**
    * Get user's primary books with editions and bindings
    */
   static async getUserPrimaryBooks(userId: string): Promise<PrimaryBook[]> {
@@ -95,9 +177,9 @@ export class PrimaryBookService {
       .select(
         `
         *,
-        editions:primary_book_editions (
+        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
           *,
-          bindings:primary_book_bindings (*)
+          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
@@ -129,9 +211,9 @@ export class PrimaryBookService {
       .select(
         `
         *,
-        editions:primary_book_editions (
+        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
           *,
-          bindings:primary_book_bindings (*)
+          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
@@ -203,9 +285,9 @@ export class PrimaryBookService {
       .select(
         `
         *,
-        editions:primary_book_editions (
+        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
           *,
-          bindings:primary_book_bindings (*)
+          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
@@ -285,21 +367,46 @@ export class PrimaryBookService {
         publication_year: group.publication_year,
       };
 
-      const { data: edition, error: editionError } = await this.getSupabase()
-        .from('primary_book_editions')
-        .insert(editionData)
-        .select()
-        .single();
+      // Try to insert edition, but handle duplicates gracefully
+      let edition;
+      const { data: insertedEdition, error: editionError } =
+        await this.getSupabase()
+          .from('primary_book_editions')
+          .insert(editionData)
+          .select()
+          .single();
 
       if (editionError) {
-        throw new Error(`Failed to create edition: ${editionError.message}`);
+        // If it's a duplicate constraint violation, fetch the existing edition
+        if (editionError.code === '23505') {
+          const { data: existingEdition, error: fetchError } =
+            await this.getSupabase()
+              .from('primary_book_editions')
+              .select('*')
+              .eq('primary_book_id', primaryBookId)
+              .eq('edition_number', group.edition_number)
+              .single();
+
+          if (fetchError) {
+            throw new Error(
+              `Failed to fetch existing edition: ${fetchError.message}`,
+            );
+          }
+          edition = existingEdition;
+        } else {
+          throw new Error(`Failed to create edition: ${editionError.message}`);
+        }
+      } else {
+        edition = insertedEdition;
       }
 
       // Create bindings for this edition
       const bindingData: PrimaryBookBindingInsert[] = group.books.map(book => ({
         book_edition_id: edition.id,
         isbn: book.isbn13 || book.isbn,
-        binding_type: PrimaryBookService.normalizeBindingType(book.binding),
+        binding_type: PrimaryBookService.normalizeBindingType(
+          book.print_type || book.binding,
+        ),
         price: book.msrp ? parseFloat(book.msrp.toString()) : undefined,
         publisher: book.publisher,
         cover_image_url: book.image,
@@ -308,13 +415,43 @@ export class PrimaryBookService {
         language: book.language || 'en',
       }));
 
-      const { data: bindings, error: bindingsError } = await this.getSupabase()
-        .from('primary_book_bindings')
-        .insert(bindingData)
-        .select();
+      // Try to insert bindings, handling duplicates gracefully
+      const bindings: BookBinding[] = [];
 
-      if (bindingsError) {
-        throw new Error(`Failed to create bindings: ${bindingsError.message}`);
+      // Insert bindings one by one to handle duplicates individually
+      for (const binding of bindingData) {
+        const { data: insertedBinding, error: bindingError } =
+          await this.getSupabase()
+            .from('primary_book_bindings')
+            .insert(binding)
+            .select()
+            .single();
+
+        if (bindingError) {
+          // If it's a duplicate constraint violation, fetch the existing binding
+          if (bindingError.code === '23505') {
+            const { data: existingBinding, error: fetchError } =
+              await this.getSupabase()
+                .from('primary_book_bindings')
+                .select('*')
+                .eq('book_edition_id', edition.id)
+                .eq('binding_type', binding.binding_type)
+                .single();
+
+            if (fetchError) {
+              throw new Error(
+                `Failed to fetch existing binding: ${fetchError.message}`,
+              );
+            }
+            bindings.push(existingBinding);
+          } else {
+            throw new Error(
+              `Failed to create binding: ${bindingError.message}`,
+            );
+          }
+        } else {
+          bindings.push(insertedBinding);
+        }
       }
 
       editions.push({
