@@ -129,8 +129,8 @@
     }
   },
   "databaseTests": {
-    "timestamp": "2025-07-20T02:59:24.383Z",
-    "duration": 1821,
+    "timestamp": "2025-07-20T03:17:05.051Z",
+    "duration": 1546,
     "summary": {
       "passed": 5,
       "failed": 2,
@@ -140,43 +140,43 @@
           "name": "RLS Tables Exist",
           "passed": false,
           "details": "primary_books: error checking, primary_book_editions: error checking, primary_book_bindings: error checking",
-          "timestamp": "2025-07-20T02:59:23.612Z"
+          "timestamp": "2025-07-20T03:17:04.253Z"
         },
         {
           "name": "User Data Isolation",
           "passed": true,
           "details": "User1 books: 0, User2 books: 0",
-          "timestamp": "2025-07-20T02:59:23.772Z"
+          "timestamp": "2025-07-20T03:17:04.466Z"
         },
         {
           "name": "Cross-User Access Prevention",
           "passed": true,
           "details": "Returned 0 books",
-          "timestamp": "2025-07-20T02:59:23.850Z"
+          "timestamp": "2025-07-20T03:17:04.545Z"
         },
         {
           "name": "Unauthorized Insert Prevention",
           "passed": true,
           "details": "Blocked: new row violates row-level security policy for table \"primary_books\"",
-          "timestamp": "2025-07-20T02:59:24.025Z"
+          "timestamp": "2025-07-20T03:17:04.713Z"
         },
         {
           "name": "Unauthorized Update Prevention",
           "passed": false,
           "details": "Update was allowed (SECURITY ISSUE)",
-          "timestamp": "2025-07-20T02:59:24.025Z"
+          "timestamp": "2025-07-20T03:17:04.713Z"
         },
         {
           "name": "Cascade Permissions",
           "passed": true,
           "details": "Related tables accessible",
-          "timestamp": "2025-07-20T02:59:24.282Z"
+          "timestamp": "2025-07-20T03:17:04.963Z"
         },
         {
           "name": "Cascade RLS Enforcement",
           "passed": true,
           "details": "User2 cannot access User1 editions",
-          "timestamp": "2025-07-20T02:59:24.382Z"
+          "timestamp": "2025-07-20T03:17:05.050Z"
         }
       ]
     },
@@ -469,5 +469,5 @@
       "details": "Run these security tests automatically on every deployment"
     }
   ],
-  "timestamp": "2025-07-20T03:02:10.825Z"
+  "timestamp": "2025-07-20T03:22:32.944Z"
 }
