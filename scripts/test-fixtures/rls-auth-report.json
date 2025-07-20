@@ -1,0 +1,129 @@
+{
+  "timestamp": "2025-07-20T02:57:59.949Z",
+  "duration": 8,
+  "summary": {
+    "passed": 16,
+    "failed": 1,
+    "warnings": 0,
+    "tests": [
+      {
+        "name": "Valid Auth Token Structure",
+        "passed": true,
+        "details": "Authorization header present and properly formatted",
+        "timestamp": "2025-07-20T02:57:59.946Z"
+      },
+      {
+        "name": "Missing Auth Token Detection",
+        "passed": true,
+        "details": "Correctly has no auth header",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "Invalid Auth Token Structure",
+        "passed": true,
+        "details": "Mock invalid token properly structured for testing",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "Malformed Auth Token Detection",
+        "passed": true,
+        "details": "Mock malformed token properly structured for testing",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "Expired Auth Token Structure",
+        "passed": true,
+        "details": "Mock expired token properly structured for testing",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "User Data Isolation",
+        "passed": true,
+        "details": "Different users have separate data sets",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "Cascade RLS Permissions",
+        "passed": true,
+        "details": "primary_books: RLS enabled, primary_book_editions: RLS enabled, primary_book_bindings: RLS enabled",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "Cross-User Access Prevention",
+        "passed": true,
+        "details": "RLS prevents cross-user data access",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "RLS Policy Structure",
+        "passed": true,
+        "details": "Users can manage their own primary books: found, Users can manage editions of their primary books: found, Users can manage bindings of their book editions: found",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "API Endpoint Authentication",
+        "passed": true,
+        "details": "/api/books: protected, /api/books/isbn/9781234567890: protected, /api/books/title-author: protected, /api/profile/update: protected",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "HTTP Status Codes",
+        "passed": true,
+        "details": "No auth: correct status, Invalid auth: correct status, Valid auth, bad data: correct status, Valid auth, good data: correct status",
+        "timestamp": "2025-07-20T02:57:59.947Z"
+      },
+      {
+        "name": "Error Message Security",
+        "passed": true,
+        "details": "Error messages do not leak sensitive data",
+        "timestamp": "2025-07-20T02:57:59.948Z"
+      },
+      {
+        "name": "Rate Limiting Protection",
+        "passed": true,
+        "details": "Mock test: 100 requests in 60s would trigger rate limit",
+        "timestamp": "2025-07-20T02:57:59.948Z"
+      },
+      {
+        "name": "JWT Tampering Detection",
+        "passed": false,
+        "details": "Token tampering might not be detected",
+        "timestamp": "2025-07-20T02:57:59.948Z"
+      },
+      {
+        "name": "Concurrent Access Handling",
+        "passed": true,
+        "details": "5 concurrent requests properly handled",
+        "timestamp": "2025-07-20T02:57:59.948Z"
+      },
+      {
+        "name": "Permission Escalation Prevention",
+        "passed": true,
+        "details": "Normal users cannot escalate to admin permissions",
+        "timestamp": "2025-07-20T02:57:59.948Z"
+      },
+      {
+        "name": "Resource Exhaustion Protection",
+        "passed": true,
+        "details": "Request size 512000 bytes is within limit of 1048576 bytes",
+        "timestamp": "2025-07-20T02:57:59.948Z"
+      }
+    ]
+  },
+  "config": {
+    "VALID_USER_ID": "user_test123valid",
+    "INVALID_USER_ID": "user_test123invalid",
+    "MALICIOUS_USER_ID": "user_malicious456",
+    "TEST_BOOK": {
+      "title": "RLS Test Book",
+      "author": "Test Author",
+      "isbn": "9781234567890"
+    },
+    "API_ENDPOINTS": [
+      "/api/books",
+      "/api/books/isbn/9781234567890",
+      "/api/books/title-author",
+      "/api/profile/update"
+    ]
+  }
+}

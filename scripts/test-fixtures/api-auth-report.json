@@ -1,0 +1,182 @@
+{
+  "timestamp": "2025-07-20T03:00:42.077Z",
+  "duration": 3824,
+  "summary": {
+    "passed": 9,
+    "failed": 15,
+    "warnings": 0,
+    "tests": [
+      {
+        "name": "Unauthenticated POST /api/books",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for protected endpoint",
+        "timestamp": "2025-07-20T03:00:39.192Z"
+      },
+      {
+        "name": "Error Message Security /api/books",
+        "passed": true,
+        "details": "Error message secure",
+        "timestamp": "2025-07-20T03:00:39.192Z"
+      },
+      {
+        "name": "Public GET /api/books/isbn/9781234567890",
+        "passed": true,
+        "details": "Status: 500, Public endpoint accessible",
+        "timestamp": "2025-07-20T03:00:39.269Z"
+      },
+      {
+        "name": "Error Message Security /api/books/isbn/9781234567890",
+        "passed": true,
+        "details": "Error message secure",
+        "timestamp": "2025-07-20T03:00:39.269Z"
+      },
+      {
+        "name": "Public GET /api/books/title-author?title=Test&author=Author",
+        "passed": true,
+        "details": "Status: 500, Public endpoint accessible",
+        "timestamp": "2025-07-20T03:00:39.339Z"
+      },
+      {
+        "name": "Error Message Security /api/books/title-author?title=Test&author=Author",
+        "passed": true,
+        "details": "Error message secure",
+        "timestamp": "2025-07-20T03:00:39.339Z"
+      },
+      {
+        "name": "Unauthenticated POST /api/profile/update",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for protected endpoint",
+        "timestamp": "2025-07-20T03:00:39.592Z"
+      },
+      {
+        "name": "Error Message Security /api/profile/update",
+        "passed": true,
+        "details": "Error message secure",
+        "timestamp": "2025-07-20T03:00:39.592Z"
+      },
+      {
+        "name": "Invalid Auth /api/books (invalid_token...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:39.665Z"
+      },
+      {
+        "name": "Invalid Auth /api/profile/update (invalid_token...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:39.736Z"
+      },
+      {
+        "name": "Invalid Auth /api/books (Bearer invalid_jwt_t...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:39.810Z"
+      },
+      {
+        "name": "Invalid Auth /api/profile/update (Bearer invalid_jwt_t...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:39.879Z"
+      },
+      {
+        "name": "Invalid Auth /api/books (Bearer eyJhbGciOiJIU...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:40.285Z"
+      },
+      {
+        "name": "Invalid Auth /api/profile/update (Bearer eyJhbGciOiJIU...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:40.382Z"
+      },
+      {
+        "name": "Invalid Auth /api/books (Bearer expired_token...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:40.452Z"
+      },
+      {
+        "name": "Invalid Auth /api/profile/update (Bearer expired_token...)",
+        "passed": false,
+        "details": "Status: 500, Expected: 401 for invalid token",
+        "timestamp": "2025-07-20T03:00:40.526Z"
+      },
+      {
+        "name": "Malformed Request: Large Payload",
+        "passed": false,
+        "details": "Status: 500, Response handled poorly",
+        "timestamp": "2025-07-20T03:00:40.597Z"
+      },
+      {
+        "name": "Malformed Request: Invalid JSON",
+        "passed": false,
+        "details": "Status: 500, Response handled poorly",
+        "timestamp": "2025-07-20T03:00:40.666Z"
+      },
+      {
+        "name": "Malformed Request: SQL Injection Attempt",
+        "passed": false,
+        "details": "Status: 500, Response handled poorly",
+        "timestamp": "2025-07-20T03:00:40.737Z"
+      },
+      {
+        "name": "Malicious Content Sanitization: SQL Injection Attempt",
+        "passed": true,
+        "details": "Malicious content properly sanitized",
+        "timestamp": "2025-07-20T03:00:40.737Z"
+      },
+      {
+        "name": "Malformed Request: XSS Attempt",
+        "passed": false,
+        "details": "Status: 500, Response handled poorly",
+        "timestamp": "2025-07-20T03:00:40.807Z"
+      },
+      {
+        "name": "Malicious Content Sanitization: XSS Attempt",
+        "passed": true,
+        "details": "Malicious content properly sanitized",
+        "timestamp": "2025-07-20T03:00:40.807Z"
+      },
+      {
+        "name": "Rate Limiting Response",
+        "passed": true,
+        "details": "20 requests sent, 0 successful, 0 rate-limited",
+        "timestamp": "2025-07-20T03:00:42.005Z"
+      },
+      {
+        "name": "CORS Headers Present",
+        "passed": false,
+        "details": "CORS headers: {\n  \"Access-Control-Allow-Origin\": null,\n  \"Access-Control-Allow-Methods\": null,\n  \"Access-Control-Allow-Headers\": null\n}",
+        "timestamp": "2025-07-20T03:00:42.076Z"
+      }
+    ]
+  },
+  "baseUrl": "http://localhost:3000",
+  "testEndpoints": [
+    {
+      "path": "/api/books",
+      "method": "POST",
+      "requiresAuth": true,
+      "description": "Add book to library"
+    },
+    {
+      "path": "/api/books/isbn/9781234567890",
+      "method": "GET",
+      "requiresAuth": false,
+      "description": "Get book by ISBN (public)"
+    },
+    {
+      "path": "/api/books/title-author?title=Test&author=Author",
+      "method": "GET",
+      "requiresAuth": false,
+      "description": "Search books by title/author (public)"
+    },
+    {
+      "path": "/api/profile/update",
+      "method": "POST",
+      "requiresAuth": true,
+      "description": "Update user profile"
+    }
+  ]
+}

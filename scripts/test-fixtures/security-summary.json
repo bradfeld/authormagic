@@ -1,0 +1,473 @@
+{
+  "mockTests": {
+    "timestamp": "2025-07-20T02:57:59.949Z",
+    "duration": 8,
+    "summary": {
+      "passed": 16,
+      "failed": 1,
+      "warnings": 0,
+      "tests": [
+        {
+          "name": "Valid Auth Token Structure",
+          "passed": true,
+          "details": "Authorization header present and properly formatted",
+          "timestamp": "2025-07-20T02:57:59.946Z"
+        },
+        {
+          "name": "Missing Auth Token Detection",
+          "passed": true,
+          "details": "Correctly has no auth header",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "Invalid Auth Token Structure",
+          "passed": true,
+          "details": "Mock invalid token properly structured for testing",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "Malformed Auth Token Detection",
+          "passed": true,
+          "details": "Mock malformed token properly structured for testing",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "Expired Auth Token Structure",
+          "passed": true,
+          "details": "Mock expired token properly structured for testing",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "User Data Isolation",
+          "passed": true,
+          "details": "Different users have separate data sets",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "Cascade RLS Permissions",
+          "passed": true,
+          "details": "primary_books: RLS enabled, primary_book_editions: RLS enabled, primary_book_bindings: RLS enabled",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "Cross-User Access Prevention",
+          "passed": true,
+          "details": "RLS prevents cross-user data access",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "RLS Policy Structure",
+          "passed": true,
+          "details": "Users can manage their own primary books: found, Users can manage editions of their primary books: found, Users can manage bindings of their book editions: found",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "API Endpoint Authentication",
+          "passed": true,
+          "details": "/api/books: protected, /api/books/isbn/9781234567890: protected, /api/books/title-author: protected, /api/profile/update: protected",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "HTTP Status Codes",
+          "passed": true,
+          "details": "No auth: correct status, Invalid auth: correct status, Valid auth, bad data: correct status, Valid auth, good data: correct status",
+          "timestamp": "2025-07-20T02:57:59.947Z"
+        },
+        {
+          "name": "Error Message Security",
+          "passed": true,
+          "details": "Error messages do not leak sensitive data",
+          "timestamp": "2025-07-20T02:57:59.948Z"
+        },
+        {
+          "name": "Rate Limiting Protection",
+          "passed": true,
+          "details": "Mock test: 100 requests in 60s would trigger rate limit",
+          "timestamp": "2025-07-20T02:57:59.948Z"
+        },
+        {
+          "name": "JWT Tampering Detection",
+          "passed": false,
+          "details": "Token tampering might not be detected",
+          "timestamp": "2025-07-20T02:57:59.948Z"
+        },
+        {
+          "name": "Concurrent Access Handling",
+          "passed": true,
+          "details": "5 concurrent requests properly handled",
+          "timestamp": "2025-07-20T02:57:59.948Z"
+        },
+        {
+          "name": "Permission Escalation Prevention",
+          "passed": true,
+          "details": "Normal users cannot escalate to admin permissions",
+          "timestamp": "2025-07-20T02:57:59.948Z"
+        },
+        {
+          "name": "Resource Exhaustion Protection",
+          "passed": true,
+          "details": "Request size 512000 bytes is within limit of 1048576 bytes",
+          "timestamp": "2025-07-20T02:57:59.948Z"
+        }
+      ]
+    },
+    "config": {
+      "VALID_USER_ID": "user_test123valid",
+      "INVALID_USER_ID": "user_test123invalid",
+      "MALICIOUS_USER_ID": "user_malicious456",
+      "TEST_BOOK": {
+        "title": "RLS Test Book",
+        "author": "Test Author",
+        "isbn": "9781234567890"
+      },
+      "API_ENDPOINTS": [
+        "/api/books",
+        "/api/books/isbn/9781234567890",
+        "/api/books/title-author",
+        "/api/profile/update"
+      ]
+    }
+  },
+  "databaseTests": {
+    "timestamp": "2025-07-20T02:59:24.383Z",
+    "duration": 1821,
+    "summary": {
+      "passed": 5,
+      "failed": 2,
+      "warnings": 0,
+      "tests": [
+        {
+          "name": "RLS Tables Exist",
+          "passed": false,
+          "details": "primary_books: error checking, primary_book_editions: error checking, primary_book_bindings: error checking",
+          "timestamp": "2025-07-20T02:59:23.612Z"
+        },
+        {
+          "name": "User Data Isolation",
+          "passed": true,
+          "details": "User1 books: 0, User2 books: 0",
+          "timestamp": "2025-07-20T02:59:23.772Z"
+        },
+        {
+          "name": "Cross-User Access Prevention",
+          "passed": true,
+          "details": "Returned 0 books",
+          "timestamp": "2025-07-20T02:59:23.850Z"
+        },
+        {
+          "name": "Unauthorized Insert Prevention",
+          "passed": true,
+          "details": "Blocked: new row violates row-level security policy for table \"primary_books\"",
+          "timestamp": "2025-07-20T02:59:24.025Z"
+        },
+        {
+          "name": "Unauthorized Update Prevention",
+          "passed": false,
+          "details": "Update was allowed (SECURITY ISSUE)",
+          "timestamp": "2025-07-20T02:59:24.025Z"
+        },
+        {
+          "name": "Cascade Permissions",
+          "passed": true,
+          "details": "Related tables accessible",
+          "timestamp": "2025-07-20T02:59:24.282Z"
+        },
+        {
+          "name": "Cascade RLS Enforcement",
+          "passed": true,
+          "details": "User2 cannot access User1 editions",
+          "timestamp": "2025-07-20T02:59:24.382Z"
+        }
+      ]
+    },
+    "testUsers": {
+      "user1": "user_test123_rls_user1",
+      "user2": "user_test123_rls_user2",
+      "malicious": "user_malicious_rls_test"
+    }
+  },
+  "apiTests": {
+    "timestamp": "2025-07-20T03:00:42.077Z",
+    "duration": 3824,
+    "summary": {
+      "passed": 9,
+      "failed": 15,
+      "warnings": 0,
+      "tests": [
+        {
+          "name": "Unauthenticated POST /api/books",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for protected endpoint",
+          "timestamp": "2025-07-20T03:00:39.192Z"
+        },
+        {
+          "name": "Error Message Security /api/books",
+          "passed": true,
+          "details": "Error message secure",
+          "timestamp": "2025-07-20T03:00:39.192Z"
+        },
+        {
+          "name": "Public GET /api/books/isbn/9781234567890",
+          "passed": true,
+          "details": "Status: 500, Public endpoint accessible",
+          "timestamp": "2025-07-20T03:00:39.269Z"
+        },
+        {
+          "name": "Error Message Security /api/books/isbn/9781234567890",
+          "passed": true,
+          "details": "Error message secure",
+          "timestamp": "2025-07-20T03:00:39.269Z"
+        },
+        {
+          "name": "Public GET /api/books/title-author?title=Test&author=Author",
+          "passed": true,
+          "details": "Status: 500, Public endpoint accessible",
+          "timestamp": "2025-07-20T03:00:39.339Z"
+        },
+        {
+          "name": "Error Message Security /api/books/title-author?title=Test&author=Author",
+          "passed": true,
+          "details": "Error message secure",
+          "timestamp": "2025-07-20T03:00:39.339Z"
+        },
+        {
+          "name": "Unauthenticated POST /api/profile/update",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for protected endpoint",
+          "timestamp": "2025-07-20T03:00:39.592Z"
+        },
+        {
+          "name": "Error Message Security /api/profile/update",
+          "passed": true,
+          "details": "Error message secure",
+          "timestamp": "2025-07-20T03:00:39.592Z"
+        },
+        {
+          "name": "Invalid Auth /api/books (invalid_token...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:39.665Z"
+        },
+        {
+          "name": "Invalid Auth /api/profile/update (invalid_token...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:39.736Z"
+        },
+        {
+          "name": "Invalid Auth /api/books (Bearer invalid_jwt_t...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:39.810Z"
+        },
+        {
+          "name": "Invalid Auth /api/profile/update (Bearer invalid_jwt_t...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:39.879Z"
+        },
+        {
+          "name": "Invalid Auth /api/books (Bearer eyJhbGciOiJIU...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:40.285Z"
+        },
+        {
+          "name": "Invalid Auth /api/profile/update (Bearer eyJhbGciOiJIU...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:40.382Z"
+        },
+        {
+          "name": "Invalid Auth /api/books (Bearer expired_token...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:40.452Z"
+        },
+        {
+          "name": "Invalid Auth /api/profile/update (Bearer expired_token...)",
+          "passed": false,
+          "details": "Status: 500, Expected: 401 for invalid token",
+          "timestamp": "2025-07-20T03:00:40.526Z"
+        },
+        {
+          "name": "Malformed Request: Large Payload",
+          "passed": false,
+          "details": "Status: 500, Response handled poorly",
+          "timestamp": "2025-07-20T03:00:40.597Z"
+        },
+        {
+          "name": "Malformed Request: Invalid JSON",
+          "passed": false,
+          "details": "Status: 500, Response handled poorly",
+          "timestamp": "2025-07-20T03:00:40.666Z"
+        },
+        {
+          "name": "Malformed Request: SQL Injection Attempt",
+          "passed": false,
+          "details": "Status: 500, Response handled poorly",
+          "timestamp": "2025-07-20T03:00:40.737Z"
+        },
+        {
+          "name": "Malicious Content Sanitization: SQL Injection Attempt",
+          "passed": true,
+          "details": "Malicious content properly sanitized",
+          "timestamp": "2025-07-20T03:00:40.737Z"
+        },
+        {
+          "name": "Malformed Request: XSS Attempt",
+          "passed": false,
+          "details": "Status: 500, Response handled poorly",
+          "timestamp": "2025-07-20T03:00:40.807Z"
+        },
+        {
+          "name": "Malicious Content Sanitization: XSS Attempt",
+          "passed": true,
+          "details": "Malicious content properly sanitized",
+          "timestamp": "2025-07-20T03:00:40.807Z"
+        },
+        {
+          "name": "Rate Limiting Response",
+          "passed": true,
+          "details": "20 requests sent, 0 successful, 0 rate-limited",
+          "timestamp": "2025-07-20T03:00:42.005Z"
+        },
+        {
+          "name": "CORS Headers Present",
+          "passed": false,
+          "details": "CORS headers: {\n  \"Access-Control-Allow-Origin\": null,\n  \"Access-Control-Allow-Methods\": null,\n  \"Access-Control-Allow-Headers\": null\n}",
+          "timestamp": "2025-07-20T03:00:42.076Z"
+        }
+      ]
+    },
+    "baseUrl": "http://localhost:3000",
+    "testEndpoints": [
+      {
+        "path": "/api/books",
+        "method": "POST",
+        "requiresAuth": true,
+        "description": "Add book to library"
+      },
+      {
+        "path": "/api/books/isbn/9781234567890",
+        "method": "GET",
+        "requiresAuth": false,
+        "description": "Get book by ISBN (public)"
+      },
+      {
+        "path": "/api/books/title-author?title=Test&author=Author",
+        "method": "GET",
+        "requiresAuth": false,
+        "description": "Search books by title/author (public)"
+      },
+      {
+        "path": "/api/profile/update",
+        "method": "POST",
+        "requiresAuth": true,
+        "description": "Update user profile"
+      }
+    ]
+  },
+  "summary": {
+    "totalTests": 48,
+    "totalPassed": 30,
+    "totalFailed": 18,
+    "totalWarnings": 0,
+    "overallScore": "62.5"
+  },
+  "securityFindings": [
+    {
+      "severity": "CRITICAL",
+      "category": "Authentication",
+      "finding": "API endpoints returning 500 errors instead of 401 for unauthenticated requests",
+      "impact": "Authentication system may be misconfigured, potentially allowing unauthorized access",
+      "recommendation": "Fix Clerk authentication integration to properly return 401 status codes"
+    },
+    {
+      "severity": "HIGH",
+      "category": "Authorization",
+      "finding": "Invalid authentication tokens causing server errors",
+      "impact": "Server errors may leak information or indicate unstable authentication",
+      "recommendation": "Implement proper JWT validation and error handling"
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "Input Validation",
+      "finding": "Malformed requests causing server errors instead of proper validation errors",
+      "impact": "Poor error handling may lead to service disruption or information disclosure",
+      "recommendation": "Add input validation and proper error handling for malformed requests"
+    },
+    {
+      "severity": "LOW",
+      "category": "Configuration",
+      "finding": "CORS headers not properly configured",
+      "impact": "May cause issues with web application functionality",
+      "recommendation": "Configure proper CORS headers for production deployment"
+    },
+    {
+      "severity": "HIGH",
+      "category": "Database Security",
+      "finding": "Unauthorized update operations allowed despite RLS policies",
+      "impact": "Users may be able to modify data they should not have access to",
+      "recommendation": "Review and strengthen RLS policies for UPDATE operations"
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "Database Configuration",
+      "finding": "Issues checking RLS table configuration",
+      "impact": "RLS policies may not be properly enabled on all required tables",
+      "recommendation": "Verify RLS is enabled on all user data tables"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "IMMEDIATE",
+      "category": "Authentication",
+      "action": "Fix API authentication to return proper HTTP status codes",
+      "details": "API routes should return 401 for unauthenticated requests, not 500 errors"
+    },
+    {
+      "priority": "IMMEDIATE",
+      "category": "Database Security",
+      "action": "Review and test RLS policies thoroughly",
+      "details": "Ensure all database operations properly enforce row-level security"
+    },
+    {
+      "priority": "HIGH",
+      "category": "Error Handling",
+      "action": "Implement comprehensive error handling",
+      "details": "Add proper validation and error responses for all API endpoints"
+    },
+    {
+      "priority": "HIGH",
+      "category": "JWT Validation",
+      "action": "Strengthen JWT token validation",
+      "details": "Ensure proper validation of JWT tokens including signature verification"
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Input Validation",
+      "action": "Add comprehensive input validation",
+      "details": "Validate all user inputs and handle malformed requests gracefully"
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Security Headers",
+      "action": "Implement security headers",
+      "details": "Add CORS, CSP, HSTS, and other security headers"
+    },
+    {
+      "priority": "LOW",
+      "category": "Monitoring",
+      "action": "Add security monitoring and alerting",
+      "details": "Monitor for authentication failures and suspicious activity"
+    },
+    {
+      "priority": "LOW",
+      "category": "Testing",
+      "action": "Integrate security tests into CI/CD",
+      "details": "Run these security tests automatically on every deployment"
+    }
+  ],
+  "timestamp": "2025-07-20T03:02:10.825Z"
+}

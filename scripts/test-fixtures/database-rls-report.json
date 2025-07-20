@@ -1,0 +1,58 @@
+{
+  "timestamp": "2025-07-20T02:59:24.383Z",
+  "duration": 1821,
+  "summary": {
+    "passed": 5,
+    "failed": 2,
+    "warnings": 0,
+    "tests": [
+      {
+        "name": "RLS Tables Exist",
+        "passed": false,
+        "details": "primary_books: error checking, primary_book_editions: error checking, primary_book_bindings: error checking",
+        "timestamp": "2025-07-20T02:59:23.612Z"
+      },
+      {
+        "name": "User Data Isolation",
+        "passed": true,
+        "details": "User1 books: 0, User2 books: 0",
+        "timestamp": "2025-07-20T02:59:23.772Z"
+      },
+      {
+        "name": "Cross-User Access Prevention",
+        "passed": true,
+        "details": "Returned 0 books",
+        "timestamp": "2025-07-20T02:59:23.850Z"
+      },
+      {
+        "name": "Unauthorized Insert Prevention",
+        "passed": true,
+        "details": "Blocked: new row violates row-level security policy for table \"primary_books\"",
+        "timestamp": "2025-07-20T02:59:24.025Z"
+      },
+      {
+        "name": "Unauthorized Update Prevention",
+        "passed": false,
+        "details": "Update was allowed (SECURITY ISSUE)",
+        "timestamp": "2025-07-20T02:59:24.025Z"
+      },
+      {
+        "name": "Cascade Permissions",
+        "passed": true,
+        "details": "Related tables accessible",
+        "timestamp": "2025-07-20T02:59:24.282Z"
+      },
+      {
+        "name": "Cascade RLS Enforcement",
+        "passed": true,
+        "details": "User2 cannot access User1 editions",
+        "timestamp": "2025-07-20T02:59:24.382Z"
+      }
+    ]
+  },
+  "testUsers": {
+    "user1": "user_test123_rls_user1",
+    "user2": "user_test123_rls_user2",
+    "malicious": "user_malicious_rls_test"
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "description": "Test data for RLS and authentication verification",
+  "testUsers": {
+    "validUser": {
+      "id": "user_2pqrst123456valid",
+      "email": "test.valid@example.com",
+      "name": "Valid Test User",
+      "role": "author"
+    },
+    "invalidUser": {
+      "id": "user_2invalid789012",
+      "email": "test.invalid@example.com",
+      "name": "Invalid Test User",
+      "role": "author"
+    },
+    "maliciousUser": {
+      "id": "user_2malicious345678",
+      "email": "test.malicious@example.com",
+      "name": "Malicious Test User",
+      "role": "author"
+    }
+  },
+  "testBooks": [
+    {
+      "title": "RLS Security Test Book",
+      "author": "Security Tester",
+      "isbn": "9781234567890",
+      "binding": "hardcover",
+      "description": "A book used for testing RLS policies"
+    },
+    {
+      "title": "Authentication Verification Guide",
+      "author": "Auth Expert",
+      "isbn": "9780987654321",
+      "binding": "paperback",
+      "description": "Guide for testing authentication systems"
+    },
+    {
+      "title": "Database Security Handbook",
+      "author": "DB Security Pro",
+      "isbn": "9781122334455",
+      "binding": "ebook",
+      "description": "Comprehensive guide to database security"
+    }
+  ],
+  "testScenarios": {
+    "authentication": [
+      {
+        "name": "Valid JWT Token",
+        "description": "User with valid, non-expired JWT token",
+        "expectedResult": "success",
+        "testData": {
+          "userId": "user_2pqrst123456valid",
+          "tokenValid": true,
+          "tokenExpired": false
+        }
+      },
+      {
+        "name": "Missing JWT Token",
+        "description": "Request without authentication token",
+        "expectedResult": "401_unauthorized",
+        "testData": {
+          "userId": null,
+          "tokenValid": false,
+          "tokenExpired": false
+        }
+      },
+      {
+        "name": "Invalid JWT Token",
+        "description": "Request with malformed or invalid token",
+        "expectedResult": "401_unauthorized",
+        "testData": {
+          "userId": "user_2invalid789012",
+          "tokenValid": false,
+          "tokenExpired": false
+        }
+      },
+      {
+        "name": "Expired JWT Token",
+        "description": "Request with expired but otherwise valid token",
+        "expectedResult": "401_unauthorized",
+        "testData": {
+          "userId": "user_2pqrst123456valid",
+          "tokenValid": true,
+          "tokenExpired": true
+        }
+      }
+    ],
+    "authorization": [
+      {
+        "name": "Own Data Access",
+        "description": "User accessing their own book data",
+        "expectedResult": "success",
+        "testData": {
+          "requestingUserId": "user_2pqrst123456valid",
+          "dataOwnerId": "user_2pqrst123456valid",
+          "operation": "read"
+        }
+      },
+      {
+        "name": "Cross-User Data Access",
+        "description": "User attempting to access another user's data",
+        "expectedResult": "403_forbidden_or_empty_result",
+        "testData": {
+          "requestingUserId": "user_2malicious345678",
+          "dataOwnerId": "user_2pqrst123456valid",
+          "operation": "read"
+        }
+      },
+      {
+        "name": "Data Modification",
+        "description": "User modifying their own book data",
+        "expectedResult": "success",
+        "testData": {
+          "requestingUserId": "user_2pqrst123456valid",
+          "dataOwnerId": "user_2pqrst123456valid",
+          "operation": "update"
+        }
+      },
+      {
+        "name": "Unauthorized Data Modification",
+        "description": "User attempting to modify another user's data",
+        "expectedResult": "403_forbidden",
+        "testData": {
+          "requestingUserId": "user_2malicious345678",
+          "dataOwnerId": "user_2pqrst123456valid",
+          "operation": "update"
+        }
+      }
+    ],
+    "edgeCases": [
+      {
+        "name": "SQL Injection Attempt",
+        "description": "Malicious SQL in user input fields",
+        "expectedResult": "sanitized_or_blocked",
+        "testData": {
+          "maliciousInput": "'; DROP TABLE primary_books; --",
+          "targetField": "book_title"
+        }
+      },
+      {
+        "name": "JWT Token Tampering",
+        "description": "Modified JWT token with changed user ID",
+        "expectedResult": "401_unauthorized",
+        "testData": {
+          "originalUserId": "user_2pqrst123456valid",
+          "tamperedUserId": "user_2admin999999",
+          "signatureValid": false
+        }
+      },
+      {
+        "name": "Excessive Request Rate",
+        "description": "High volume of requests to test rate limiting",
+        "expectedResult": "429_rate_limited",
+        "testData": {
+          "requestCount": 100,
+          "timeWindow": 60,
+          "expectedLimit": 50
+        }
+      },
+      {
+        "name": "Large Payload Attack",
+        "description": "Oversized request payload to test resource limits",
+        "expectedResult": "413_payload_too_large",
+        "testData": {
+          "payloadSize": "10MB",
+          "maxAllowed": "1MB"
+        }
+      }
+    ]
+  },
+  "expectedRLSPolicies": [
+    {
+      "table": "primary_books",
+      "policyName": "Users can manage their own primary books",
+      "type": "FOR ALL",
+      "expression": "auth.uid()::text = user_id"
+    },
+    {
+      "table": "primary_book_editions",
+      "policyName": "Users can manage editions of their primary books",
+      "type": "FOR ALL",
+      "expression": "primary_book_id IN (SELECT id FROM primary_books WHERE auth.uid()::text = user_id)"
+    },
+    {
+      "table": "primary_book_bindings",
+      "policyName": "Users can manage bindings of their book editions",
+      "type": "FOR ALL",
+      "expression": "book_edition_id IN (SELECT be.id FROM primary_book_editions be JOIN primary_books pb ON be.primary_book_id = pb.id WHERE auth.uid()::text = pb.user_id)"
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "path": "/api/books",
+      "method": "POST",
+      "requiresAuth": true,
+      "description": "Add book to user's library"
+    },
+    {
+      "path": "/api/books/isbn/{isbn}",
+      "method": "GET",
+      "requiresAuth": false,
+      "description": "Get book data by ISBN (public)"
+    },
+    {
+      "path": "/api/books/title-author",
+      "method": "GET",
+      "requiresAuth": false,
+      "description": "Search books by title and author (public)"
+    },
+    {
+      "path": "/api/profile/update",
+      "method": "POST",
+      "requiresAuth": true,
+      "description": "Update user profile"
+    }
+  ],
+  "securityChecklist": [
+    "RLS enabled on all user data tables",
+    "JWT token validation in protected endpoints",
+    "Proper HTTP status codes for auth failures",
+    "No sensitive data leakage in error messages",
+    "Rate limiting on API endpoints",
+    "Input sanitization and validation",
+    "Protection against SQL injection",
+    "CORS configured properly",
+    "HTTPS enforced in production",
+    "Session management secure"
+  ]
+}
