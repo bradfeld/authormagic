@@ -95,18 +95,54 @@ export async function GET(request: NextRequest) {
       }),
     );
 
+    // Validate books using Google Books API (optional - can be enabled via query param)
+    const enableValidation = searchParams.get('validate') === 'true';
+    let finalBooks: UIBook[] = enhancedBooks;
+
+    if (enableValidation) {
+      try {
+        finalBooks = (await BookDataMergerService.validateBooks(
+          enhancedBooks,
+        )) as UIBook[];
+        // Optionally filter out low-confidence books
+        if (searchParams.get('filter_unverified') === 'true') {
+          const minConfidence = parseFloat(
+            searchParams.get('min_confidence') || '0.6',
+          );
+          finalBooks = BookDataMergerService.filterValidatedBooks(
+            finalBooks,
+            minConfidence,
+          );
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Book validation failed:', error);
+        // Continue with unvalidated books if validation fails
+      }
+    }
+
     // Group and consolidate editions/bindings using existing algorithm
-    const editionGroups = EditionDetectionService.groupByEdition(enhancedBooks);
+    const editionGroups = EditionDetectionService.groupByEdition(finalBooks);
 
     return NextResponse.json({
       success: true,
       editionGroups, // Return grouped data as primary structure
-      books: enhancedBooks, // Keep flat array for backward compatibility
+      books: finalBooks, // Keep flat array for backward compatibility (now potentially validated)
       sources: mergedResults.sources, // Include source statistics
-      total: enhancedBooks.length,
+      total: finalBooks.length,
+      validation: enableValidation
+        ? {
+            enabled: true,
+            filtered: searchParams.get('filter_unverified') === 'true',
+            originalCount: enhancedBooks.length,
+            finalCount: finalBooks.length,
+          }
+        : { enabled: false },
       searchParams: {
         title: title.trim() || null,
         author: author.trim() || null,
+        validate: enableValidation,
+        filter_unverified: searchParams.get('filter_unverified') === 'true',
       },
     });
   } catch {

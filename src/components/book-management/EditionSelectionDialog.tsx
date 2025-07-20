@@ -101,6 +101,10 @@ export function EditionSelectionDialog({
         if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
         if (author.trim()) queryParams.append('author', author.trim());
 
+        // Add validation parameters to filter out phantom books
+        queryParams.append('validate', 'true');
+        queryParams.append('filter_unverified', 'true');
+        queryParams.append('min_confidence', '0.7');
         const response = await fetch(`/api/books/title-author?${queryParams}`);
 
         if (!response.ok) {

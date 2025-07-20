@@ -3,6 +3,8 @@
 
 import { UIBook } from '../types/ui-book';
 
+import { GoogleBooksValidationService } from './google-books-validation.service';
+
 export interface BookSearchResults {
   books: UIBook[];
   sources: {
@@ -309,5 +311,57 @@ export class BookDataMergerService {
     if (book.image || book.thumbnail) score += 1;
 
     return score;
+  }
+
+  /**
+   * Validate books using Google Books API
+   */
+  static async validateBooks(books: UIBook[]): Promise<UIBook[]> {
+    const validatedBooks: UIBook[] = [];
+
+    for (const book of books) {
+      try {
+        const validation =
+          await GoogleBooksValidationService.validateBookPublication(
+            book.isbn || '',
+            book.title,
+            book.authors?.[0] || '',
+          );
+
+        const validatedBook: UIBook = {
+          ...book,
+          validation: {
+            isReallyPublished: validation.isReallyPublished,
+            confidence: validation.confidence,
+            validationSources: validation.validationSources,
+            flags: validation.flags,
+            summary:
+              GoogleBooksValidationService.getValidationSummary(validation),
+          },
+        };
+
+        validatedBooks.push(validatedBook);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`Validation error for book ${book.title}:`, error);
+        // Add book without validation if error occurs
+        validatedBooks.push(book);
+      }
+    }
+
+    return validatedBooks;
+  }
+
+  /**
+   * Filter out books with low confidence scores
+   */
+  static filterValidatedBooks(
+    books: UIBook[],
+    minConfidence: number = 0.3,
+  ): UIBook[] {
+    return books.filter(book => {
+      if (!book.validation) return true; // Keep books without validation
+      return book.validation.confidence >= minConfidence;
+    });
   }
 }

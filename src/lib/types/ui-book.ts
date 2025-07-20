@@ -28,6 +28,15 @@ export interface UIBook {
   weight?: string | number;
   msrp?: string | number;
   price?: string | number;
+
+  // Publication validation fields
+  validation?: {
+    isReallyPublished: boolean;
+    confidence: number;
+    validationSources: string[];
+    flags: string[];
+    summary: string;
+  };
   currency?: string;
   date_created?: string;
   dewey_decimal?: string;
