@@ -27,6 +27,7 @@ export async function createClient() {
       },
       accessToken: async () => {
         const { getToken } = await auth();
+        // Compatible with both JWT template and new first-class integration
         return await getToken();
       },
     },

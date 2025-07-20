@@ -18,6 +18,7 @@ export function createClient() {
     {
       accessToken: async () => {
         // Get token from window.Clerk if available
+        // Compatible with both JWT template and new first-class integration
         if (typeof window !== 'undefined' && window.Clerk) {
           const session = window.Clerk.session;
           if (session) {
