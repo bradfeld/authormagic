@@ -1,52 +1,84 @@
-import { auth } from '@clerk/nextjs/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 import { AuthorProfileService } from '@/lib/services/author-profile.service';
+import { ApiErrorHandler, STATUS_CODES } from '@/lib/utils/api-error-handler';
 import { AuthorMetadata } from '@/lib/utils/clerk-metadata';
+import {
+  ProfileUpdateSchema,
+  validateRequestBody,
+  sanitizeObject,
+} from '@/lib/validation/api-schemas';
 
 export async function POST(request: NextRequest) {
+  let requestId: string;
+
   try {
-    const { userId } = await auth();
+    // Validate authentication and get request ID
+    const { userId, requestId: id } = await ApiErrorHandler.validateAuth();
+    requestId = id;
 
-    if (!userId) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+    // Parse and validate request body
+    const rawBody = await request.json();
+    const sanitizedBody = sanitizeObject(rawBody);
 
-    const updates: Partial<AuthorMetadata> = await request.json();
-
-    // Validate the updates
-    if (!updates || typeof updates !== 'object') {
-      return NextResponse.json(
-        { message: 'Invalid request body' },
-        { status: 400 },
+    const validation = validateRequestBody(ProfileUpdateSchema, sanitizedBody);
+    if (!validation.success) {
+      return ApiErrorHandler.createErrorResponse(
+        validation.error,
+        STATUS_CODES.UNPROCESSABLE_ENTITY,
+        requestId,
       );
     }
+
+    const updates = validation.data as Partial<AuthorMetadata>;
 
     // Initialize the author profile service
     const authorService = new AuthorProfileService();
 
     // Update the author metadata in Clerk
-    await authorService.updateAuthorMetadata(userId, updates);
+    await ApiErrorHandler.handleAsync(
+      () => authorService.updateAuthorMetadata(userId, updates),
+      'Failed to update author metadata',
+    );
 
     // Get the complete updated profile
-    const updatedProfile =
-      await authorService.getCompleteProfileByClerkUserId(userId);
+    const updatedProfile = await ApiErrorHandler.handleAsync(
+      () => authorService.getCompleteProfileByClerkUserId(userId),
+      'Failed to retrieve updated profile',
+    );
 
     if (!updatedProfile) {
-      return NextResponse.json(
-        { message: 'Profile not found after update' },
-        { status: 404 },
+      return ApiErrorHandler.createErrorResponse(
+        new Error('Profile not found after update'),
+        STATUS_CODES.NOT_FOUND,
+        requestId,
       );
     }
 
-    return NextResponse.json({
-      message: 'Profile updated successfully',
-      profile: updatedProfile,
-    });
-  } catch {
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 },
+    return ApiErrorHandler.createSuccessResponse(
+      { profile: updatedProfile },
+      'Profile updated successfully',
+      STATUS_CODES.OK,
+      requestId,
+    );
+  } catch (error) {
+    // Handle authentication errors with proper status codes
+    if (
+      error instanceof Error &&
+      error.message.includes('Authentication required')
+    ) {
+      return ApiErrorHandler.createErrorResponse(
+        error,
+        STATUS_CODES.UNAUTHORIZED,
+        requestId!,
+      );
+    }
+
+    // Handle all other errors
+    return ApiErrorHandler.createErrorResponse(
+      error,
+      STATUS_CODES.INTERNAL_SERVER_ERROR,
+      requestId!,
     );
   }
 }
