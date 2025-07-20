@@ -47,6 +47,9 @@ next-env.d.ts
 *.swp
 *.swo
 
+# MCP Configuration (contains sensitive tokens)
+.cursor/mcp.json
+
 # OS
 .DS_Store
 Thumbs.db

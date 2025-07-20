@@ -19,12 +19,15 @@ interface WaitlistUser {
   name: string | null;
   email: string | null;
   profile_image_url: string | null;
+  // Role data
+  role: UserRole | null;
 }
 
 interface WaitlistStats {
   total_waitlisted: number;
   total_approved: number;
   total_blocked: number;
+  total_admins: number;
   recent_signups: number; // Last 7 days
   recent_approvals: number; // Last 7 days
 }
@@ -91,6 +94,148 @@ export class WaitlistService {
   }
 
   /**
+   * Get user's role (admin, user, or null if no role)
+   */
+  async getUserRole(clerkUserId: string): Promise<UserRole | null> {
+    const { data, error } = await this.supabase
+      .from('user_roles')
+      .select('role')
+      .eq('clerk_user_id', clerkUserId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    return data?.role || null;
+  }
+
+  /**
+   * Promote user to admin role
+   */
+  async promoteToAdmin(
+    clerkUserId: string,
+    adminClerkUserId: string,
+  ): Promise<void> {
+    // First, ensure user is approved
+    await this.updateUserStatus(
+      clerkUserId,
+      'approved',
+      adminClerkUserId,
+      'Promoted to admin',
+    );
+
+    // Remove existing user role if it exists
+    await this.supabase
+      .from('user_roles')
+      .delete()
+      .eq('clerk_user_id', clerkUserId);
+
+    // Add admin role
+    const { error } = await this.supabase.from('user_roles').insert({
+      clerk_user_id: clerkUserId,
+      role: 'admin',
+      granted_by: adminClerkUserId,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Demote admin to regular user
+   */
+  async demoteFromAdmin(
+    clerkUserId: string,
+    adminClerkUserId: string,
+  ): Promise<void> {
+    // Remove admin role
+    await this.supabase
+      .from('user_roles')
+      .delete()
+      .eq('clerk_user_id', clerkUserId)
+      .eq('role', 'admin');
+
+    // Add regular user role
+    const { error } = await this.supabase.from('user_roles').insert({
+      clerk_user_id: clerkUserId,
+      role: 'user',
+      granted_by: adminClerkUserId,
+    });
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get all admin users
+   */
+  async getAllAdmins(): Promise<WaitlistUser[]> {
+    // Get admin user IDs
+    const { data: adminRoles, error: rolesError } = await this.supabase
+      .from('user_roles')
+      .select('clerk_user_id')
+      .eq('role', 'admin');
+
+    if (rolesError) {
+      throw rolesError;
+    }
+
+    if (!adminRoles.length) {
+      return [];
+    }
+
+    const adminUserIds = adminRoles.map(role => role.clerk_user_id);
+
+    // Get admin user details
+    const { data: adminUsers, error: usersError } = await this.supabase
+      .from('authors')
+      .select('*')
+      .in('clerk_user_id', adminUserIds);
+
+    if (usersError) {
+      throw usersError;
+    }
+
+    // Enrich with Clerk data
+    const enrichedAdmins = await Promise.all(
+      adminUsers.map(async user => {
+        try {
+          const client = await clerkClient();
+          const clerkUser = await client.users.getUser(user.clerk_user_id);
+
+          return {
+            ...user,
+            name:
+              clerkUser.fullName ||
+              `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
+              null,
+            email: clerkUser.emailAddresses[0]?.emailAddress || null,
+            profile_image_url: clerkUser.imageUrl || null,
+            role: 'admin' as const,
+          };
+        } catch (clerkError) {
+          console.error(
+            `Error fetching Clerk user ${user.clerk_user_id}:`,
+            clerkError,
+          );
+          return {
+            ...user,
+            name: null,
+            email: null,
+            profile_image_url: null,
+            role: 'admin' as const,
+          };
+        }
+      }),
+    );
+
+    return enrichedAdmins;
+  }
+
+  /**
    * Setup initial admin user (brad@feld.com)
    */
   async setupInitialAdmin(bradClerkUserId: string): Promise<void> {
@@ -125,7 +270,16 @@ export class WaitlistService {
       throw error;
     }
 
-    // Enrich with Clerk data
+    // Get roles for all users
+    const userIds = data.map(user => user.clerk_user_id);
+    const { data: roles } = await this.supabase
+      .from('user_roles')
+      .select('clerk_user_id, role')
+      .in('clerk_user_id', userIds);
+
+    const roleMap = new Map(roles?.map(r => [r.clerk_user_id, r.role]) || []);
+
+    // Enrich with Clerk data and roles
     const enrichedUsers = await Promise.all(
       data.map(async user => {
         try {
@@ -140,6 +294,7 @@ export class WaitlistService {
               null,
             email: clerkUser.emailAddresses[0]?.emailAddress || null,
             profile_image_url: clerkUser.imageUrl || null,
+            role: roleMap.get(user.clerk_user_id) || null,
           };
         } catch (clerkError) {
           console.error(
@@ -151,6 +306,7 @@ export class WaitlistService {
             name: null,
             email: null,
             profile_image_url: null,
+            role: roleMap.get(user.clerk_user_id) || null,
           };
         }
       }),
@@ -287,6 +443,16 @@ export class WaitlistService {
       throw statusError;
     }
 
+    // Get admin count
+    const { data: adminRoles, error: adminError } = await this.supabase
+      .from('user_roles')
+      .select('clerk_user_id')
+      .eq('role', 'admin');
+
+    if (adminError) {
+      throw adminError;
+    }
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -313,6 +479,7 @@ export class WaitlistService {
         total_waitlisted: 0,
         total_approved: 0,
         total_blocked: 0,
+        total_admins: adminRoles?.length || 0,
         recent_signups: 0,
         recent_approvals: 0,
       } as WaitlistStats,

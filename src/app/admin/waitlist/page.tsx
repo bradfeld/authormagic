@@ -39,6 +39,7 @@ interface WaitlistUser {
   name: string | null;
   email: string | null;
   profile_image_url: string | null;
+  role: 'admin' | 'user' | null;
 }
 
 export default function AdminWaitlistPage() {
@@ -157,6 +158,60 @@ export default function AdminWaitlistPage() {
   // Approve single user
   const approveSingleUser = async (userId: string) => {
     openApprovalDialog([userId]);
+  };
+
+  // Promote user to admin
+  const promoteToAdmin = async (userId: string) => {
+    try {
+      const response = await fetch('/api/admin/promote-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: userId,
+          action: 'promote',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to promote user');
+      }
+
+      // Refresh the list
+      await loadUsers();
+      alert('User promoted to admin successfully!');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to promote user: ${errorMessage}`);
+    }
+  };
+
+  // Demote admin to user
+  const demoteFromAdmin = async (userId: string) => {
+    try {
+      const response = await fetch('/api/admin/promote-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: userId,
+          action: 'demote',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to demote user');
+      }
+
+      // Refresh the list
+      await loadUsers();
+      alert('User demoted to regular user successfully!');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to demote user: ${errorMessage}`);
+    }
   };
 
   if (loading) {
@@ -317,8 +372,22 @@ export default function AdminWaitlistPage() {
 
                       {/* User Info */}
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-gray-900 flex items-center gap-2">
                           {user.name || 'Unknown User'}
+                          {user.role && (
+                            <Badge
+                              variant={
+                                user.role === 'admin' ? 'default' : 'secondary'
+                              }
+                              className={
+                                user.role === 'admin'
+                                  ? 'bg-purple-600 hover:bg-purple-700'
+                                  : ''
+                              }
+                            >
+                              {user.role}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-sm text-gray-600 flex items-center gap-4">
                           <span className="flex items-center gap-1">
@@ -351,6 +420,27 @@ export default function AdminWaitlistPage() {
                         <UserCheck className="w-4 h-4 mr-1" />
                         Approve
                       </Button>
+
+                      {/* Role Management Buttons */}
+                      {user.role === 'admin' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => demoteFromAdmin(user.clerk_user_id)}
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          Demote Admin
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => promoteToAdmin(user.clerk_user_id)}
+                          className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                        >
+                          Make Admin
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "restart": "node scripts/restart-dev-server.js",
+    "query": "node scripts/run-query.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

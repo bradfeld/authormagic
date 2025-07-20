@@ -16,8 +16,6 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  // Note: userInfo no longer needed since BookManagementDashboard was removed
-
   // Get complete author profile data
   const authorService = new AuthorProfileService();
   const completeProfile = await authorService.getOrCreateProfile(userId);
