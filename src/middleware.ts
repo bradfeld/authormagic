@@ -1,7 +1,7 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   // Skip API routes - they handle their own authentication
   if (req.nextUrl.pathname.startsWith('/api/')) {
     return addSecurityHeaders(NextResponse.next(), req);
@@ -46,7 +46,8 @@ export default clerkMiddleware((auth, req) => {
     req.nextUrl.pathname.startsWith('/profile')
   ) {
     try {
-      const { userId } = auth.protect();
+      auth.protect();
+      const { userId } = await auth();
 
       if (userId) {
         // Check user status and redirect if waitlisted

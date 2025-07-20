@@ -722,7 +722,12 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      setup_initial_admin: {
+        Args: {
+          brad_clerk_user_id: string;
+        };
+        Returns: void;
+      };
     };
     Enums: {
       [_ in never]: never;
