@@ -4,7 +4,7 @@ import { z } from 'zod';
 const isbnRegex =
   /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/;
 const urlRegex =
-  /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&=]*)$/;
+  /^https?:\/\/(?:[-\w.])+(?:[:\d]+)?(?:\/(?:[\w._~!$&'()*+,;=:@-]|%[0-9A-Fa-f]{2})*)*(?:\?(?:[\w._~!$&'()*+,;=:@/?-]|%[0-9A-Fa-f]{2})*)?(?:#(?:[\w._~!$&'()*+,;=:@/?-]|%[0-9A-Fa-f]{2})*)?$/;
 const twitterUsernameRegex = /^[A-Za-z0-9_]{1,15}$/;
 const githubUsernameRegex = /^[A-Za-z0-9]([A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
 
@@ -58,54 +58,68 @@ export const ProfileUpdateSchema = z.object({
 
   website_url: z
     .string()
-    .regex(urlRegex, 'Invalid website URL')
     .max(500, 'Website URL too long')
+    .refine(val => !val || val === '' || urlRegex.test(val), {
+      message: 'Invalid website URL',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),
 
   twitter_username: z
     .string()
-    .regex(twitterUsernameRegex, 'Invalid Twitter username')
+    .refine(val => !val || val === '' || twitterUsernameRegex.test(val), {
+      message: 'Invalid Twitter username',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),
 
   linkedin_url: z
     .string()
-    .regex(urlRegex, 'Invalid LinkedIn URL')
     .max(500, 'LinkedIn URL too long')
+    .refine(val => !val || val === '' || urlRegex.test(val), {
+      message: 'Invalid LinkedIn URL',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),
 
   facebook_url: z
     .string()
-    .regex(urlRegex, 'Invalid Facebook URL')
     .max(500, 'Facebook URL too long')
+    .refine(val => !val || val === '' || urlRegex.test(val), {
+      message: 'Invalid Facebook URL',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),
 
   github_username: z
     .string()
-    .regex(githubUsernameRegex, 'Invalid GitHub username')
+    .refine(val => !val || val === '' || githubUsernameRegex.test(val), {
+      message: 'Invalid GitHub username',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),
 
   goodreads_url: z
     .string()
-    .regex(urlRegex, 'Invalid Goodreads URL')
     .max(500, 'Goodreads URL too long')
+    .refine(val => !val || val === '' || urlRegex.test(val), {
+      message: 'Invalid Goodreads URL',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),
 
   amazon_author_url: z
     .string()
-    .regex(urlRegex, 'Invalid Amazon Author URL')
     .max(500, 'Amazon Author URL too long')
+    .refine(val => !val || val === '' || urlRegex.test(val), {
+      message: 'Invalid Amazon Author URL',
+    })
     .optional()
     .or(z.literal(''))
     .or(z.null()),

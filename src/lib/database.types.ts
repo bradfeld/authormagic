@@ -20,6 +20,7 @@ export type Database = {
           facebook_url: string | null;
           github_username: string | null;
           goodreads_url: string | null;
+          amazon_author_url: string | null;
           created_at: string;
           updated_at: string;
           // Waitlist system fields
@@ -38,6 +39,7 @@ export type Database = {
           facebook_url?: string | null;
           github_username?: string | null;
           goodreads_url?: string | null;
+          amazon_author_url?: string | null;
           created_at?: string;
           updated_at?: string;
           // Waitlist system fields
@@ -56,6 +58,7 @@ export type Database = {
           facebook_url?: string | null;
           github_username?: string | null;
           goodreads_url?: string | null;
+          amazon_author_url?: string | null;
           created_at?: string;
           updated_at?: string;
           // Waitlist system fields
