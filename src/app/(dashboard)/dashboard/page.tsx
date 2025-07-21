@@ -9,51 +9,69 @@ import { AuthorProfileService } from '@/lib/services/author-profile.service';
 import { PrimaryBookService } from '@/lib/services/primary-book.service';
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  const user = await currentUser();
+  try {
+    console.log('Dashboard: Starting auth check...');
+    const { userId } = await auth();
+    const user = await currentUser();
 
-  if (!userId || !user) {
-    redirect('/sign-in');
+    console.log('Dashboard: Auth result - userId:', userId);
+
+    if (!userId || !user) {
+      console.log('Dashboard: No user found, redirecting to sign-in');
+      redirect('/sign-in');
+    }
+
+    console.log('Dashboard: Creating AuthorProfileService...');
+    // Get complete author profile data
+    const authorService = new AuthorProfileService();
+
+    console.log('Dashboard: Getting author profile...');
+    const completeProfile = await authorService.getOrCreateProfile(userId);
+    console.log('Dashboard: Profile retrieved successfully');
+
+    console.log('Dashboard: Getting user primary books...');
+    // Get user's primary books
+    const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
+    console.log(
+      'Dashboard: Books retrieved successfully, count:',
+      userBooks.length,
+    );
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+                <h1 className="ml-2 text-2xl font-bold text-gray-900">
+                  AuthorMagic
+                </h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <CustomUserButton />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Profile Section */}
+            <div className="lg:col-span-1">
+              <AuthorProfilePreview profile={completeProfile} />
+            </div>
+
+            {/* Book Library Section */}
+            <div className="lg:col-span-2">
+              <BookLibraryGrid books={userBooks} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error('Dashboard: Error occurred:', error);
+    throw error;
   }
-
-  // Get complete author profile data
-  const authorService = new AuthorProfileService();
-  const completeProfile = await authorService.getOrCreateProfile(userId);
-
-  // Get user's primary books
-  const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">
-                AuthorMagic
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <CustomUserButton />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Section */}
-          <div className="lg:col-span-1">
-            <AuthorProfilePreview profile={completeProfile} />
-          </div>
-
-          {/* Book Library Section */}
-          <div className="lg:col-span-2">
-            <BookLibraryGrid books={userBooks} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
