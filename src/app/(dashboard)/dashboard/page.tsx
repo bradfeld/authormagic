@@ -3,25 +3,36 @@ import { BookOpen } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 import { CustomUserButton } from '@/components/ui/custom-user-button';
+import { AuthorProfileService } from '@/lib/services/author-profile.service';
 
 // Force dynamic rendering to avoid static generation issues
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   try {
-    // Test 1: Basic auth
+    // Test 1: Basic auth (✅ WORKING)
     const { userId } = await auth();
     if (!userId) {
       redirect('/sign-in');
     }
 
-    // Test 2: Get user info
+    // Test 2: Get user info (✅ WORKING)
     const user = await currentUser();
     if (!user) {
       redirect('/sign-in');
     }
 
-    // Return minimal dashboard with just auth info
+    // Test 3: Add Author Profile Service (🧪 TESTING)
+    let profileResult = null;
+    let profileError = null;
+
+    try {
+      const authorService = new AuthorProfileService();
+      profileResult = await authorService.getOrCreateProfile(userId);
+    } catch (error) {
+      profileError = error;
+    }
+
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white shadow-sm">
@@ -41,31 +52,85 @@ export default async function DashboardPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Dashboard Status</h2>
-            <div className="space-y-2">
-              <p>
-                <strong>User ID:</strong> {userId}
-              </p>
-              <p>
-                <strong>Email:</strong>{' '}
-                {user.emailAddresses[0]?.emailAddress || 'N/A'}
-              </p>
-              <p>
-                <strong>Name:</strong> {user.firstName} {user.lastName}
-              </p>
-              <p>
-                <strong>Auth Status:</strong> ✅ Successfully authenticated
-              </p>
+          <div className="space-y-6">
+            {/* Auth Status - WORKING */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                ✅ Authentication Status
+              </h2>
+              <div className="space-y-2">
+                <p>
+                  <strong>User ID:</strong> {userId}
+                </p>
+                <p>
+                  <strong>Email:</strong>{' '}
+                  {user.emailAddresses[0]?.emailAddress || 'N/A'}
+                </p>
+                <p>
+                  <strong>Name:</strong> {user.firstName} {user.lastName}
+                </p>
+                <p>
+                  <strong>Auth Status:</strong> ✅ Successfully authenticated
+                </p>
+              </div>
             </div>
-            <div className="mt-6 p-4 bg-green-50 rounded">
-              <p className="text-green-800">
-                🎉 <strong>Success!</strong> Basic authentication is working.
-              </p>
-              <p className="text-sm text-green-600 mt-1">
-                If you see this message, the auth issue is resolved. The
-                previous error was likely in the profile or book services.
-              </p>
+
+            {/* Profile Service Test */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                🧪 Profile Service Test
+              </h2>
+
+              {profileError ? (
+                <div className="p-4 bg-red-50 rounded border border-red-200">
+                  <h3 className="font-semibold text-red-800 mb-2">
+                    ❌ Profile Service Failed
+                  </h3>
+                  <div className="space-y-2 text-sm text-red-700">
+                    <p>
+                      <strong>Error:</strong>{' '}
+                      {profileError instanceof Error
+                        ? profileError.message
+                        : 'Unknown error'}
+                    </p>
+                    <p>
+                      <strong>Type:</strong>{' '}
+                      {profileError instanceof Error
+                        ? profileError.name
+                        : 'Unknown'}
+                    </p>
+                  </div>
+                  <div className="mt-3 p-3 bg-red-100 rounded text-red-800 text-xs">
+                    <pre className="whitespace-pre-wrap">
+                      {profileError instanceof Error
+                        ? profileError.stack
+                        : 'No stack trace'}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-green-50 rounded border border-green-200">
+                  <h3 className="font-semibold text-green-800 mb-2">
+                    ✅ Profile Service Success
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    Profile data loaded successfully
+                  </p>
+                  {profileResult && (
+                    <div className="mt-2 text-xs text-green-600">
+                      <p>
+                        <strong>Profile ID:</strong> {profileResult.id || 'N/A'}
+                      </p>
+                      <p>
+                        <strong>Name:</strong> {profileResult.name || 'N/A'}
+                      </p>
+                      <p>
+                        <strong>Status:</strong> {profileResult.status || 'N/A'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
