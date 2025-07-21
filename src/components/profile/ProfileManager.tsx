@@ -61,7 +61,23 @@ export function ProfileManager({
       console.log('✅ API Response data:', responseData);
 
       // Fix: Extract profile from data object (API returns {data: {profile: ...}})
-      const { profile: updatedProfile } = responseData.data || responseData;
+      const { profile: updatedProfile, verification } =
+        responseData.data || responseData;
+
+      // Log verification data if available
+      if (verification) {
+        console.log('🔍 Clerk Update Verification:');
+        console.log(
+          '  📤 Sent twitter_username:',
+          verification.sent_twitter_username,
+        );
+        console.log(
+          '  📥 Clerk stored twitter_username:',
+          verification.stored_twitter_username,
+        );
+        console.log('  📤 Sent bio:', verification.sent_bio);
+        console.log('  📥 Clerk stored bio:', verification.stored_bio);
+      }
 
       if (!updatedProfile) {
         console.error('❌ No profile in response:', responseData);
