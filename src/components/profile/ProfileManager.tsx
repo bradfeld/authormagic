@@ -37,7 +37,8 @@ export function ProfileManager({
   const handleSave = async (updates: Partial<AuthorMetadata>) => {
     setIsLoading(true);
 
-    console.log('🔄 Starting profile save...', { updates });
+    console.log('🔄 Starting profile save...');
+    console.log('📋 Updates being sent:', JSON.stringify(updates, null, 2));
 
     try {
       const response = await fetch('/api/profile/update', {
@@ -67,7 +68,17 @@ export function ProfileManager({
         throw new Error('Profile data missing from response');
       }
 
-      console.log('📝 Updating profile state:', updatedProfile);
+      console.log('📝 Updating profile state...');
+      console.log('🔍 Updated profile bio:', updatedProfile.bio);
+      console.log(
+        '🔍 Updated profile website_url:',
+        updatedProfile.website_url,
+      );
+      console.log(
+        '🔍 Updated profile twitter_username:',
+        updatedProfile.twitter_username,
+      );
+      console.log('🔍 Updated profile updated_at:', updatedProfile.updated_at);
 
       // Update local state
       setProfile(updatedProfile);

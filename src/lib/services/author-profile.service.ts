@@ -205,7 +205,26 @@ export class AuthorProfileService {
     updates: Partial<AuthorMetadata>,
   ): Promise<AuthorMetadata> {
     try {
-      return await updateUserAuthorMetadata(clerkUserId, updates);
+      // Update metadata in Clerk
+      const updatedMetadata = await updateUserAuthorMetadata(
+        clerkUserId,
+        updates,
+      );
+
+      // Also update the Supabase record to reflect the modification time
+      const { error } = await this.getSupabase()
+        .from('authors')
+        .update({
+          updated_at: new Date().toISOString(),
+        })
+        .eq('clerk_user_id', clerkUserId);
+
+      if (error) {
+        console.error('Failed to update profile timestamp:', error);
+        // Don't throw error for timestamp update failure, but log it
+      }
+
+      return updatedMetadata;
     } catch (error) {
       throw error;
     }
