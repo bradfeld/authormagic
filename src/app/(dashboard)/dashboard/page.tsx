@@ -12,51 +12,69 @@ import { PrimaryBookService } from '@/lib/services/primary-book.service';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  const user = await currentUser();
+  try {
+    console.log('Dashboard: Starting...');
+    const { userId } = await auth();
+    const user = await currentUser();
 
-  if (!userId || !user) {
-    redirect('/sign-in');
+    console.log('Dashboard: userId:', userId);
+
+    if (!userId || !user) {
+      console.log('Dashboard: No user, redirecting');
+      redirect('/sign-in');
+    }
+
+    console.log('Dashboard: Getting author profile...');
+    // Get complete author profile data
+    const authorService = new AuthorProfileService();
+    const completeProfile = await authorService.getOrCreateProfile(userId);
+    console.log('Dashboard: Profile success');
+
+    console.log('Dashboard: Getting user books...');
+    // Get user's primary books
+    const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
+    console.log('Dashboard: Books success, count:', userBooks.length);
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+                <h1 className="ml-2 text-2xl font-bold text-gray-900">
+                  AuthorMagic
+                </h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <CustomUserButton />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Profile Section */}
+            <div className="lg:col-span-1">
+              <AuthorProfilePreview profile={completeProfile} />
+            </div>
+
+            {/* Book Library Section */}
+            <div className="lg:col-span-2">
+              <BookLibraryGrid books={userBooks} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error('Dashboard: Server error occurred:', error);
+    console.error('Dashboard: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      name: error instanceof Error ? error.name : 'Unknown',
+    });
+    throw error;
   }
-
-  // Get complete author profile data
-  const authorService = new AuthorProfileService();
-  const completeProfile = await authorService.getOrCreateProfile(userId);
-
-  // Get user's primary books
-  const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">
-                AuthorMagic
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <CustomUserButton />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Section */}
-          <div className="lg:col-span-1">
-            <AuthorProfilePreview profile={completeProfile} />
-          </div>
-
-          {/* Book Library Section */}
-          <div className="lg:col-span-2">
-            <BookLibraryGrid books={userBooks} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
