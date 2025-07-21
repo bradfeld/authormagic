@@ -10,7 +10,7 @@ import { ProfileDisplay } from './ProfileDisplay';
 import { ProfileEditForm } from './ProfileEditForm';
 
 interface ProfileManagerProps {
-  initialProfile: CompleteAuthorProfile;
+  initialProfile: CompleteAuthorProfile | null | undefined;
   isOwnProfile?: boolean;
   onProfileUpdate?: (profile: CompleteAuthorProfile) => void;
 }
@@ -20,7 +20,9 @@ export function ProfileManager({
   isOwnProfile = false,
   onProfileUpdate,
 }: ProfileManagerProps) {
-  const [profile, setProfile] = useState<CompleteAuthorProfile>(initialProfile);
+  const [profile, setProfile] = useState<
+    CompleteAuthorProfile | null | undefined
+  >(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 

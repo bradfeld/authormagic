@@ -18,10 +18,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CompleteAuthorProfile } from '@/lib/services/author-profile.service';
 
 interface AuthorProfilePreviewProps {
-  profile: CompleteAuthorProfile;
+  profile: CompleteAuthorProfile | null | undefined;
 }
 
 export function AuthorProfilePreview({ profile }: AuthorProfilePreviewProps) {
+  // Handle null/undefined profile gracefully
+  if (!profile) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">
+            Author Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-sm">Loading profile...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>

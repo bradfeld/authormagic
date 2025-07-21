@@ -22,7 +22,7 @@ import { AuthorMetadata } from '@/lib/utils/clerk-metadata';
 import { validateAmazonAuthorUrl } from '@/lib/utils/validation';
 
 interface ProfileEditFormProps {
-  profile: CompleteAuthorProfile;
+  profile: CompleteAuthorProfile | null | undefined;
   onSave: (updates: Partial<AuthorMetadata>) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
@@ -34,20 +34,40 @@ export function ProfileEditForm({
   onCancel,
   isLoading = false,
 }: ProfileEditFormProps) {
+  // Initialize hooks first (before any early returns)
   const [formData, setFormData] = useState<AuthorMetadata>({
-    bio: profile.bio || '',
-    website_url: profile.website_url || '',
-    twitter_username: profile.twitter_username || '',
-    linkedin_url: profile.linkedin_url || '',
-    facebook_url: profile.facebook_url || '',
-    github_username: profile.github_username || '',
-    goodreads_url: profile.goodreads_url || '',
-    amazon_author_url: profile.amazon_author_url || '',
+    bio: profile?.bio || '',
+    website_url: profile?.website_url || '',
+    twitter_username: profile?.twitter_username || '',
+    linkedin_url: profile?.linkedin_url || '',
+    facebook_url: profile?.facebook_url || '',
+    github_username: profile?.github_username || '',
+    goodreads_url: profile?.goodreads_url || '',
+    amazon_author_url: profile?.amazon_author_url || '',
   });
 
   const [errors, setErrors] = useState<
     Partial<Record<keyof AuthorMetadata, string>>
   >({});
+
+  // Handle null/undefined profile gracefully (after hooks)
+  if (!profile) {
+    return (
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Edit Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-lg">Loading profile data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const validateField = (
     field: keyof AuthorMetadata,

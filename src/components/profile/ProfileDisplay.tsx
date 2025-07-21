@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CompleteAuthorProfile } from '@/lib/services/author-profile.service';
 
 interface ProfileDisplayProps {
-  profile: CompleteAuthorProfile;
+  profile: CompleteAuthorProfile | null | undefined;
   onEdit: () => void;
   isOwnProfile?: boolean;
 }
@@ -29,6 +29,22 @@ export function ProfileDisplay({
   onEdit,
   isOwnProfile = false,
 }: ProfileDisplayProps) {
+  // Handle null/undefined profile gracefully
+  if (!profile) {
+    return (
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-lg">Loading profile...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
