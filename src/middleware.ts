@@ -98,6 +98,7 @@ function addSecurityHeaders(
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.com https://*.clerk.accounts.dev https://js.clerk.com https://clerk.com https://clerk.authormagic.com https://vercel.live",
+    'worker-src blob:',
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
