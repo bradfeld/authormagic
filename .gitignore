@@ -80,3 +80,4 @@ backups/
 
 # Cache persistence
 .cache/
+.env.vercel

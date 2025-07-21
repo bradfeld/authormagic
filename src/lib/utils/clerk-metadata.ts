@@ -87,24 +87,9 @@ export async function updateUserAuthorMetadata(
       },
     });
 
-    // CRITICAL: Verify what Clerk actually stored
-    const verificationMetadata = await getUserAuthorMetadata(userId);
-
-    // Debug: Compare what we sent vs what Clerk stored
-    console.log('🔍 Clerk Update Verification:');
-    console.log(
-      '  📤 Sent twitter_username:',
-      updatedMetadata.twitter_username,
-    );
-    console.log(
-      '  📥 Clerk stored twitter_username:',
-      verificationMetadata.twitter_username,
-    );
-    console.log('  📤 Sent bio:', updatedMetadata.bio);
-    console.log('  📥 Clerk stored bio:', verificationMetadata.bio);
-
-    // Return what Clerk actually stored (not our local merge)
-    return verificationMetadata;
+    // Verify the update was successful by fetching fresh metadata
+    const verifiedMetadata = await getUserAuthorMetadata(userId);
+    return verifiedMetadata;
   } catch (error) {
     throw error;
   }

@@ -205,23 +205,13 @@ export class AuthorProfileService {
     updates: Partial<AuthorMetadata>,
   ): Promise<AuthorMetadata> {
     try {
-      console.log('🔧 AuthorProfileService.updateAuthorMetadata called');
-      console.log('📝 ClerkUserId:', clerkUserId);
-      console.log('📝 Updates received:', JSON.stringify(updates, null, 2));
-
       // Update metadata in Clerk
-      console.log('🔄 Calling updateUserAuthorMetadata...');
       const updatedMetadata = await updateUserAuthorMetadata(
         clerkUserId,
         updates,
       );
-      console.log(
-        '✅ Clerk metadata updated:',
-        JSON.stringify(updatedMetadata, null, 2),
-      );
 
       // Also update the Supabase record to reflect the modification time
-      console.log('🔄 Updating Supabase timestamp...');
       const { error } = await this.getSupabase()
         .from('authors')
         .update({
@@ -232,17 +222,10 @@ export class AuthorProfileService {
       if (error) {
         console.error('Failed to update profile timestamp:', error);
         // Don't throw error for timestamp update failure, but log it
-      } else {
-        console.log('✅ Supabase timestamp updated');
       }
 
-      console.log('🏁 AuthorProfileService.updateAuthorMetadata completed');
       return updatedMetadata;
     } catch (error) {
-      console.error(
-        '❌ AuthorProfileService.updateAuthorMetadata error:',
-        error,
-      );
       throw error;
     }
   }

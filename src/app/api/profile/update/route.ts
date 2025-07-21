@@ -55,18 +55,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add verification data for debugging
-    const verificationData = {
-      sent_twitter_username: updates.twitter_username,
-      stored_twitter_username: updatedProfile.twitter_username,
-      sent_bio: updates.bio,
-      stored_bio: updatedProfile.bio,
-    };
-
     return ApiErrorHandler.createSuccessResponse(
       {
         profile: updatedProfile,
-        verification: verificationData, // Add verification data to response
       },
       'Profile updated successfully',
       STATUS_CODES.OK,

@@ -25,14 +25,6 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  // Add debug logging for Clerk state
-  useEffect(() => {
-    console.log('Clerk state:', { isSignedIn, isLoaded });
-    if (!isLoaded) {
-      console.log('Clerk is still loading...');
-    }
-  }, [isSignedIn, isLoaded]);
-
   // TEMPORARY FIX: Bypass Clerk loading check entirely
   // This allows the homepage to render without waiting for Clerk
   // The sign-in/sign-up buttons will still work when Clerk loads
@@ -70,17 +62,10 @@ function HomePage() {
           </div>
           <div className="flex space-x-4">
             <SignInButton mode="modal">
-              <Button
-                variant="outline"
-                onClick={() => console.log('Sign In clicked')}
-              >
-                Sign In
-              </Button>
+              <Button variant="outline">Sign In</Button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <Button onClick={() => console.log('Sign Up clicked')}>
-                Get Started
-              </Button>
+              <Button>Get Started</Button>
             </SignUpButton>
           </div>
         </nav>
