@@ -25,6 +25,14 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router]);
 
+  // Add debug logging for Clerk state
+  useEffect(() => {
+    console.log('Clerk state:', { isSignedIn, isLoaded });
+    if (!isLoaded) {
+      console.log('Clerk is still loading...');
+    }
+  }, [isSignedIn, isLoaded]);
+
   // TEMPORARY FIX: Bypass Clerk loading check entirely
   // This allows the homepage to render without waiting for Clerk
   // The sign-in/sign-up buttons will still work when Clerk loads
@@ -61,11 +69,18 @@ function HomePage() {
             <h1 className="text-2xl font-bold text-gray-900">AuthorMagic</h1>
           </div>
           <div className="flex space-x-4">
-            <SignInButton>
-              <Button variant="outline">Sign In</Button>
+            <SignInButton mode="modal">
+              <Button
+                variant="outline"
+                onClick={() => console.log('Sign In clicked')}
+              >
+                Sign In
+              </Button>
             </SignInButton>
-            <SignUpButton>
-              <Button>Get Started</Button>
+            <SignUpButton mode="modal">
+              <Button onClick={() => console.log('Sign Up clicked')}>
+                Get Started
+              </Button>
             </SignUpButton>
           </div>
         </nav>
@@ -83,7 +98,7 @@ function HomePage() {
           generation. Everything you need to market your book effectively.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <SignUpButton>
+          <SignUpButton mode="modal">
             <Button size="lg" className="text-lg px-8 py-3">
               Start Free Trial
             </Button>
@@ -169,7 +184,7 @@ function HomePage() {
             Join thousands of authors who have already boosted their book sales
             with AuthorMagic
           </p>
-          <SignUpButton>
+          <SignUpButton mode="modal">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
               Get Started Free
             </Button>
