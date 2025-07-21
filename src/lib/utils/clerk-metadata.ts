@@ -70,50 +70,42 @@ export async function updateUserAuthorMetadata(
   updates: Partial<AuthorMetadata>,
 ): Promise<AuthorMetadata> {
   try {
-    console.log('🔧 updateUserAuthorMetadata called');
-    console.log('📝 UserId:', userId);
-    console.log('📝 Updates:', JSON.stringify(updates, null, 2));
-
     // Get current metadata
-    console.log('🔄 Getting current metadata...');
     const currentMetadata = await getUserAuthorMetadata(userId);
-    console.log(
-      '📋 Current metadata:',
-      JSON.stringify(currentMetadata, null, 2),
-    );
 
     // Merge updates with current metadata
     const updatedMetadata: AuthorMetadata = {
       ...currentMetadata,
       ...updates,
     };
-    console.log(
-      '🔄 Merged metadata:',
-      JSON.stringify(updatedMetadata, null, 2),
-    );
 
     // Update user's public metadata
-    console.log('🔄 Updating Clerk user metadata...');
     const client = await clerkClient();
     await client.users.updateUserMetadata(userId, {
       publicMetadata: {
         ...updatedMetadata,
       },
     });
-    console.log('✅ Clerk user metadata updated');
 
-    // Verify the update by fetching fresh data
-    console.log('🔄 Verifying update by fetching fresh metadata...');
+    // CRITICAL: Verify what Clerk actually stored
     const verificationMetadata = await getUserAuthorMetadata(userId);
-    console.log(
-      '🔍 Verification metadata:',
-      JSON.stringify(verificationMetadata, null, 2),
-    );
 
-    console.log('🏁 updateUserAuthorMetadata completed');
-    return updatedMetadata;
+    // Debug: Compare what we sent vs what Clerk stored
+    console.log('🔍 Clerk Update Verification:');
+    console.log(
+      '  📤 Sent twitter_username:',
+      updatedMetadata.twitter_username,
+    );
+    console.log(
+      '  📥 Clerk stored twitter_username:',
+      verificationMetadata.twitter_username,
+    );
+    console.log('  📤 Sent bio:', updatedMetadata.bio);
+    console.log('  📥 Clerk stored bio:', verificationMetadata.bio);
+
+    // Return what Clerk actually stored (not our local merge)
+    return verificationMetadata;
   } catch (error) {
-    console.error('❌ updateUserAuthorMetadata error:', error);
     throw error;
   }
 }
