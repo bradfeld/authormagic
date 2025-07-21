@@ -50,61 +50,65 @@ export const BookCreateRequestSchema = z.object({
 
 // Profile-related schemas
 export const ProfileUpdateSchema = z.object({
-  displayName: z
-    .string()
-    .min(1, 'Display name is required')
-    .max(100, 'Display name must be less than 100 characters')
-    .trim()
-    .optional(),
-
   bio: z
     .string()
     .max(1000, 'Bio must be less than 1000 characters')
     .trim()
     .optional(),
 
-  website: z
+  website_url: z
     .string()
     .regex(urlRegex, 'Invalid website URL')
     .max(500, 'Website URL too long')
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .or(z.null()),
 
-  twitter: z
+  twitter_username: z
     .string()
     .regex(twitterUsernameRegex, 'Invalid Twitter username')
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .or(z.null()),
 
-  github: z
+  linkedin_url: z
+    .string()
+    .regex(urlRegex, 'Invalid LinkedIn URL')
+    .max(500, 'LinkedIn URL too long')
+    .optional()
+    .or(z.literal(''))
+    .or(z.null()),
+
+  facebook_url: z
+    .string()
+    .regex(urlRegex, 'Invalid Facebook URL')
+    .max(500, 'Facebook URL too long')
+    .optional()
+    .or(z.literal(''))
+    .or(z.null()),
+
+  github_username: z
     .string()
     .regex(githubUsernameRegex, 'Invalid GitHub username')
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .or(z.null()),
 
-  location: z
+  goodreads_url: z
     .string()
-    .max(100, 'Location must be less than 100 characters')
-    .trim()
-    .optional(),
+    .regex(urlRegex, 'Invalid Goodreads URL')
+    .max(500, 'Goodreads URL too long')
+    .optional()
+    .or(z.literal(''))
+    .or(z.null()),
 
-  company: z
+  amazon_author_url: z
     .string()
-    .max(100, 'Company must be less than 100 characters')
-    .trim()
-    .optional(),
-
-  expertise: z
-    .array(z.string().max(50))
-    .max(10, 'Maximum 10 expertise areas')
-    .optional(),
-
-  genres: z.array(z.string().max(50)).max(20, 'Maximum 20 genres').optional(),
-
-  favoriteBooks: z
-    .array(z.string().max(200))
-    .max(10, 'Maximum 10 favorite books')
-    .optional(),
+    .regex(urlRegex, 'Invalid Amazon Author URL')
+    .max(500, 'Amazon Author URL too long')
+    .optional()
+    .or(z.literal(''))
+    .or(z.null()),
 });
 
 // Search and query schemas
