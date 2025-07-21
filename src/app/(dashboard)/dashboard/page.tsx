@@ -25,11 +25,34 @@ export default async function DashboardPage() {
     // Test 3: Add Author Profile Service (🧪 TESTING)
     let profileResult = null;
     let profileError = null;
+    const debugInfo: any = {};
 
     try {
+      debugInfo.step = 'Creating AuthorProfileService instance';
       const authorService = new AuthorProfileService();
+
+      debugInfo.step = 'Calling getOrCreateProfile';
+      debugInfo.userId = userId;
+
       profileResult = await authorService.getOrCreateProfile(userId);
+      debugInfo.step = 'Profile service completed successfully';
     } catch (error) {
+      debugInfo.step = `Failed at: ${debugInfo.step}`;
+      debugInfo.errorType = typeof error;
+      debugInfo.errorConstructor = error?.constructor?.name;
+      debugInfo.errorString = String(error);
+      debugInfo.errorKeys = error ? Object.keys(error) : [];
+
+      if (error instanceof Error) {
+        debugInfo.isError = true;
+        debugInfo.message = error.message;
+        debugInfo.name = error.name;
+        debugInfo.stack = error.stack;
+      } else {
+        debugInfo.isError = false;
+        debugInfo.rawError = error;
+      }
+
       profileError = error;
     }
 
@@ -86,27 +109,71 @@ export default async function DashboardPage() {
                   <h3 className="font-semibold text-red-800 mb-2">
                     ❌ Profile Service Failed
                   </h3>
+
+                  {/* Debug Information */}
+                  <div className="mb-4 p-3 bg-red-100 rounded">
+                    <h4 className="font-semibold text-red-800 mb-2">
+                      🔍 Debug Information:
+                    </h4>
+                    <div className="space-y-1 text-xs text-red-700">
+                      <p>
+                        <strong>Failed at step:</strong> {debugInfo.step}
+                      </p>
+                      <p>
+                        <strong>User ID:</strong> {debugInfo.userId}
+                      </p>
+                      <p>
+                        <strong>Error type:</strong> {debugInfo.errorType}
+                      </p>
+                      <p>
+                        <strong>Error constructor:</strong>{' '}
+                        {debugInfo.errorConstructor}
+                      </p>
+                      <p>
+                        <strong>Is Error object:</strong>{' '}
+                        {String(debugInfo.isError)}
+                      </p>
+                      <p>
+                        <strong>Error keys:</strong>{' '}
+                        {debugInfo.errorKeys?.join(', ') || 'none'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Standard Error Info */}
                   <div className="space-y-2 text-sm text-red-700">
                     <p>
-                      <strong>Error:</strong>{' '}
-                      {profileError instanceof Error
-                        ? profileError.message
-                        : 'Unknown error'}
+                      <strong>Message:</strong>{' '}
+                      {debugInfo.message || 'No message'}
                     </p>
                     <p>
-                      <strong>Type:</strong>{' '}
-                      {profileError instanceof Error
-                        ? profileError.name
-                        : 'Unknown'}
+                      <strong>Name:</strong> {debugInfo.name || 'No name'}
+                    </p>
+                    <p>
+                      <strong>String representation:</strong>{' '}
+                      {debugInfo.errorString}
                     </p>
                   </div>
-                  <div className="mt-3 p-3 bg-red-100 rounded text-red-800 text-xs">
-                    <pre className="whitespace-pre-wrap">
-                      {profileError instanceof Error
-                        ? profileError.stack
-                        : 'No stack trace'}
-                    </pre>
-                  </div>
+
+                  {/* Stack Trace */}
+                  {debugInfo.stack && (
+                    <div className="mt-3 p-3 bg-red-100 rounded text-red-800 text-xs">
+                      <strong>Stack Trace:</strong>
+                      <pre className="whitespace-pre-wrap mt-1">
+                        {debugInfo.stack}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Raw Error for non-Error objects */}
+                  {!debugInfo.isError && debugInfo.rawError && (
+                    <div className="mt-3 p-3 bg-red-100 rounded text-red-800 text-xs">
+                      <strong>Raw Error Object:</strong>
+                      <pre className="whitespace-pre-wrap mt-1">
+                        {JSON.stringify(debugInfo.rawError, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-4 bg-green-50 rounded border border-green-200">
@@ -137,12 +204,12 @@ export default async function DashboardPage() {
       </div>
     );
   } catch (error) {
-    // Return error page instead of throwing
+    // Return error page for top-level errors
     return (
       <div className="min-h-screen bg-red-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
           <h1 className="text-xl font-bold text-red-600 mb-4">
-            Dashboard Error
+            Top-Level Dashboard Error
           </h1>
           <div className="space-y-2 text-sm">
             <p>
@@ -155,7 +222,11 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="mt-4 p-3 bg-red-100 rounded text-red-800 text-xs">
-            <pre>{error instanceof Error ? error.stack : 'No stack trace'}</pre>
+            <pre>
+              {error instanceof Error
+                ? error.stack
+                : JSON.stringify(error, null, 2)}
+            </pre>
           </div>
         </div>
       </div>
