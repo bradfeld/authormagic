@@ -37,6 +37,8 @@ export function ProfileManager({
   const handleSave = async (updates: Partial<AuthorMetadata>) => {
     setIsLoading(true);
 
+    console.log('🔄 Starting profile save...', { updates });
+
     try {
       const response = await fetch('/api/profile/update', {
         method: 'POST',
@@ -46,12 +48,25 @@ export function ProfileManager({
         body: JSON.stringify(updates),
       });
 
+      console.log('📡 API Response status:', response.status, response.ok);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ API Error:', errorData);
         throw new Error(errorData.message || 'Failed to update profile');
       }
 
-      const { profile: updatedProfile } = await response.json();
+      const responseData = await response.json();
+      console.log('✅ API Response data:', responseData);
+
+      const { profile: updatedProfile } = responseData;
+
+      if (!updatedProfile) {
+        console.error('❌ No profile in response:', responseData);
+        throw new Error('Profile data missing from response');
+      }
+
+      console.log('📝 Updating profile state:', updatedProfile);
 
       // Update local state
       setProfile(updatedProfile);
@@ -63,14 +78,26 @@ export function ProfileManager({
       }
 
       toast.success('Profile updated successfully!');
+      console.log('✅ Profile save completed successfully');
     } catch (error) {
+      console.error('❌ Profile save error:', error);
       toast.error(
         error instanceof Error ? error.message : 'Failed to update profile',
       );
+
+      // Don't exit editing mode on error
+      // setIsEditing(false); // Remove this so user can retry
     } finally {
       setIsLoading(false);
+      console.log('🏁 Profile save process finished');
     }
   };
+
+  console.log('🎯 ProfileManager render:', {
+    profile: profile ? 'has profile' : 'no profile',
+    isEditing,
+    isLoading,
+  });
 
   return (
     <div className="w-full flex justify-center">
