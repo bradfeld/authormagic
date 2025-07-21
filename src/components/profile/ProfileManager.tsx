@@ -59,7 +59,8 @@ export function ProfileManager({
       const responseData = await response.json();
       console.log('✅ API Response data:', responseData);
 
-      const { profile: updatedProfile } = responseData;
+      // Fix: Extract profile from data object (API returns {data: {profile: ...}})
+      const { profile: updatedProfile } = responseData.data || responseData;
 
       if (!updatedProfile) {
         console.error('❌ No profile in response:', responseData);
