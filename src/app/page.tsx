@@ -4,7 +4,7 @@ import { useUser } from '@clerk/nextjs';
 import { SignInButton, SignUpButton } from '@clerk/nextjs';
 import { BookOpen, TrendingUp, Users, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import {
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
+  const [forceRender, setForceRender] = useState(false);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -25,8 +26,20 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router]);
 
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!isLoaded) {
+        console.warn('Clerk taking too long to load, rendering page anyway');
+        setForceRender(true);
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoaded]);
+
   // Show loading state while authentication is being checked
-  if (!isLoaded) {
+  if (!isLoaded && !forceRender) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
