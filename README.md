@@ -124,8 +124,12 @@ For comprehensive troubleshooting guidance, see:
 - **[Development Troubleshooting](DEVELOPMENT_TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Design System](DESIGN_SYSTEM.md)** - UI components and styling guidelines
 - **[Menu & Navigation Rules](MENU_NAVIGATION_RULES.md)** - Navigation standards and patterns
-- **[Development Session Summary](DEVELOPMENT_SESSION_SUMMARY.md)** - Project progress tracking
-- **[Linear Task Template](LINEAR_TASK_TEMPLATE.md)** - Task management templates
+- **[Development Session Summary](docs/DEVELOPMENT_SESSION_SUMMARY.md)** - Project progress tracking
+- **[Linear Task Template](docs/LINEAR_TASK_TEMPLATE.md)** - Task management templates
+
+### Project Archives
+
+- **[Phase Reports](docs/archive/)** - Completed project phase documentation
 
 ## Project Structure
 
