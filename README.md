@@ -118,6 +118,15 @@ For comprehensive troubleshooting guidance, see:
 - [DEVELOPMENT_TROUBLESHOOTING.md](DEVELOPMENT_TROUBLESHOOTING.md)
 - [SETUP.md](SETUP.md)
 
+## Documentation
+
+- **[Setup Guide](SETUP.md)** - Complete environment setup and configuration
+- **[Development Troubleshooting](DEVELOPMENT_TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Design System](DESIGN_SYSTEM.md)** - UI components and styling guidelines
+- **[Menu & Navigation Rules](MENU_NAVIGATION_RULES.md)** - Navigation standards and patterns
+- **[Development Session Summary](DEVELOPMENT_SESSION_SUMMARY.md)** - Project progress tracking
+- **[Linear Task Template](LINEAR_TASK_TEMPLATE.md)** - Task management templates
+
 ## Project Structure
 
 ```
