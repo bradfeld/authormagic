@@ -1,10 +1,9 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { BookOpen } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 import { BookLibraryGrid } from '@/components/dashboard/BookLibraryGrid';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AuthorProfilePreview } from '@/components/profile/AuthorProfilePreview';
-import { CustomUserButton } from '@/components/ui/custom-user-button';
 import { AuthorProfileService } from '@/lib/services/author-profile.service';
 import { PrimaryBookService } from '@/lib/services/primary-book.service';
 
@@ -27,25 +26,19 @@ export default async function DashboardPage() {
   const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">
-                AuthorMagic
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <CustomUserButton />
-            </div>
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Dashboard Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">
+            Welcome back, {completeProfile.name}! Here&apos;s your author
+            overview.
+          </p>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Dashboard Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Section */}
           <div className="lg:col-span-1">
             <AuthorProfilePreview profile={completeProfile} />
@@ -57,6 +50,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
