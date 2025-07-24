@@ -2,10 +2,28 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Production Supabase credentials
-const SUPABASE_URL = 'https://soxcczdtgaxrgzehacth.supabase.co';
+// Load environment variables
+require('dotenv').config({ path: '.env.local' });
+
+// Production Supabase credentials from environment
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL_PRODUCTION ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNveGNjemR0Z2F4cmd6ZWhhY3RoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzA2NzEwNiwiZXhwIjoyMDY4NjQzMTA2fQ.LbrM4kTDMmQnM9Eegze0csAE-_ozFUJQVjr2w9GkNeg';
+  process.env.SUPABASE_SERVICE_ROLE_KEY_PRODUCTION ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Missing required environment variables:');
+  console.error(
+    '   NEXT_PUBLIC_SUPABASE_URL_PRODUCTION (or NEXT_PUBLIC_SUPABASE_URL)',
+  );
+  console.error(
+    '   SUPABASE_SERVICE_ROLE_KEY_PRODUCTION (or SUPABASE_SERVICE_ROLE_KEY)',
+  );
+  console.error('   Please check your .env.local file');
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

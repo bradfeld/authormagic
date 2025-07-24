@@ -81,3 +81,24 @@ backups/
 # Cache persistence
 .cache/
 .env.vercel
+
+# Secret detection patterns (CRITICAL - never commit these patterns)
+**/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9*
+**/*supabase*.service*.key*
+**/*service*role*key*
+**/*jwt*token*
+**/*api*secret*
+**/*private*key*
+
+# Backup and temporary files that might contain secrets
+*.bak
+*.backup
+*.temp
+*.tmp
+*_backup
+*_bak
+
+# Database connection strings and credentials
+*connection*string*
+*database*url*
+*db*password*
