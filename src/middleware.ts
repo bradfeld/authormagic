@@ -102,7 +102,7 @@ function addSecurityHeaders(
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://api.clerk.com https://clerk.com https://clerk.authormagic.com https://www.google.com https://www.recaptcha.net https://challenges.cloudflare.com https://api2.isbndb.com https://www.googleapis.com https://vercel.live wss://ws-us3.pusher.com",
+    "connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://api.clerk.com https://clerk.com https://clerk.authormagic.com https://clerk-telemetry.com https://www.google.com https://www.recaptcha.net https://challenges.cloudflare.com https://api2.isbndb.com https://www.googleapis.com https://vercel.live wss://ws-us3.pusher.com",
     "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://js.clerk.com https://clerk.com https://clerk.authormagic.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com https://challenges.cloudflare.com https://vercel.live",
     "object-src 'none'",
     "base-uri 'self'",

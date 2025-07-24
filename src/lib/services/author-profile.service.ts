@@ -153,7 +153,7 @@ export class AuthorProfileService {
       const initialStatus = isInitialAdmin ? 'approved' : 'waitlisted';
 
       // Create Supabase profile record with waitlist status
-      const { error } = await this.getSupabase()
+      const { data: newProfile, error } = await this.getSupabase()
         .from('authors')
         .insert({
           clerk_user_id: profileData.clerk_user_id,
@@ -166,7 +166,7 @@ export class AuthorProfileService {
         .single();
 
       if (error) {
-        throw error;
+        throw new Error(`Failed to create Supabase profile: ${error.message}`);
       }
 
       // Setup initial admin if this is brad@feld.com
@@ -174,27 +174,64 @@ export class AuthorProfileService {
         try {
           await waitlistService.setupInitialAdmin(profileData.clerk_user_id);
         } catch (adminError) {
-          console.error('Failed to setup initial admin role:', adminError);
-          // Don't fail profile creation if admin setup fails
+          // Don't fail profile creation if admin setup fails, but include context
+          throw new Error(
+            `Profile created but admin setup failed: ${adminError instanceof Error ? adminError.message : 'Unknown error'}`,
+          );
         }
       }
 
       // Initialize author metadata in Clerk
-      await initializeUserAuthorMetadata(
-        profileData.clerk_user_id,
-        profileData.initialMetadata || {},
-      );
-
-      // Return complete profile
-      const completeProfile = await this.getCompleteProfileByClerkUserId(
-        profileData.clerk_user_id,
-      );
-
-      if (!completeProfile) {
-        throw new Error('Failed to retrieve complete profile after creation');
+      try {
+        await initializeUserAuthorMetadata(
+          profileData.clerk_user_id,
+          profileData.initialMetadata || {},
+        );
+      } catch {
+        // Continue anyway, as we can retry metadata initialization later
+        // Metadata initialization is not critical for profile creation
       }
 
-      return completeProfile;
+      // Add a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Return complete profile with retry logic
+      let attempts = 0;
+      const maxAttempts = 3;
+      let lastError: Error | null = null;
+
+      while (attempts < maxAttempts) {
+        try {
+          const completeProfile = await this.getCompleteProfileByClerkUserId(
+            profileData.clerk_user_id,
+          );
+
+          if (completeProfile) {
+            return completeProfile;
+          }
+
+          attempts++;
+
+          if (attempts < maxAttempts) {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 200 * attempts));
+          }
+        } catch (retrievalError) {
+          lastError =
+            retrievalError instanceof Error
+              ? retrievalError
+              : new Error('Unknown retrieval error');
+          attempts++;
+
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 200 * attempts));
+          }
+        }
+      }
+
+      // If we get here, all retry attempts failed
+      const errorMessage = `Failed to retrieve complete profile after creation. Profile ID: ${newProfile.id}, User: ${profileData.clerk_user_id}. Last error: ${lastError?.message || 'Unknown'}`;
+      throw new Error(errorMessage);
     } catch (error) {
       throw error;
     }
@@ -220,7 +257,6 @@ export class AuthorProfileService {
         .eq('clerk_user_id', clerkUserId);
 
       if (error) {
-        console.error('Failed to update profile timestamp:', error);
         // Don't throw error for timestamp update failure, but log it
       }
 
