@@ -297,17 +297,34 @@ export class WaitlistService {
             role: roleMap.get(user.clerk_user_id) || null,
           };
         } catch (clerkError) {
-          console.error(
-            `Error fetching Clerk user ${user.clerk_user_id}:`,
-            clerkError,
-          );
-          return {
-            ...user,
-            name: null,
-            email: null,
-            profile_image_url: null,
-            role: roleMap.get(user.clerk_user_id) || null,
-          };
+          // Handle case where Clerk user no longer exists (404) silently
+          // For other errors, still log them
+          if (
+            clerkError &&
+            typeof clerkError === 'object' &&
+            'status' in clerkError &&
+            clerkError.status === 404
+          ) {
+            return {
+              ...user,
+              name: 'Deleted User',
+              email: 'user.deleted@removed',
+              profile_image_url: null,
+              role: roleMap.get(user.clerk_user_id) || null,
+            };
+          } else {
+            console.error(
+              `Error fetching Clerk user ${user.clerk_user_id}:`,
+              clerkError,
+            );
+            return {
+              ...user,
+              name: null,
+              email: null,
+              profile_image_url: null,
+              role: roleMap.get(user.clerk_user_id) || null,
+            };
+          }
         }
       }),
     );
