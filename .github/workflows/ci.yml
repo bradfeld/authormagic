@@ -22,42 +22,42 @@ jobs:
 
       - name: Lint
         env:
-          # Required environment variables for linting (using placeholder values for CI)
+          # Required environment variables for linting (using properly formatted fake keys for CI)
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_placeholder_key
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder_key
-          CLERK_SECRET_KEY: sk_test_placeholder_key
-          SUPABASE_SERVICE_ROLE_KEY: sb_secret_placeholder_key
-          ISBNDB_API_KEY: placeholder_api_key
-          GOOGLE_BOOKS_API_KEY: placeholder_api_key
-          ANTHROPIC_API_KEY: sk-ant-placeholder_key
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF
+          CLERK_SECRET_KEY: sk_test_FAKE0123456789ABCDEF
+          SUPABASE_SERVICE_ROLE_KEY: sb_secret_FAKE0123456789ABCDEF_ci_test
+          ISBNDB_API_KEY: 99999_FAKE0123456789ABCDEF
+          GOOGLE_BOOKS_API_KEY: AIzaFAKE0123456789ABCDEF
+          ANTHROPIC_API_KEY: sk-ant-FAKE0123456789ABCDEF
         run: npm run lint
 
       - name: Type Check
         env:
-          # Required environment variables for type checking (using placeholder values for CI)
+          # Required environment variables for type checking (using properly formatted fake keys for CI)
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_placeholder_key
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder_key
-          CLERK_SECRET_KEY: sk_test_placeholder_key
-          SUPABASE_SERVICE_ROLE_KEY: sb_secret_placeholder_key
-          ISBNDB_API_KEY: placeholder_api_key
-          GOOGLE_BOOKS_API_KEY: placeholder_api_key
-          ANTHROPIC_API_KEY: sk-ant-placeholder_key
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF
+          CLERK_SECRET_KEY: sk_test_FAKE0123456789ABCDEF
+          SUPABASE_SERVICE_ROLE_KEY: sb_secret_FAKE0123456789ABCDEF_ci_test
+          ISBNDB_API_KEY: 99999_FAKE0123456789ABCDEF
+          GOOGLE_BOOKS_API_KEY: AIzaFAKE0123456789ABCDEF
+          ANTHROPIC_API_KEY: sk-ant-FAKE0123456789ABCDEF
         run: npm run type-check
 
       - name: Build with Bundle Analyzer
         env:
           ANALYZE: true
-          # Required environment variables for build (using placeholder values for CI)
+          # Required environment variables for build (using properly formatted fake keys for CI)
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_placeholder_key
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder_key
-          CLERK_SECRET_KEY: sk_test_placeholder_key
-          SUPABASE_SERVICE_ROLE_KEY: sb_secret_placeholder_key
-          ISBNDB_API_KEY: placeholder_api_key
-          GOOGLE_BOOKS_API_KEY: placeholder_api_key
-          ANTHROPIC_API_KEY: sk-ant-placeholder_key
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF
+          CLERK_SECRET_KEY: sk_test_FAKE0123456789ABCDEF
+          SUPABASE_SERVICE_ROLE_KEY: sb_secret_FAKE0123456789ABCDEF_ci_test
+          ISBNDB_API_KEY: 99999_FAKE0123456789ABCDEF
+          GOOGLE_BOOKS_API_KEY: AIzaFAKE0123456789ABCDEF
+          ANTHROPIC_API_KEY: sk-ant-FAKE0123456789ABCDEF
         run: npm run build
 
       - name: Debug - Check bundle analyzer output
