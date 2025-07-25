@@ -20,6 +20,7 @@
     "env:guide": "node scripts/manage-env.js help",
     "security:setup": "node scripts/setup-secure-env.js",
     "security:scan": "node scripts/detect-secrets.js",
+    "admin:setup": "node scripts/setup-production-admin.js",
     "predev": "npm run env:validate",
     "prebuild": "echo 'Skipping validation for deployment test'",
     "prepare": "husky",

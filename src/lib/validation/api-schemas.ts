@@ -175,7 +175,9 @@ export const PaginationSchema = z.object({
 });
 
 // Request validation helpers
-export const withPagination = <T extends z.ZodObject<any>>(schema: T) => {
+export const withPagination = <T extends z.ZodObject<z.ZodRawShape>>(
+  schema: T,
+) => {
   return schema.extend(PaginationSchema.shape);
 };
 

@@ -6,9 +6,9 @@ import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AuthorMagic - AI-Powered Book Marketing Platform',
+  title: 'AuthorMagic - Join the Waitlist | AI-Powered Book Marketing Platform',
   description:
-    "Empower your book's success with AI-driven marketing, sales analytics, and promotion tools for authors.",
+    'Join the waitlist for AuthorMagic - the AI-powered book marketing platform authors have been waiting for. Get early access, 50% launch discount, and priority support.',
 };
 
 export default function RootLayout({

@@ -13,13 +13,15 @@ const REQUIRED_VARS = {
   },
   NEXT_PUBLIC_SUPABASE_ANON_KEY: {
     required: true,
-    pattern: /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
-    description: 'Supabase anonymous key (JWT)',
+    pattern:
+      /^(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_publishable_[A-Za-z0-9_-]+)$/,
+    description: 'Supabase anonymous key (JWT or new publishable format)',
   },
   SUPABASE_SERVICE_ROLE_KEY: {
     required: true,
-    pattern: /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
-    description: 'Supabase service role key (JWT)',
+    pattern:
+      /^(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+)$/,
+    description: 'Supabase service role key (JWT or new secret format)',
   },
 
   // Clerk Authentication

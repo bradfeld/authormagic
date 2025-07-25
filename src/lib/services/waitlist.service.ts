@@ -216,11 +216,7 @@ export class WaitlistService {
             profile_image_url: clerkUser.imageUrl || null,
             role: 'admin' as const,
           };
-        } catch (clerkError) {
-          console.error(
-            `Error fetching Clerk user ${user.clerk_user_id}:`,
-            clerkError,
-          );
+        } catch {
           return {
             ...user,
             name: null,
@@ -249,7 +245,6 @@ export class WaitlistService {
         throw error;
       }
     } catch (error) {
-      console.error('Error setting up initial admin:', error);
       throw error;
     }
   }
@@ -313,10 +308,6 @@ export class WaitlistService {
               role: roleMap.get(user.clerk_user_id) || null,
             };
           } else {
-            console.error(
-              `Error fetching Clerk user ${user.clerk_user_id}:`,
-              clerkError,
-            );
             return {
               ...user,
               name: null,
@@ -408,7 +399,11 @@ export class WaitlistService {
     adminClerkUserId: string,
     adminNotes?: string,
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: {
+      status: UserStatus;
+      admin_notes?: string;
+      approved_at?: string;
+    } = {
       status: newStatus,
       admin_notes: adminNotes,
     };

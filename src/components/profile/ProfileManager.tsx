@@ -48,7 +48,6 @@ export function ProfileManager({
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Profile update failed:', errorData);
         throw new Error(errorData.message || 'Failed to update profile');
       }
 
@@ -56,7 +55,6 @@ export function ProfileManager({
       const { profile: updatedProfile } = responseData.data || responseData;
 
       if (!updatedProfile) {
-        console.error('No profile in response:', responseData);
         throw new Error('Profile data missing from response');
       }
 
@@ -71,7 +69,6 @@ export function ProfileManager({
 
       toast.success('Profile updated successfully!');
     } catch (error) {
-      console.error('Profile save error:', error);
       toast.error(
         error instanceof Error ? error.message : 'Failed to update profile',
       );

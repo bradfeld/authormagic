@@ -54,14 +54,6 @@ export default async function DashboardPage() {
       </DashboardLayout>
     );
   } catch (error) {
-    // Temporary error logging for production debugging
-    console.error('Dashboard Error:', error);
-    console.error('Error Details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-    });
-
     // Return error page instead of crashing
     return (
       <DashboardLayout>

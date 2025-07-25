@@ -1,8 +1,14 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
-import { SignInButton, SignUpButton } from '@clerk/nextjs';
-import { BookOpen, TrendingUp, Users, Zap } from 'lucide-react';
+import { useUser, Waitlist } from '@clerk/nextjs';
+import {
+  BookOpen,
+  CheckCircle,
+  Share2,
+  TrendingUp,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -15,7 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-export default function Home() {
+export default function WaitlistPage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
@@ -25,157 +31,227 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  // TEMPORARY FIX: Bypass Clerk loading check entirely
-  // This allows the homepage to render without waiting for Clerk
-  // The sign-in/sign-up buttons will still work when Clerk loads
-
-  /* Temporarily disabled to fix infinite loading
+  // Show loading state while checking authentication
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
-  */
 
-  // Don't render the page if user is signed in (will redirect)
+  // Show redirecting state for signed-in users
   if (isSignedIn) {
-    return null;
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  return <HomePage />;
-}
-
-function HomePage() {
+  // Show waitlist for non-authenticated users
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <nav className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <BookOpen className="h-8 w-8 text-indigo-600" />
-            <h1 className="text-2xl font-bold text-gray-900">AuthorMagic</h1>
-          </div>
-          <div className="flex space-x-4">
-            <SignInButton mode="modal">
-              <Button variant="outline">Sign In</Button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <Button>Get Started</Button>
-            </SignUpButton>
-          </div>
-        </nav>
+      <header className="border-b border-gray-200">
+        <div className="container mx-auto px-4 py-4">
+          <nav className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="h-8 w-8 text-black" />
+              <h1 className="text-2xl font-semibold text-black">AuthorMagic</h1>
+            </div>
+            <div className="text-sm text-gray-600">
+              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
+                Coming Soon
+              </span>
+            </div>
+          </nav>
+        </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-5xl font-bold text-gray-900 mb-6">
-          AI-Powered Book Marketing
-          <span className="block text-indigo-600">Made Simple</span>
-        </h2>
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Empower your book&apos;s success with intelligent marketing
-          automation, comprehensive sales analytics, and AI-driven content
-          generation. Everything you need to market your book effectively.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <SignUpButton mode="modal">
-            <Button size="lg" className="text-lg px-8 py-3">
-              Start Free Trial
-            </Button>
-          </SignUpButton>
-          <Button size="lg" variant="outline" className="text-lg px-8 py-3">
-            Watch Demo
-          </Button>
-        </div>
-      </section>
+      {/* Hero Section with Waitlist */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl font-bold text-black mb-6 leading-tight">
+            An Author-Centric Book Management System
+          </h1>
 
-      {/* Features */}
-      <section className="container mx-auto px-4 py-20">
-        <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Everything You Need to Market Your Book
-        </h3>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <TrendingUp className="h-12 w-12 text-indigo-600 mb-4" />
-              <CardTitle>Sales Analytics</CardTitle>
-              <CardDescription>
-                Track sales across all platforms with unified analytics and
-                revenue attribution
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Multi-platform sales tracking</li>
-                <li>• Revenue attribution modeling</li>
-                <li>• Real-time performance metrics</li>
-                <li>• Predictive analytics</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <Zap className="h-12 w-12 text-indigo-600 mb-4" />
-              <CardTitle>AI Content Generation</CardTitle>
-              <CardDescription>
-                Create compelling marketing content with Claude AI-powered
-                generation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Social media posts</li>
-                <li>• Email campaigns</li>
-                <li>• Press releases</li>
-                <li>• Book descriptions</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <Users className="h-12 w-12 text-indigo-600 mb-4" />
-              <CardTitle>Media Outreach</CardTitle>
-              <CardDescription>
-                Connect with podcasters, bloggers, and media contacts
-                effectively
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Media contact database</li>
-                <li>• Personalized pitch generation</li>
-                <li>• Follow-up automation</li>
-                <li>• Event management</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-indigo-600 py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold text-white mb-6">
-            Ready to Transform Your Book Marketing?
-          </h3>
-          <p className="text-xl text-indigo-100 mb-8">
-            Join thousands of authors who have already boosted their book sales
-            with AuthorMagic
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            Transform your book&apos;s success with intelligent marketing
+            automation, comprehensive sales analytics, and AI-driven content
+            generation. Join the waitlist for exclusive early access.
           </p>
-          <SignUpButton mode="modal">
-            <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-              Get Started Free
-            </Button>
-          </SignUpButton>
+
+          {/* Clerk Waitlist Component */}
+          <div className="max-w-md mx-auto mb-8">
+            <Waitlist
+              appearance={{
+                elements: {
+                  formButtonPrimary:
+                    'bg-black hover:bg-gray-800 text-white font-medium px-8 py-3 rounded-lg transition-colors',
+                  formFieldInput:
+                    'border border-gray-300 rounded-lg px-4 py-3 text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500',
+                  card: 'shadow-none border border-gray-200 rounded-xl p-8',
+                  headerTitle: 'text-2xl font-semibold text-black mb-2',
+                  headerSubtitle: 'text-gray-600 mb-6',
+                },
+              }}
+            />
+          </div>
+
+          {/* Social Sharing */}
+          <div className="flex justify-center items-center gap-4 text-sm text-gray-600">
+            <span>Share with fellow authors:</span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: 'AuthorMagic - AI-Powered Book Marketing',
+                      text: 'Join the waitlist for the book marketing platform authors have been waiting for!',
+                      url: window.location.href,
+                    });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                  }
+                }}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <Share2 className="h-4 w-4 mr-1" />
+                Share
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Feature Preview */}
+      <section className="bg-gray-50 py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-black mb-4">
+              What You&apos;ll Get When We Launch
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              The complete marketing toolkit designed specifically for authors
+              who want to sell more books.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-4">
+                <TrendingUp className="h-12 w-12 text-blue-600 mb-4" />
+                <CardTitle className="text-xl font-semibold text-black">
+                  Unified Sales Analytics
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Track sales across Amazon, Barnes & Noble, and all major
+                  platforms in one dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Real-time sales tracking</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Revenue attribution modeling</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Predictive sales forecasting</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-4">
+                <Zap className="h-12 w-12 text-blue-600 mb-4" />
+                <CardTitle className="text-xl font-semibold text-black">
+                  AI Content Generation
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Create compelling marketing content with Claude AI-powered
+                  generation tools.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Social media campaigns</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Email marketing sequences</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Press release templates</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-4">
+                <Users className="h-12 w-12 text-blue-600 mb-4" />
+                <CardTitle className="text-xl font-semibold text-black">
+                  Media Outreach
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Connect with podcasters, bloggers, and media contacts at
+                  scale.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Curated media database</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Personalized pitch generation</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Automated follow-up sequences</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <BookOpen className="h-6 w-6 text-black" />
+            <span className="text-lg font-semibold text-black">
+              AuthorMagic
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">
+            © 2025 AuthorMagic. The book management platform for serious
+            authors.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
