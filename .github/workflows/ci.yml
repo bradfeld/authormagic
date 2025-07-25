@@ -22,7 +22,8 @@ jobs:
 
       - name: Lint
         env:
-          # Required environment variables for linting (using properly formatted fake keys for CI)
+          # Required environment variables for linting (using CI flag to disable Clerk)
+          NEXT_PUBLIC_CI_DISABLE_CLERK: true
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF
@@ -35,7 +36,8 @@ jobs:
 
       - name: Type Check
         env:
-          # Required environment variables for type checking (using properly formatted fake keys for CI)
+          # Required environment variables for type checking (using CI flag to disable Clerk)
+          NEXT_PUBLIC_CI_DISABLE_CLERK: true
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF
@@ -49,7 +51,8 @@ jobs:
       - name: Build with Bundle Analyzer
         env:
           ANALYZE: true
-          # Required environment variables for build (using properly formatted fake keys for CI)
+          # Required environment variables for build (using CI flag to disable Clerk)
+          NEXT_PUBLIC_CI_DISABLE_CLERK: true
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF

@@ -11,15 +11,29 @@ export const metadata: Metadata = {
     'Join the waitlist for AuthorMagic - the AI-powered book marketing platform authors have been waiting for. Get early access, 50% launch discount, and priority support.',
 };
 
+// Conditional wrapper for CI builds
+function ConditionalClerkProvider({ children }: { children: React.ReactNode }) {
+  // Disable Clerk during CI builds to prevent validation errors
+  if (process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true') {
+    return <>{children}</>;
+  }
+
+  return (
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    >
+      {children}
+    </ClerkProvider>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-    >
+    <ConditionalClerkProvider>
       <html lang="en">
         <body
           className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
@@ -28,6 +42,6 @@ export default function RootLayout({
           <Toaster richColors />
         </body>
       </html>
-    </ClerkProvider>
+    </ConditionalClerkProvider>
   );
 }

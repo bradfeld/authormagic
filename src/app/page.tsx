@@ -22,6 +22,17 @@ import {
 } from '@/components/ui/card';
 
 export default function WaitlistPage() {
+  // Check if we're in CI mode first - before any Clerk hooks
+  if (process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true') {
+    return <StaticWaitlistPage />;
+  }
+
+  // Only call Clerk hooks when not in CI mode
+  return <ClerkWaitlistPage />;
+}
+
+// Separate component for Clerk functionality
+function ClerkWaitlistPage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
@@ -233,6 +244,87 @@ export default function WaitlistPage() {
                 </ul>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <BookOpen className="h-6 w-6 text-black" />
+            <span className="text-lg font-semibold text-black">
+              AuthorMagic
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">
+            © 2025 AuthorMagic. The book management platform for serious
+            authors.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// Static version for CI builds (no Clerk functionality)
+function StaticWaitlistPage() {
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b border-gray-200">
+        <div className="container mx-auto px-4 py-4">
+          <nav className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="h-8 w-8 text-black" />
+              <h1 className="text-2xl font-semibold text-black">AuthorMagic</h1>
+            </div>
+            <div className="text-sm text-gray-600">
+              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
+                Coming Soon
+              </span>
+            </div>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero Section with Static Content */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl font-bold text-black mb-6 leading-tight">
+            An Author-Centric Book Management System
+          </h1>
+
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            Transform your book&apos;s success with intelligent marketing
+            automation, comprehensive sales analytics, and AI-driven content
+            generation. Join the waitlist for exclusive early access.
+          </p>
+
+          {/* Static Waitlist Form (for CI builds only) */}
+          <div className="max-w-md mx-auto mb-8">
+            <div className="border border-gray-200 rounded-xl p-8">
+              <h2 className="text-2xl font-semibold text-black mb-2">
+                Join the Waitlist
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Be the first to know when we launch.
+              </p>
+              <div className="space-y-4">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  disabled
+                />
+                <button
+                  className="w-full bg-black hover:bg-gray-800 text-white font-medium px-8 py-3 rounded-lg transition-colors"
+                  disabled
+                >
+                  Join Waitlist (CI Build)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
