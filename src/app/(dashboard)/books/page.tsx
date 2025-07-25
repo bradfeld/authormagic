@@ -1,78 +1,68 @@
-import { auth } from '@clerk/nextjs/server';
-import { Book, Plus, Search } from 'lucide-react';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
+import { BookLibraryGrid } from '@/components/dashboard/BookLibraryGrid';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { PrimaryBookService } from '@/lib/services/primary-book.service';
+
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic';
 
 export default async function BooksPage() {
-  const { userId } = await auth();
+  try {
+    const { userId } = await auth();
+    const user = await currentUser();
 
-  if (!userId) {
-    redirect('/sign-in');
-  }
+    if (!userId || !user) {
+      redirect('/sign-in');
+    }
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
+    // Get user's primary books using the existing service
+    const userBooks = await PrimaryBookService.getUserPrimaryBooks(userId);
+
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Page Header */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Books</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              My Book Library
+            </h1>
             <p className="text-gray-600">
-              Manage your book library and track your reading progress.
+              Manage your book collection, add new books, and track your
+              library.
             </p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Book
-          </Button>
-        </div>
 
-        {/* Coming Soon Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Book className="h-5 w-5" />
-              Book Management
-            </CardTitle>
-            <CardDescription>
-              Advanced book management features are coming soon!
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Book className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Book Library Coming Soon
-              </h3>
-              <p className="text-gray-600 mb-4">
-                We&apos;re building powerful tools to help you manage your book
-                collection, track reading progress, and discover new titles.
-              </p>
-              <div className="flex justify-center gap-4">
-                <Button variant="outline">
-                  <Search className="h-4 w-4 mr-2" />
-                  Search Books
-                </Button>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Book
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
-  );
+          {/* Book Library Grid - uses existing component with full functionality */}
+          <BookLibraryGrid books={userBooks} />
+        </div>
+      </DashboardLayout>
+    );
+  } catch (error) {
+    // Return error page instead of crashing
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h1 className="text-xl font-bold text-red-900 mb-2">
+              Books Page Error
+            </h1>
+            <p className="text-red-700 mb-4">
+              There was an error loading your book library. Please check the
+              console logs.
+            </p>
+            <details className="text-sm">
+              <summary className="cursor-pointer font-medium">
+                Error Details
+              </summary>
+              <pre className="mt-2 bg-red-100 p-2 rounded text-xs overflow-auto">
+                {error instanceof Error ? error.message : String(error)}
+              </pre>
+            </details>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 }
