@@ -263,91 +263,71 @@ export class WaitlistService {
    * Get all waitlisted users with their details
    */
   async getWaitlistedUsers(): Promise<WaitlistUser[]> {
-    const { data, error } = await this.supabase
-      .from('authors')
-      .select('*')
-      .eq('status', 'waitlisted')
-      .order('waitlist_position', { ascending: true });
+    try {
+      // NEW APPROACH: Query Clerk for all users, then find who's NOT in Supabase
+      // This correctly identifies waitlisted users (in Clerk but not approved to Supabase)
 
-    if (error) {
-      throw error;
+      const client = await clerkClient();
+      const clerkUsers = await client.users.getUserList({
+        limit: 100,
+      });
+
+      // Get existing approved/blocked users from Supabase
+      const { data: existingProfiles, error } = await this.supabase
+        .from('authors')
+        .select('clerk_user_id');
+
+      if (error) {
+        throw error;
+      }
+
+      const existingClerkIds = new Set(
+        existingProfiles.map(p => p.clerk_user_id),
+      );
+
+      // Users in Clerk but NOT in Supabase are waitlisted
+      const waitlistedClerkUsers = clerkUsers.data.filter(
+        user => !existingClerkIds.has(user.id),
+      );
+
+      // Convert Clerk users to our WaitlistUser format
+      const waitlistedUsers = waitlistedClerkUsers.map((user, index) => ({
+        id: `waitlist-${user.id}`, // Temporary ID for UI
+        clerk_user_id: user.id,
+        bio: null,
+        website_url: null,
+        created_at: user.createdAt
+          ? new Date(user.createdAt).toISOString()
+          : new Date().toISOString(),
+        updated_at: user.updatedAt
+          ? new Date(user.updatedAt).toISOString()
+          : new Date().toISOString(),
+        twitter_username: null,
+        linkedin_url: null,
+        facebook_url: null,
+        github_username: null,
+        goodreads_url: null,
+        status: 'waitlisted' as const,
+        waitlist_position: index + 1,
+        approved_at: null,
+        admin_notes: null,
+        amazon_author_url: null,
+        role: null, // Waitlisted users don't have roles yet
+        // Add Clerk data directly
+        name:
+          user.fullName ||
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+          null,
+        email: user.emailAddresses[0]?.emailAddress || null,
+        profile_image_url: user.imageUrl || null,
+      }));
+
+      return waitlistedUsers;
+    } catch {
+      // Fallback to empty array if Clerk fails - admin dashboard should handle gracefully
+      // Note: In production, this would indicate Clerk API connectivity issues
+      return [];
     }
-
-    // Get roles for all users
-    const userIds = data.map(user => user.clerk_user_id);
-    const { data: roles } = await this.supabase
-      .from('user_roles')
-      .select('clerk_user_id, role')
-      .in('clerk_user_id', userIds);
-
-    const roleMap = new Map(roles?.map(r => [r.clerk_user_id, r.role]) || []);
-
-    // Enrich with Clerk data and roles - ALWAYS return users even if Clerk fails
-    const enrichedUsers = await Promise.all(
-      data.map(async user => {
-        const baseUser = {
-          ...user,
-          role: roleMap.get(user.clerk_user_id) || null,
-        };
-
-        try {
-          const client = await clerkClient();
-          const clerkUser = await client.users.getUser(user.clerk_user_id);
-
-          return {
-            ...baseUser,
-            name:
-              clerkUser.fullName ||
-              `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
-              null,
-            email: clerkUser.emailAddresses[0]?.emailAddress || null,
-            profile_image_url: clerkUser.imageUrl || null,
-          };
-        } catch (clerkError) {
-          // IMPROVED: Always return user with fallback data, better error detection
-          const errorMessage =
-            clerkError && typeof clerkError === 'object'
-              ? (clerkError as { message?: string }).message || 'Unknown error'
-              : String(clerkError);
-
-          // Handle specific Clerk errors
-          if (errorMessage.includes('Missing Clerk Secret Key')) {
-            return {
-              ...baseUser,
-              name: `User ${user.clerk_user_id.slice(-8)}`,
-              email: `user.${user.clerk_user_id.slice(-8)}@config-issue.local`,
-              profile_image_url: null,
-            };
-          }
-
-          // Handle case where Clerk user no longer exists (404)
-          if (
-            clerkError &&
-            typeof clerkError === 'object' &&
-            'status' in clerkError &&
-            (clerkError.status === 404 ||
-              clerkError.status === 'user_not_found')
-          ) {
-            return {
-              ...baseUser,
-              name: 'Deleted User',
-              email: 'user.deleted@removed',
-              profile_image_url: null,
-            };
-          }
-
-          // For any other Clerk API errors, return user with placeholder data
-          return {
-            ...baseUser,
-            name: `User ${user.clerk_user_id.slice(-8)}`, // Show last 8 chars of ID
-            email: `user.${user.clerk_user_id.slice(-8)}@clerk-unavailable.local`,
-            profile_image_url: null,
-          };
-        }
-      }),
-    );
-
-    return enrichedUsers;
   }
 
   /**
@@ -473,7 +453,9 @@ export class WaitlistService {
    * Get waitlist statistics for admin dashboard
    */
   async getWaitlistStats(): Promise<WaitlistStats> {
-    // Get status counts
+    // NEW APPROACH: Get waitlisted users from Clerk, other stats from Supabase
+
+    // Get approved/blocked counts from Supabase
     const { data: statusCounts, error: statusError } = await this.supabase
       .from('authors')
       .select('status, created_at, approved_at');
@@ -492,17 +474,20 @@ export class WaitlistService {
       throw adminError;
     }
 
+    // NEW: Get waitlisted users from Clerk (not Supabase)
+    const waitlistedUsers = await this.getWaitlistedUsers();
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const stats = statusCounts.reduce(
+    // Count approved/blocked users from Supabase
+    const supabaseStats = statusCounts.reduce(
       (acc, user) => {
-        // Count by status
-        if (user.status === 'waitlisted') acc.total_waitlisted++;
-        else if (user.status === 'approved') acc.total_approved++;
+        // Only count approved/blocked (waitlisted is now handled separately)
+        if (user.status === 'approved') acc.total_approved++;
         else if (user.status === 'blocked') acc.total_blocked++;
 
-        // Count recent signups (last 7 days)
+        // Count recent signups (last 7 days) - Supabase users only
         if (new Date(user.created_at) >= sevenDaysAgo) {
           acc.recent_signups++;
         }
@@ -515,14 +500,26 @@ export class WaitlistService {
         return acc;
       },
       {
-        total_waitlisted: 0,
         total_approved: 0,
         total_blocked: 0,
-        total_admins: adminRoles?.length || 0,
         recent_signups: 0,
         recent_approvals: 0,
-      } as WaitlistStats,
+      },
     );
+
+    // Count recent waitlisted signups from Clerk
+    const recentWaitlistedSignups = waitlistedUsers.filter(
+      user => new Date(user.created_at) >= sevenDaysAgo,
+    ).length;
+
+    const stats: WaitlistStats = {
+      total_waitlisted: waitlistedUsers.length, // NEW: Count from Clerk
+      total_approved: supabaseStats.total_approved,
+      total_blocked: supabaseStats.total_blocked,
+      total_admins: adminRoles?.length || 0,
+      recent_signups: supabaseStats.recent_signups + recentWaitlistedSignups, // Combined
+      recent_approvals: supabaseStats.recent_approvals,
+    };
 
     return stats;
   }
