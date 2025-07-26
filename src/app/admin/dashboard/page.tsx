@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/card';
 import { WaitlistService } from '@/lib/services/waitlist.service';
 
+// Force dynamic rendering for real-time admin data
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboardPage() {
   const { userId } = await auth();
 
@@ -31,12 +34,9 @@ export default async function AdminDashboardPage() {
     redirect('/dashboard');
   }
 
-  // Get waitlist statistics
-  const stats = await waitlistService.getWaitlistStats();
-
-  // Get recent waitlisted users (top 10)
-  const recentUsers = await waitlistService.getWaitlistedUsers();
-  const topWaitlistUsers = recentUsers.slice(0, 10);
+  // Get unified admin dashboard data (stats + recent users)
+  const { stats, recentWaitlistedUsers } =
+    await waitlistService.getAdminDashboardData();
 
   return (
     <DashboardLayout>
@@ -204,9 +204,9 @@ export default async function AdminDashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {topWaitlistUsers.length > 0 ? (
+            {recentWaitlistedUsers.length > 0 ? (
               <div className="space-y-4">
-                {topWaitlistUsers.map(user => (
+                {recentWaitlistedUsers.map(user => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between p-4 border rounded-lg"

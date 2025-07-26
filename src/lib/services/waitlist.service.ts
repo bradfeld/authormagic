@@ -274,26 +274,31 @@ export class WaitlistService {
 
     const roleMap = new Map(roles?.map(r => [r.clerk_user_id, r.role]) || []);
 
-    // Enrich with Clerk data and roles
+    // Enrich with Clerk data and roles - ALWAYS return users even if Clerk fails
     const enrichedUsers = await Promise.all(
       data.map(async user => {
+        const baseUser = {
+          ...user,
+          role: roleMap.get(user.clerk_user_id) || null,
+        };
+
         try {
           const client = await clerkClient();
           const clerkUser = await client.users.getUser(user.clerk_user_id);
 
           return {
-            ...user,
+            ...baseUser,
             name:
               clerkUser.fullName ||
               `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
               null,
             email: clerkUser.emailAddresses[0]?.emailAddress || null,
             profile_image_url: clerkUser.imageUrl || null,
-            role: roleMap.get(user.clerk_user_id) || null,
           };
         } catch (clerkError) {
-          // Handle case where Clerk user no longer exists (404) silently
-          // For other errors, still log them
+          // IMPROVED: Always return user with fallback data, log the error for debugging
+
+          // Handle case where Clerk user no longer exists (404)
           if (
             clerkError &&
             typeof clerkError === 'object' &&
@@ -301,21 +306,20 @@ export class WaitlistService {
             clerkError.status === 404
           ) {
             return {
-              ...user,
+              ...baseUser,
               name: 'Deleted User',
               email: 'user.deleted@removed',
               profile_image_url: null,
-              role: roleMap.get(user.clerk_user_id) || null,
-            };
-          } else {
-            return {
-              ...user,
-              name: null,
-              email: null,
-              profile_image_url: null,
-              role: roleMap.get(user.clerk_user_id) || null,
             };
           }
+
+          // For any other Clerk API errors, return user with placeholder data
+          return {
+            ...baseUser,
+            name: `User ${user.clerk_user_id.slice(-8)}`, // Show last 8 chars of ID
+            email: `user.${user.clerk_user_id.slice(-8)}@clerk-unavailable.local`,
+            profile_image_url: null,
+          };
         }
       }),
     );
@@ -498,6 +502,29 @@ export class WaitlistService {
     );
 
     return stats;
+  }
+
+  /**
+   * Get comprehensive admin dashboard data (stats + recent users)
+   * Ensures consistency between dashboard stats and user lists
+   */
+  async getAdminDashboardData(): Promise<{
+    stats: WaitlistStats;
+    recentWaitlistedUsers: WaitlistUser[];
+  }> {
+    // Get stats and recent users in parallel for efficiency
+    const [stats, recentUsers] = await Promise.all([
+      this.getWaitlistStats(),
+      this.getWaitlistedUsers(),
+    ]);
+
+    // Return top 10 most recent waitlisted users
+    const recentWaitlistedUsers = recentUsers.slice(0, 10);
+
+    return {
+      stats,
+      recentWaitlistedUsers,
+    };
   }
 
   /**

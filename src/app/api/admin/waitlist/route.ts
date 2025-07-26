@@ -21,14 +21,18 @@ export async function GET() {
       );
     }
 
-    // Get all waitlisted users
+    // Get all waitlisted users with improved error handling
     const users = await ApiErrorHandler.handleAsync(
       () => waitlistService.getWaitlistedUsers(),
       'Failed to fetch waitlisted users',
     );
 
     return ApiErrorHandler.createSuccessResponse(
-      { users },
+      {
+        users,
+        count: users.length,
+        message: `Found ${users.length} waitlisted users`,
+      },
       'Waitlisted users retrieved successfully',
       STATUS_CODES.OK,
       requestId,

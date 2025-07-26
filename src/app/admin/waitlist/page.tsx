@@ -69,13 +69,20 @@ export default function AdminWaitlistPage() {
           router.push('/dashboard');
           return;
         }
-        throw new Error('Failed to load users');
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
-      setUsers(data.users || []);
-    } catch {
-      // Error loading users - handle gracefully
+      const users = data.users || [];
+      setUsers(users);
+    } catch (error) {
+      console.error('Error loading waitlisted users:', error);
+      // Show user-friendly error message
+      alert(
+        `Failed to load waitlist: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       setUsers([]);
     } finally {
       setLoading(false);
@@ -216,10 +223,54 @@ export default function AdminWaitlistPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading waitlist...</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Skeleton */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <div className="h-8 w-64 bg-gray-300 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Loading Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map(i => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-5 bg-gray-300 rounded animate-pulse"></div>
+                    <div>
+                      <div className="h-6 w-8 bg-gray-300 rounded animate-pulse mb-1"></div>
+                      <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Main Card Skeleton */}
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-48 bg-gray-300 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="h-20 bg-gray-100 rounded animate-pulse"
+                  ></div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -333,6 +384,22 @@ export default function AdminWaitlistPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Data Consistency Notice */}
+        {!loading && users.length === 0 && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <div className="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center">
+                <span className="text-xs font-bold text-yellow-900">!</span>
+              </div>
+              <div className="text-sm">
+                <strong>Data Sync Notice:</strong> If the admin dashboard shows
+                waitlisted users but this page shows zero, there may be a Clerk
+                API connectivity issue. Users are safely stored in the database.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Users List */}
         <Card>
