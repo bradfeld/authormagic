@@ -25,16 +25,14 @@ export default async function BooksPage() {
         <div className="space-y-6">
           {/* Page Header */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              My Book Library
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">My Books</h1>
             <p className="text-gray-600">
               Manage your book collection, add new books, and track your
-              library.
+              collection.
             </p>
           </div>
 
-          {/* Book Library Grid - uses existing component with full functionality */}
+          {/* Book Collection Grid - uses existing component with full functionality */}
           <BookLibraryGrid books={userBooks} />
         </div>
       </DashboardLayout>
@@ -49,7 +47,7 @@ export default async function BooksPage() {
               Books Page Error
             </h1>
             <p className="text-red-700 mb-4">
-              There was an error loading your book library. Please check the
+              There was an error loading your book collection. Please check the
               console logs.
             </p>
             <details className="text-sm">

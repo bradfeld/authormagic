@@ -474,7 +474,7 @@ export function AddBookDialog({
                         0,
                       )}{' '}
                       total books. The most recent edition ({editionDisplay})
-                      will be added to your library.
+                      will be added to your collection.
                     </div>
 
                     {/* Single Add Book Button */}
@@ -487,7 +487,7 @@ export function AddBookDialog({
                         size="lg"
                         className="px-8"
                       >
-                        {isLoading ? 'Adding...' : 'Add Book to Library'}
+                        {isLoading ? 'Adding...' : 'Add Book to Collection'}
                       </Button>
                     </div>
                   </div>

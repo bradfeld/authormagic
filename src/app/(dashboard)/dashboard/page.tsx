@@ -45,7 +45,7 @@ export default async function DashboardPage() {
               <AuthorProfilePreview profile={completeProfile} />
             </div>
 
-            {/* Book Library Section */}
+            {/* Book Collection Section */}
             <div className="lg:col-span-2">
               <BookLibraryGrid books={userBooks} />
             </div>

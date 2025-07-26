@@ -70,10 +70,10 @@ export function BookLibrary({
       <div className="text-center py-16">
         <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-300" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          No books in your library
+          No books in your collection
         </h3>
         <p className="text-gray-600 mb-4">
-          Start building your library by adding your first book!
+          Start building your collection by adding your first book!
         </p>
         <AddBookDialog
           isOpen={addDialogOpen}

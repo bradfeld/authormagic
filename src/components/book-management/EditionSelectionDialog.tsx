@@ -154,7 +154,7 @@ export function EditionSelectionDialog({
       );
 
       if (existing) {
-        setSearchError('You already have this book in your library');
+        setSearchError('You already have this book in your collection');
         return;
       }
 

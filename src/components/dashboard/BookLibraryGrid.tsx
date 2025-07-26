@@ -28,8 +28,7 @@ export function BookLibraryGrid({ books, isLoading }: BookLibraryGridProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">My Book Library</h2>
+        <div className="flex items-center justify-end">
           <AddBookDialog
             isOpen={addDialogOpen}
             onOpenChange={setAddDialogOpen}
@@ -57,18 +56,15 @@ export function BookLibraryGrid({ books, isLoading }: BookLibraryGridProps) {
   if (!books || books.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">My Book Library</h2>
-        </div>
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <span className="text-4xl">📚</span>
           </div>
           <h3 className="text-xl font-semibold mb-2">
-            No books in your library yet
+            No books in your collection yet
           </h3>
           <p className="text-gray-600 mb-6 max-w-md">
-            Start building your book library by searching for and adding your
+            Start building your book collection by searching for and adding your
             published works. Each book you add will help you track editions,
             formats, and marketing opportunities.
           </p>
@@ -93,22 +89,19 @@ export function BookLibraryGrid({ books, isLoading }: BookLibraryGridProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">My Book Library</h2>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
-            {books.length} {books.length === 1 ? 'book' : 'books'}
-          </div>
-          <AddBookDialog
-            isOpen={addDialogOpen}
-            onOpenChange={setAddDialogOpen}
-            onBookAdded={handleBookAdded}
-            userId={user?.id}
-            firstName={user?.firstName ?? undefined}
-            lastName={user?.lastName ?? undefined}
-          >
-            <Button onClick={() => setAddDialogOpen(true)}>Add Book</Button>
-          </AddBookDialog>
+        <div className="text-sm text-gray-500">
+          {books.length} {books.length === 1 ? 'book' : 'books'}
         </div>
+        <AddBookDialog
+          isOpen={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          onBookAdded={handleBookAdded}
+          userId={user?.id}
+          firstName={user?.firstName ?? undefined}
+          lastName={user?.lastName ?? undefined}
+        >
+          <Button onClick={() => setAddDialogOpen(true)}>Add Book</Button>
+        </AddBookDialog>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

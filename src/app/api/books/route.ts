@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
           ),
         'Failed to update book with new editions',
       );
-      message = 'Book already in library - updated with latest edition data';
+      message = 'Book already in collection - updated with latest edition data';
       statusCode = STATUS_CODES.OK;
     } else {
       // Create new primary book
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           ),
         'Failed to create new book',
       );
-      message = 'Book added to library successfully';
+      message = 'Book added to collection successfully';
     }
 
     // Revalidate the dashboard page to show the new book
