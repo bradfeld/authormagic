@@ -100,4 +100,56 @@ jobs:
           else
             echo "❌ Client bundle report not found"
             exit 1
-          fi 
+          fi
+
+      - name: Start Next.js for Security Scan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          # Use CI environment variables for StackHawk scanning
+          NEXT_PUBLIC_CI_DISABLE_CLERK: true
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_FAKE0123456789ABCDEF_ci_test
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_FAKE0123456789ABCDEF
+          CLERK_SECRET_KEY: sk_test_FAKE0123456789ABCDEF
+          SUPABASE_SERVICE_ROLE_KEY: sb_secret_FAKE0123456789ABCDEF_ci_test
+          ISBNDB_API_KEY: 99999_FAKE0123456789ABCDEF
+          GOOGLE_BOOKS_API_KEY: AIzaFAKE0123456789ABCDEF
+          ANTHROPIC_API_KEY: sk-ant-FAKE0123456789ABCDEF
+          NODE_ENV: production
+        run: |
+          echo "🔍 Starting Next.js application for security scanning..."
+          npm run start &
+          NEXT_PID=$!
+          echo "Next.js PID: $NEXT_PID"
+          
+          # Wait for application to be ready
+          echo "⏳ Waiting for application to start..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:3000 > /dev/null; then
+              echo "✅ Application is ready for scanning"
+              break
+            fi
+            echo "Attempt $i: Application not ready yet, waiting..."
+            sleep 2
+          done
+          
+          # Verify application is responding
+          curl -f http://localhost:3000 || {
+            echo "❌ Failed to start Next.js application"
+            kill $NEXT_PID 2>/dev/null || true
+            exit 1
+          }
+
+      - name: Run StackHawk Security Scan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: stackhawk/hawkscan-action@v2.2.0
+        continue-on-error: true
+        with:
+          apiKey: ${{ secrets.HAWK_API_KEY }}
+          codeScanningAlerts: true
+          githubToken: ${{ github.token }}
+        env:
+          HAWK_APPLICATION_ID: ${{ secrets.HAWK_APPLICATION_ID }}
+          HAWK_ENVIRONMENT: CI
+          HAWK_HOST: http://localhost:3000
+          HAWK_FAILURE_THRESHOLD: medium 

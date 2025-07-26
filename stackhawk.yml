@@ -1,0 +1,84 @@
+app:
+  # Replace with your Application ID from StackHawk Platform
+  # Get this from: https://app.stackhawk.com/applications
+  applicationId: ${HAWK_APPLICATION_ID:cf274bc9-bccb-49d8-b5b4-3dceb9e6d5ea}
+  
+  # Environment name for scan tracking
+  env: ${HAWK_ENVIRONMENT:Development}
+  
+  # Target host - Next.js development server
+  host: ${HAWK_HOST:http://localhost:3000}
+
+# StackHawk scanner configuration
+hawk:
+  # Fail build on high-severity findings
+  failureThreshold: ${HAWK_FAILURE_THRESHOLD:high}
+  
+  # Spider configuration for better Next.js route discovery
+  spider:
+    # Limit scan duration for development
+    maxDurationMinutes: 10
+    # Follow AJAX requests (important for React apps)
+    ajax: true
+    # Maximum pages to crawl
+    maxDepth: 3
+
+# Authentication configuration for Clerk-protected routes
+authentication:
+  # Indicators to detect authentication state
+  loggedInIndicator: "Sign Out"
+  loggedOutIndicator: "Sign In"
+  
+  # Clerk authentication paths
+  loginPath: /sign-in
+  logoutPath: /sign-out
+  
+  # Form selectors for Clerk sign-in component
+  loginFormSelector: 'form'
+  usernameField: 'input[name="identifier"], input[name="email"]'
+  passwordField: 'input[name="password"]'
+  submitField: 'button[type="submit"]'
+  
+  # Test credentials (use environment variables for security)
+  testUsername: ${HAWK_TEST_USERNAME:test@example.com}
+  testPassword: ${HAWK_TEST_PASSWORD:testpassword123}
+  
+  # Protected route to verify authentication worked
+  testPath: /dashboard
+
+# Include/exclude patterns for better scanning
+spider:
+  # Include important Next.js routes
+  includePaths:
+    - "/api/*"
+    - "/dashboard/*"
+    - "/profile/*"
+    - "/settings/*"
+  
+  # Exclude unnecessary routes and assets
+  excludePaths:
+    - "/sign-in*"
+    - "/sign-up*"
+    - "/_next/*"
+    - "/favicon.ico"
+    - "/sitemap.xml"
+    - "/robots.txt"
+    - "*.png"
+    - "*.jpg"
+    - "*.css"
+    - "*.js"
+    - "*.woff*"
+
+# API scanning configuration
+api:
+  # Enable if you have OpenAPI/Swagger documentation
+  # openApiSpec: /api/openapi.json
+  
+  # Custom headers for API requests
+  customHeaders:
+    - name: "Accept"
+      value: "application/json"
+    - name: "Content-Type" 
+      value: "application/json"
+
+ 

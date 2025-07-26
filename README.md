@@ -118,6 +118,35 @@ For comprehensive troubleshooting guidance, see:
 - [DEVELOPMENT_TROUBLESHOOTING.md](DEVELOPMENT_TROUBLESHOOTING.md)
 - [SETUP.md](SETUP.md)
 
+## Security Testing
+
+### StackHawk DAST Integration
+
+This project includes **Dynamic Application Security Testing (DAST)** with StackHawk to automatically scan for vulnerabilities in your running application.
+
+#### Features
+
+- 🔍 **Automated security scans** on every push to main
+- 🔐 **Authenticated route testing** with Clerk integration
+- 📊 **GitHub Security tab integration** for centralized vulnerability management
+- 🚨 **Real-time vulnerability detection** (OWASP Top 10 and more)
+
+#### Quick Start
+
+```bash
+# Run local security scan
+npm run security:hawk:local
+
+# Validate StackHawk configuration
+npm run security:hawk:validate
+```
+
+#### Complete Setup Guide
+
+For detailed setup instructions, authentication configuration, and troubleshooting:
+
+📖 **[StackHawk Setup Guide](STACKHAWK_SETUP.md)**
+
 ## Documentation
 
 - **[Setup Guide](SETUP.md)** - Complete environment setup and configuration

@@ -1,0 +1,98 @@
+app:
+  # Same Application ID as development (tracks different environments)
+  applicationId: ${HAWK_APPLICATION_ID:cf274bc9-bccb-49d8-b5b4-3dceb9e6d5ea}
+  
+  # Production environment
+  env: Production
+  
+  # Production host
+  host: https://authormagic.com
+
+# Production security settings
+hawk:
+  # Stricter failure threshold for production
+  failureThreshold: low
+  
+  # More comprehensive spider settings for production
+  spider:
+    # Longer scan duration for thorough production testing
+    maxDurationMinutes: 20
+    # Follow AJAX requests
+    ajax: true
+    # Deeper crawl for production
+    maxDepth: 5
+
+# Production authentication settings
+authentication:
+  # Same indicators as development
+  loggedInIndicator: "Sign Out"
+  loggedOutIndicator: "Sign In"
+  
+  # Production auth paths
+  loginPath: /sign-in
+  logoutPath: /sign-out
+  
+  # Form selectors (same as dev)
+  loginFormSelector: 'form'
+  usernameField: 'input[name="identifier"], input[name="email"]'
+  passwordField: 'input[name="password"]'
+  submitField: 'button[type="submit"]'
+  
+  # Production test credentials (MUST be environment variables)
+  testUsername: ${HAWK_PROD_TEST_USERNAME}
+  testPassword: ${HAWK_PROD_TEST_PASSWORD}
+  
+  # Protected route to verify authentication
+  testPath: /dashboard
+
+# Production spider configuration
+spider:
+  # Include all important production routes
+  includePaths:
+    - "/api/*"
+    - "/dashboard/*"
+    - "/profile/*"
+    - "/settings/*"
+    - "/admin/*"
+    - "/books/*"
+    - "/analytics/*"
+  
+  # Exclude paths that shouldn't be scanned in production
+  excludePaths:
+    - "/sign-in*"
+    - "/sign-up*"
+    - "/_next/*"
+    - "/favicon.ico"
+    - "/sitemap.xml"
+    - "/robots.txt"
+    - "*.png"
+    - "*.jpg"
+    - "*.css"
+    - "*.js"
+    - "*.woff*"
+    - "*.pdf"
+    - "/test-*"
+
+# API scanning for production
+api:
+  # Enable if you have OpenAPI documentation in production
+  # openApiSpec: https://authormagic.com/api/openapi.json
+  
+  # Production headers
+  customHeaders:
+    - name: "Accept"
+      value: "application/json"
+    - name: "Content-Type" 
+      value: "application/json"
+    - name: "User-Agent"
+      value: "StackHawk-Scanner/Production"
+
+# Performance settings for production scanning
+# Memory allocation is handled automatically by StackHawk
+
+# Reporting configuration
+reporting:
+  # Format scan results
+  format: json
+  # Save detailed reports
+  detailedReports: true 
