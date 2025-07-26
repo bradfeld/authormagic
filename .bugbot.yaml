@@ -1,0 +1,213 @@
+# Bugbot Configuration for AuthorMagic
+# AI Code Review rules for Next.js 15 + TypeScript + Supabase + Clerk
+
+version: "1.0"
+project_name: "AuthorMagic"
+description: "AI-powered book management platform for authors"
+
+# Global settings
+settings:
+  severity_threshold: "medium"
+  auto_fix_enabled: true
+  comment_style: "line"
+  
+# Technology stack detection
+tech_stack:
+  - "nextjs"
+  - "typescript" 
+  - "react"
+  - "supabase"
+  - "clerk"
+  - "vercel"
+  - "tailwindcss"
+
+# Custom rules for AuthorMagic
+rules:
+  # Next.js 15 App Router Best Practices
+  nextjs:
+    app_router:
+      - name: "server_component_default"
+        description: "Ensure components are Server Components by default"
+        pattern: "src/app/**/*.tsx"
+        check: "avoid_unnecessary_use_client"
+        severity: "medium"
+        
+      - name: "proper_metadata_exports"
+        description: "Use generateMetadata for dynamic metadata, not metadata export"
+        pattern: "src/app/**/page.tsx"
+        check: "dynamic_metadata_pattern"
+        severity: "medium"
+        
+      - name: "viewport_config"
+        description: "Use viewport export for themeColor, not metadata export"
+        pattern: "src/app/**/layout.tsx"
+        check: "viewport_vs_metadata"
+        severity: "low"
+        
+    performance:
+      - name: "dynamic_imports"
+        description: "Use dynamic imports for large components"
+        pattern: "src/components/**/*.tsx"
+        check: "large_component_dynamic_import"
+        threshold: "100kb"
+        severity: "medium"
+        
+      - name: "image_optimization"
+        description: "Use next/image for all images"
+        pattern: "src/**/*.tsx"
+        check: "next_image_usage"
+        severity: "medium"
+
+  # TypeScript Safety
+  typescript:
+    strict_mode:
+      - name: "no_any_types"
+        description: "Avoid 'any' types, use proper typing"
+        pattern: "src/**/*.{ts,tsx}"
+        check: "explicit_typing"
+        severity: "high"
+        
+      - name: "database_types"
+        description: "Use generated Supabase types for database operations"
+        pattern: "src/lib/**/*.ts"
+        check: "supabase_type_safety"
+        severity: "high"
+        
+      - name: "api_response_types"
+        description: "Define proper types for API responses"
+        pattern: "src/app/api/**/*.ts"
+        check: "api_response_typing"
+        severity: "medium"
+
+  # Security Rules
+  security:
+    authentication:
+      - name: "clerk_auth_validation"
+        description: "Validate Clerk user authentication in protected routes"
+        pattern: "src/app/(dashboard)/**/*.tsx"
+        check: "auth_validation_required"
+        severity: "high"
+        
+      - name: "api_route_protection"
+        description: "Protect API routes with proper authentication"
+        pattern: "src/app/api/**/*.ts"
+        check: "api_auth_middleware"
+        severity: "high"
+        
+    data_validation:
+      - name: "input_sanitization"
+        description: "Sanitize user inputs in API routes"
+        pattern: "src/app/api/**/*.ts"
+        check: "input_validation"
+        severity: "high"
+        
+      - name: "sql_injection_prevention"
+        description: "Use parameterized queries for database operations"
+        pattern: "src/lib/**/*.ts"
+        check: "sql_injection_safety"
+        severity: "critical"
+
+  # Supabase Best Practices
+  supabase:
+    client_usage:
+      - name: "server_client_distinction"
+        description: "Use appropriate Supabase client (server vs browser)"
+        pattern: "src/lib/supabase/**/*.ts"
+        check: "proper_client_usage"
+        severity: "medium"
+        
+      - name: "rls_policies"
+        description: "Ensure Row Level Security policies are in place"
+        pattern: "supabase/migrations/**/*.sql"
+        check: "rls_policy_coverage"
+        severity: "high"
+        
+    error_handling:
+      - name: "database_error_handling"
+        description: "Proper error handling for database operations"
+        pattern: "src/lib/**/*.ts"
+        check: "db_error_handling"
+        severity: "medium"
+
+  # Performance & Best Practices
+  performance:
+    caching:
+      - name: "api_caching"
+        description: "Use appropriate caching strategies for API routes"
+        pattern: "src/app/api/**/*.ts"
+        check: "caching_implementation"
+        severity: "low"
+        
+    book_processing:
+      - name: "batch_operations"
+        description: "Use batch operations for multiple book data requests"
+        pattern: "src/lib/services/**/*.ts"
+        check: "batch_processing"
+        severity: "medium"
+
+  # Code Quality
+  code_quality:
+    organization:
+      - name: "proper_imports"
+        description: "Use proper import organization and paths"
+        pattern: "src/**/*.{ts,tsx}"
+        check: "import_organization"
+        severity: "low"
+        
+      - name: "component_structure"
+        description: "Follow consistent component structure patterns"
+        pattern: "src/components/**/*.tsx"
+        check: "component_patterns"
+        severity: "low"
+        
+    error_boundaries:
+      - name: "error_boundary_coverage"
+        description: "Implement error boundaries for critical sections"
+        pattern: "src/app/**/*.tsx"
+        check: "error_boundary_presence"
+        severity: "medium"
+
+# File exclusions
+exclude_patterns:
+  - "node_modules/**"
+  - ".next/**"
+  - "build/**"
+  - "dist/**"
+  - "**/*.test.{ts,tsx}"
+  - "**/*.spec.{ts,tsx}"
+  - ".env*"
+
+# Custom checks specific to AuthorMagic
+custom_checks:
+  author_profile_validation:
+    description: "Ensure author profile data is properly validated"
+    pattern: "src/lib/services/author-profile.service.ts"
+    severity: "medium"
+    
+  book_data_integrity:
+    description: "Validate book data integrity across ISBN, title, and author"
+    pattern: "src/lib/services/book-*.service.ts"
+    severity: "high"
+    
+  waitlist_security:
+    description: "Ensure waitlist submissions are properly validated and protected"
+    pattern: "src/app/api/waitlist/**/*.ts"
+    severity: "high"
+
+# Integration settings
+integrations:
+  github:
+    comment_on_pr: true
+    block_merge_on_critical: true
+    auto_assign_reviewers: false
+    
+  cursor:
+    enable_fix_suggestions: true
+    show_inline_hints: true
+    enable_background_agent: true
+
+# Notification preferences
+notifications:
+  slack: false
+  email: false
+  github_only: true 
