@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import './globals.css';
 
+// Metadata configuration for AuthorMagic application
 export const metadata: Metadata = {
   title: 'AuthorMagic - Join the Waitlist | AI-Powered Book Marketing Platform',
   description:

@@ -1,5 +1,8 @@
-// Book Data Merger Service
-// Intelligently combines and deduplicates results from multiple book APIs
+/**
+ * Book Data Merger Service
+ * Handles merging book data from multiple sources (ISBNDB, Google Books)
+ * with preference hierarchy and data validation
+ */
 
 import { UIBook } from '../types/ui-book';
 
