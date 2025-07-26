@@ -36,6 +36,14 @@ export class WaitlistService {
   private supabase: ReturnType<typeof createClient<Database>>;
 
   constructor() {
+    // Ensure environment variables are loaded (especially for server-side operations)
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      throw new Error('Missing required Supabase environment variables');
+    }
+
     this.supabase = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -296,14 +304,29 @@ export class WaitlistService {
             profile_image_url: clerkUser.imageUrl || null,
           };
         } catch (clerkError) {
-          // IMPROVED: Always return user with fallback data, log the error for debugging
+          // IMPROVED: Always return user with fallback data, better error detection
+          const errorMessage =
+            clerkError && typeof clerkError === 'object'
+              ? (clerkError as { message?: string }).message || 'Unknown error'
+              : String(clerkError);
+
+          // Handle specific Clerk errors
+          if (errorMessage.includes('Missing Clerk Secret Key')) {
+            return {
+              ...baseUser,
+              name: `User ${user.clerk_user_id.slice(-8)}`,
+              email: `user.${user.clerk_user_id.slice(-8)}@config-issue.local`,
+              profile_image_url: null,
+            };
+          }
 
           // Handle case where Clerk user no longer exists (404)
           if (
             clerkError &&
             typeof clerkError === 'object' &&
             'status' in clerkError &&
-            clerkError.status === 404
+            (clerkError.status === 404 ||
+              clerkError.status === 'user_not_found')
           ) {
             return {
               ...baseUser,
