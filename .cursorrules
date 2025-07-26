@@ -1,0 +1,149 @@
+# AuthorMagic Development Rules
+# Unified development workflow and technical standards
+
+## CORE WORKFLOW PRINCIPLES
+
+### Permission and Planning Protocol
+- **ALWAYS** ask for explicit permission before any code changes, file modifications, or deployments
+- **WAIT** for explicit confirmation ("yes", "proceed", "approved") - never proceed immediately after asking
+- For complex work (>3 files or >30 minutes): present detailed plan FIRST, get plan approval, THEN ask for implementation permission
+- Can perform informational tasks without permission: reading files, searching, explaining, status commands
+
+### Planning-First Development
+- **NEVER** start implementing without a detailed plan for complex requests
+- Present comprehensive plans including: current state analysis, desired end state, file-by-file changes, task checklist, potential risks
+- Break complex tasks into phases and plan each phase separately
+- Reference existing Master Plans and maintain continuity across conversations
+
+### Context Management
+- Create "MASTER PLAN" summary for complex multi-step projects
+- Reference master plan in every subsequent response
+- When conversations get long (>10 exchanges), regenerate condensed master plan summary
+- Use Linear tickets for strategic project management, todo_write for tactical task tracking
+
+## TECHNICAL STANDARDS
+
+### Tech Stack (Vercel + Supabase + Clerk + Next.js)
+- Use Next.js App Router exclusively (never Pages Router)
+- Prefer Server Components over Client Components (only add 'use client' when necessary)
+- Server actions over API routes for form submissions
+- Use @supabase/ssr for all server-side operations
+- Implement Row Level Security policies referencing auth.uid() from Clerk JWT
+- Store database types in /lib/database.types.ts
+
+### Authentication & Security
+- Use Clerk as primary auth provider with Supabase JWT integration
+- Always validate permissions server-side
+- Implement proper session management and error boundaries
+- Handle auth state changes with loading states
+- Check admin permissions for brad@feld.com on admin routes
+
+### Development Environment
+- Always start dev server on localhost:3000 (never alternative ports)
+- Run terminal commands with is_background=true to avoid blocking
+- Use `npm run restart` for clean dev server restarts after code changes
+- Kill existing processes with `lsof -ti:3000 | xargs kill -9` if port conflicts
+
+### Git and Deployment Safety
+- Create feature branches before major development phases
+- Always run `npm run build` locally before pushing to production
+- Commit changes with descriptive messages
+- **NEVER** push to production without explicit user approval and testing
+- Test in dev environment, get user approval, then deploy
+
+### Code Quality
+- Use TypeScript strict mode with proper interfaces for external APIs
+- Implement proper error handling with try/catch blocks
+- Clean up console.log statements after debugging
+- Escape special characters in JSX (apostrophes become &apos;)
+- Follow consistent naming: PascalCase components, kebab-case CSS classes
+
+### File Organization
+- Server actions: /lib/actions/[domain].ts
+- Database utilities: /lib/supabase/
+- UI components: /components/ui/
+- Feature components: /components/[feature]/
+- Type definitions: /lib/types/
+
+### Database Operations
+- Use typed database schema with supabase gen types typescript
+- Implement RLS policies for all tables
+- Handle nullable fields properly in TypeScript interfaces
+- Use prepared statements (Supabase handles automatically)
+
+## PROJECT-SPECIFIC PATTERNS
+
+### Component Architecture
+- Use DashboardLayout for all authenticated pages
+- Follow consistent page header patterns with proper spacing
+- Use shadcn/ui components with Tailwind CSS
+- Icon standards: h-4 w-4 for buttons, h-5 w-5 for titles (Lucide React only)
+
+### Navigation Rules
+- Every sidebar navigation item MUST have a working page
+- Use consistent space-y-6 for page sections
+- Admin sections only visible to brad@feld.com
+- No custom "Back" buttons or inconsistent headers
+
+### Performance & Caching
+- Use Next.js caching with revalidateTag() and revalidatePath()
+- Implement loading.tsx for route-level loading states
+- Use Suspense boundaries for component-level loading
+- Consider Edge Runtime for simple API routes
+
+### Error Handling
+- Implement error.tsx boundaries for route segments
+- Use proper HTTP status codes in API responses
+- Log errors to external services in production
+- Graceful degradation for non-critical features
+
+## INTEGRATION SPECIFICS
+
+### Clerk Authentication
+- Use clerkMiddleware() (never deprecated authMiddleware())
+- Handle JWT template configuration for Supabase
+- Sync user data to Supabase profiles on sign-up/update
+- Use Clerk webhooks for real-time synchronization
+
+### Supabase Database
+- Use Row Level Security for all data access
+- Handle edge cases where Clerk user exists but Supabase profile doesn't
+- Store sensitive keys server-only (never NEXT_PUBLIC_ for secrets)
+- Configure environment variables properly for each environment
+
+### External APIs
+- Implement rate limiting and caching for external API calls
+- Use Result/Either pattern for operations that can fail
+- Validate inputs with libraries like Zod
+- Handle API failures gracefully with fallbacks
+
+## DEPLOYMENT WORKFLOW
+
+### Pre-deployment Checklist
+- Run `npm run build` to test for TypeScript/ESLint errors
+- Test authentication flows thoroughly
+- Validate all environment variables are configured
+- Test in development environment first
+- Get explicit user approval before production deployment
+
+### Production Considerations
+- Configure environment variables in Vercel dashboard
+- Use proper HTTP status codes and error handling
+- Implement monitoring and logging
+- Consider Clerk development vs production instance differences
+
+## DOCUMENTATION STANDARDS
+
+### Code Comments
+- Document complex business logic and algorithms
+- Include meaningful commit messages
+- Maintain README.md with setup instructions
+- Document API endpoints with request/response examples
+
+### Session Documentation
+- Update Notion Development Sessions for significant work
+- Create Linear tasks for strategic features
+- Use todo_write for immediate tactical tracking
+- Reference existing documentation and maintain continuity
+
+Remember: Predictable, high-quality development with clear communication, explicit approval at each decision point, and persistent context management across conversations. 
