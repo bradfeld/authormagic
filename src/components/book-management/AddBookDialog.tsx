@@ -106,6 +106,8 @@ export function AddBookDialog({
 
   const handleAddBook = async () => {
     if (!userId) return;
+
+    setIsLoading(true);
     try {
       // Detect THE primary book across all edition groups
       const primaryBook = detectGlobalPrimaryBook(editionGroups);
@@ -125,15 +127,28 @@ export function AddBookDialog({
           allEditionData: allBooks, // Pass all books for the PrimaryBookService to process
         }),
       });
-      if (!response.ok) throw new Error('Failed to add book collection');
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Failed to add book: ${response.status}`,
+        );
+      }
+
       await response.json();
       setEditionGroups([]);
       setBookTitle('');
       setHasSearched(false);
       onOpenChange(false);
       if (onBookAdded) onBookAdded();
-    } catch {
-      // Error handling removed - no state for error messages
+    } catch (error) {
+      console.error('Error adding book:', error);
+      // For now, we'll log the error. In a future iteration we can add proper error UI
+      alert(
+        `Failed to add book: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -224,7 +239,7 @@ export function AddBookDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="!w-screen !max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] !w-screen !max-w-7xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Book</DialogTitle>
         </DialogHeader>
@@ -237,10 +252,10 @@ export function AddBookDialog({
             </span>
           </div>
           {/* Book Title/ISBN Input Row */}
-          <div className="flex items-end gap-4 mb-6">
+          <div className="mb-6 flex items-end gap-4">
             <label
               htmlFor="bookTitle"
-              className="block text-sm font-medium mb-1 min-w-fit"
+              className="mb-1 block min-w-fit text-sm font-medium"
             >
               Book Title or ISBN
             </label>
@@ -262,11 +277,11 @@ export function AddBookDialog({
           {/* Loading Spinner */}
           {isLoading && (
             <div
-              className="flex justify-center items-center py-8"
+              className="flex items-center justify-center py-8"
               role="status"
               aria-live="polite"
             >
-              <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
+              <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
               <span className="sr-only">Loading...</span>
             </div>
           )}
@@ -277,14 +292,14 @@ export function AddBookDialog({
               role="status"
               aria-live="polite"
             >
-              <p className="text-base text-muted-foreground">
+              <p className="text-muted-foreground text-base">
                 No books found for your search.
               </p>
             </div>
           )}
           {/* Book Results */}
           {editionGroups.length > 0 && (
-            <div className="space-y-6 mt-2">
+            <div className="mt-2 space-y-6">
               {editionGroups.map((edition, idx) => {
                 const bindingGroups = groupBindings(edition.books);
                 // Get best metadata using priority logic
@@ -303,10 +318,10 @@ export function AddBookDialog({
                 return (
                   <div
                     key={idx}
-                    className="w-full border rounded-lg p-4 transition-all mb-2 border-border hover:border-primary/50"
+                    className="border-border hover:border-primary/50 mb-2 w-full rounded-lg border p-4 transition-all"
                   >
                     {/* Edition-level details with thumbnail */}
-                    <div className="mb-3 flex flex-col md:flex-row gap-6 bg-muted/30 rounded-lg p-4 items-start w-full">
+                    <div className="bg-muted/30 mb-3 flex w-full flex-col items-start gap-6 rounded-lg p-4 md:flex-row">
                       {/* Thumbnail */}
                       {displayBook?.thumbnail || displayBook?.image ? (
                         <Image
@@ -318,29 +333,29 @@ export function AddBookDialog({
                           alt={displayBook.title || 'Book cover'}
                           width={128}
                           height={192}
-                          className="w-32 h-48 object-cover rounded shadow-md border border-border flex-shrink-0"
+                          className="border-border h-48 w-32 flex-shrink-0 rounded border object-cover shadow-md"
                           onError={e => {
                             const target = e.target as HTMLImageElement;
                             target.src = '/window.svg';
                           }}
                         />
                       ) : (
-                        <div className="w-32 h-48 bg-gray-200 rounded flex items-center justify-center text-gray-400 border border-border flex-shrink-0">
+                        <div className="border-border flex h-48 w-32 flex-shrink-0 items-center justify-center rounded border bg-gray-200 text-gray-400">
                           No Image
                         </div>
                       )}
                       {/* Details */}
-                      <div className="flex-1 min-w-0 w-full">
-                        <div className="font-medium text-lg truncate w-full">
+                      <div className="w-full min-w-0 flex-1">
+                        <div className="w-full truncate text-lg font-medium">
                           {displayBook?.title || '—'}
                         </div>
                         {displayBook?.subtitle && (
-                          <div className="block text-sm text-muted-foreground truncate w-full">
+                          <div className="text-muted-foreground block w-full truncate text-sm">
                             {displayBook.subtitle}
                           </div>
                         )}
                         {/* Edition info immediately after subtitle */}
-                        <div className="block text-sm text-muted-foreground mt-1 mb-2">
+                        <div className="text-muted-foreground mt-1 mb-2 block text-sm">
                           {editionDisplay}
                         </div>
                         <div className="mt-2 text-sm">
@@ -370,7 +385,7 @@ export function AddBookDialog({
                       <div className="text-sm font-medium text-gray-700">
                         Available Bindings:
                       </div>
-                      <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="mb-2 flex flex-wrap gap-2">
                         {sortBindingEntries(Object.entries(bindingGroups)).map(
                           ([binding, books]) => {
                             // Check if this binding in this edition is THE global primary
@@ -425,15 +440,15 @@ export function AddBookDialog({
                 );
 
               return (
-                <div className="space-y-4 mt-6">
+                <div className="mt-6 space-y-4">
                   <div className="border-t pt-4">
                     {/* Primary Book Summary */}
                     {globalPrimary && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-amber-600 text-lg">⭐</div>
+                          <div className="text-lg text-amber-600">⭐</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-amber-900 mb-1">
+                            <div className="mb-1 font-semibold text-amber-900">
                               Primary Book Selection
                             </div>
                             <div className="text-sm text-amber-800">
@@ -453,7 +468,7 @@ export function AddBookDialog({
                                 )}{' '}
                                 • {globalPrimary.publisher}
                               </div>
-                              <div className="text-amber-600 text-xs mt-1">
+                              <div className="mt-1 text-xs text-amber-600">
                                 Selected from {editionGroups.length} edition
                                 {editionGroups.length !== 1 ? 's' : ''} •{' '}
                                 {globalPrimary.isbn &&
@@ -466,7 +481,7 @@ export function AddBookDialog({
                     )}
 
                     {/* Edition Summary */}
-                    <div className="text-sm text-muted-foreground mb-4">
+                    <div className="text-muted-foreground mb-4 text-sm">
                       Found {editionGroups.length} edition
                       {editionGroups.length !== 1 ? 's' : ''} with{' '}
                       {editionGroups.reduce(
