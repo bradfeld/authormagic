@@ -17,8 +17,8 @@ export function CustomUserButton() {
       }
 
       try {
-        // Check admin status by calling our admin API
-        const response = await fetch('/api/admin/waitlist');
+        // Check admin status by calling our users API (which still exists)
+        const response = await fetch('/api/admin/users?limit=1');
         setIsAdmin(response.ok && response.status === 200);
       } catch {
         setIsAdmin(false);
@@ -33,7 +33,7 @@ export function CustomUserButton() {
   }, [isLoaded, user]);
 
   if (!isLoaded || !adminCheckLoaded) {
-    return <div className="h-10 w-10 animate-pulse bg-gray-200 rounded-full" />;
+    return <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />;
   }
 
   return (
@@ -59,8 +59,8 @@ export function CustomUserButton() {
         )}
         {isAdmin && (
           <UserButton.Link
-            label="Manage Waitlist"
-            href="/admin/waitlist"
+            label="User Management"
+            href="/admin/users"
             labelIcon={<span>👥</span>}
           />
         )}

@@ -9,7 +9,10 @@ export default function middleware(
 ) {
   // Skip Clerk middleware in CI environments for security scanning
   if (process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true') {
-    console.log('🔧 CI Mode: Skipping Clerk authentication');
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log('🔧 CI Mode: Skipping Clerk authentication');
+    }
     return NextResponse.next();
   }
 

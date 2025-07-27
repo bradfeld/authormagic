@@ -1,11 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
-import { AnalyticsOverview } from '@/components/admin/AnalyticsOverview';
+import { SystemHealthDashboard } from '@/components/admin/SystemHealthDashboard';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WaitlistService } from '@/lib/services/waitlist.service';
 
-export default async function AdminAnalyticsPage() {
+export default async function AdminSystemPage() {
   const { userId } = await auth();
 
   if (!userId) {
@@ -26,17 +26,15 @@ export default async function AdminAnalyticsPage() {
       <div className="space-y-8">
         {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Analytics Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">System Health</h1>
           <p className="mt-2 text-gray-600">
-            Real-time insights into user growth, engagement, and platform
-            performance.
+            Monitor system performance, service health, and infrastructure
+            status in real-time.
           </p>
         </div>
 
-        {/* Analytics Overview with Charts */}
-        <AnalyticsOverview />
+        {/* System Health Dashboard */}
+        <SystemHealthDashboard />
       </div>
     </DashboardLayout>
   );

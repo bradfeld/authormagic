@@ -1,8 +1,6 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { Database } from '@/lib/database.types';
 import { WaitlistService } from '@/lib/services/waitlist.service';
 
 export async function GET(request: NextRequest) {
@@ -27,102 +25,90 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role'); // 'admin', 'user', or null for all
-    const statusParam = searchParams.get('status'); // 'waitlisted', 'approved', 'blocked'
+    const searchQuery = searchParams.get('search'); // search term for name/email
+    const limit = parseInt(searchParams.get('limit') || '50');
 
-    // Initialize Supabase client
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      },
-    );
+    // Get users from Clerk
+    const client = await clerkClient();
 
-    // Build query for authors
-    let authorsQuery = supabase.from('authors').select('*');
-
-    if (
-      statusParam &&
-      ['waitlisted', 'approved', 'blocked'].includes(statusParam)
-    ) {
-      authorsQuery = authorsQuery.eq(
-        'status',
-        statusParam as 'waitlisted' | 'approved' | 'blocked',
-      );
-    }
-
-    const { data: users, error: usersError } = await authorsQuery.order(
-      'created_at',
-      { ascending: false },
-    );
-
-    if (usersError) {
-      throw usersError;
-    }
-
-    if (!users.length) {
-      return NextResponse.json({ users: [] });
-    }
-
-    // Get roles for all users
-    const userIds = users.map(user => user.clerk_user_id);
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('clerk_user_id, role')
-      .in('clerk_user_id', userIds);
-
-    const roleMap = new Map(roles?.map(r => [r.clerk_user_id, r.role]) || []);
-
-    // Filter by role if specified
-    let filteredUsers = users;
-    if (roleFilter) {
-      filteredUsers = users.filter(user => {
-        const userRole = roleMap.get(user.clerk_user_id);
-        return userRole === roleFilter;
+    let clerkUsersResponse;
+    if (searchQuery) {
+      // Search by email or name
+      clerkUsersResponse = await client.users.getUserList({
+        query: searchQuery,
+        limit,
+        orderBy: '-created_at',
+      });
+    } else {
+      // Get all users
+      clerkUsersResponse = await client.users.getUserList({
+        limit,
+        orderBy: '-created_at',
       });
     }
 
-    // Enrich with Clerk data
-    const enrichedUsers = await Promise.all(
-      filteredUsers.map(async user => {
-        try {
-          const client = await clerkClient();
-          const clerkUser = await client.users.getUser(user.clerk_user_id);
+    const clerkUsers = clerkUsersResponse.data || [];
 
-          return {
-            ...user,
-            name:
-              clerkUser.fullName ||
-              `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
-              null,
-            email: clerkUser.emailAddresses[0]?.emailAddress || null,
-            profile_image_url: clerkUser.imageUrl || null,
-            role: roleMap.get(user.clerk_user_id) || null,
-          };
-        } catch (clerkError) {
-          // eslint-disable-next-line no-console
-          console.error(
-            `Error fetching Clerk user ${user.clerk_user_id}:`,
-            clerkError,
-          );
-          return {
-            ...user,
-            name: null,
-            email: null,
-            profile_image_url: null,
-            role: roleMap.get(user.clerk_user_id) || null,
-          };
-        }
-      }),
-    );
+    if (!clerkUsers.length) {
+      return NextResponse.json({ users: [] });
+    }
 
-    return NextResponse.json({ users: enrichedUsers });
+    // Get roles for all users from Supabase
+    const userIds = clerkUsers.map(user => user.id);
+    const rolesResponse = await waitlistService.getUserRoles(userIds);
+
+    // Combine Clerk user data with role data
+    const usersWithRoles = clerkUsers.map(clerkUser => {
+      const roleData = rolesResponse.find(
+        r => r.clerk_user_id === clerkUser.id,
+      );
+
+      return {
+        id: clerkUser.id,
+        clerk_user_id: clerkUser.id,
+        email: clerkUser.emailAddresses[0]?.emailAddress || null,
+        name:
+          clerkUser.fullName ||
+          `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
+          null,
+        firstName: clerkUser.firstName,
+        lastName: clerkUser.lastName,
+        profileImageUrl: clerkUser.imageUrl,
+        emailVerified:
+          clerkUser.emailAddresses[0]?.verification?.status === 'verified',
+        createdAt: new Date(clerkUser.createdAt).toISOString(),
+        lastSignInAt: clerkUser.lastSignInAt
+          ? new Date(clerkUser.lastSignInAt).toISOString()
+          : null,
+        role: roleData?.role || null,
+        // Remove waitlist-specific fields as they're no longer relevant
+      };
+    });
+
+    // Filter by role if specified
+    let filteredUsers = usersWithRoles;
+    if (roleFilter && ['admin', 'user'].includes(roleFilter)) {
+      if (roleFilter === 'user') {
+        // Users with no role or explicit 'user' role
+        filteredUsers = usersWithRoles.filter(
+          user => !user.role || user.role === 'user',
+        );
+      } else {
+        // Users with specific role
+        filteredUsers = usersWithRoles.filter(user => user.role === roleFilter);
+      }
+    }
+
+    return NextResponse.json({
+      users: filteredUsers,
+      totalCount: clerkUsersResponse.totalCount,
+      message: `Found ${filteredUsers.length} users`,
+    });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Error in admin users API:', error);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.error('Error in admin users API:', error);
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

@@ -119,6 +119,28 @@ export class WaitlistService {
   }
 
   /**
+   * Get roles for multiple users at once
+   */
+  async getUserRoles(
+    clerkUserIds: string[],
+  ): Promise<Array<{ clerk_user_id: string; role: UserRole }>> {
+    if (clerkUserIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await this.supabase
+      .from('user_roles')
+      .select('clerk_user_id, role')
+      .in('clerk_user_id', clerkUserIds);
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  /**
    * Promote user to admin role
    */
   async promoteToAdmin(

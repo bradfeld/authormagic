@@ -24,7 +24,7 @@ export default function SomePage() {
 ```tsx
 // ❌ WRONG - Don't create custom page layouts
 <div className="min-h-screen bg-gray-50">
-  <div className="max-w-7xl mx-auto px-4">
+  <div className="mx-auto max-w-7xl px-4">
     {/* Custom layout - DON'T DO THIS */}
   </div>
 </div>
@@ -53,51 +53,80 @@ export default function SomePage() {
     <p className="text-gray-600">[Description]</p>
   </div>
   <Button>
-    <Icon className="h-4 w-4 mr-2" />
+    <Icon className="mr-2 h-4 w-4" />
     [Action]
   </Button>
 </div>
 ```
 
-### 3. **Sidebar Navigation Standards**
+### 3. **Hierarchical Navigation Standards**
 
-**Navigation items configuration (in `sidebar.tsx`):**
+**NEW: Two-tier navigation structure (User → Admin):**
 
 ```tsx
 const navigationItems: NavigationItem[] = [
+  // Regular user navigation
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Books', href: '/books', icon: Book },
-  { name: 'Profile', href: '/profile', icon: User },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Profile', href: '/profile', icon: User },
   { name: 'Settings', href: '/settings', icon: Settings },
-  // Admin section
+
+  // Admin parent with nested children
   {
-    name: 'Admin Dashboard',
-    href: '/admin/dashboard',
-    icon: Users,
+    name: 'Admin',
+    icon: Shield,
     adminOnly: true,
-  },
-  { name: 'Waitlist', href: '/admin/waitlist', icon: Users, adminOnly: true },
-  {
-    name: 'User Management',
-    href: '/admin/users',
-    icon: Users,
-    adminOnly: true,
-  },
-  {
-    name: 'Admin Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-    adminOnly: true,
+    children: [
+      {
+        name: 'Dashboard',
+        href: '/admin/dashboard',
+        icon: Home,
+        adminOnly: true,
+      },
+      {
+        name: 'User Management',
+        href: '/admin/users',
+        icon: Users,
+        adminOnly: true,
+      },
+      {
+        name: 'Analytics',
+        href: '/admin/analytics',
+        icon: BarChart3,
+        adminOnly: true,
+      },
+      {
+        name: 'System Health',
+        href: '/admin/system',
+        icon: Activity,
+        adminOnly: true,
+      },
+    ],
   },
 ];
 ```
 
-**Admin visibility rules:**
+**Navigation interface requirements:**
 
-- Admin sections ONLY visible to `brad@feld.com`
-- Use `adminOnly: true` property for admin navigation items
-- Admin check: `userEmail === 'brad@feld.com'`
+```tsx
+interface NavigationItem {
+  name: string;
+  href?: string; // Optional for parent items
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  adminOnly?: boolean;
+  children?: NavigationItem[]; // For nested navigation
+}
+```
+
+**Visual hierarchy features:**
+
+- **Expandable Admin Menu**: Click to expand/collapse admin items
+- **Auto-expansion**: Admin menu automatically opens when on admin pages
+- **Visual Indicators**: Shield icons for admin areas, chevron for expand/collapse
+- **Indented Children**: Clear visual nesting with border lines
+- **Active State Propagation**: Parent items show active when children are active
 
 ### 4. **Page Creation Requirements**
 
@@ -109,10 +138,12 @@ const navigationItems: NavigationItem[] = [
 /profile           → src/app/(dashboard)/profile/page.tsx
 /analytics         → src/app/(dashboard)/analytics/page.tsx
 /settings          → src/app/(dashboard)/settings/page.tsx
+
+// Admin pages (nested under Admin menu)
 /admin/dashboard   → src/app/admin/dashboard/page.tsx
-/admin/waitlist    → src/app/admin/waitlist/page.tsx
 /admin/users       → src/app/admin/users/page.tsx
 /admin/analytics   → src/app/admin/analytics/page.tsx
+/admin/system      → src/app/admin/system/page.tsx
 ```
 
 **Stub page template for coming soon features:**
@@ -180,11 +211,9 @@ export default async function [PageName]Page() {
 **Admin permission check (REQUIRED for all admin pages):**
 
 ```tsx
-// Check if user is admin (brad@feld.com)
-const client = await clerkClient();
-const user = await client.users.getUser(userId);
-const userEmail = user.emailAddresses[0]?.emailAddress;
-const isAdmin = userEmail === 'brad@feld.com';
+// Use the role-based admin checking system
+const waitlistService = new WaitlistService();
+const isAdmin = await waitlistService.isUserAdmin(userId);
 
 if (!isAdmin) {
   redirect('/dashboard');
@@ -201,7 +230,7 @@ if (!isAdmin) {
   <CardHeader>
     <CardTitle className="flex items-center gap-2 text-blue-900">
       <Shield className="h-5 w-5" />
-      Admin Area
+      Admin Area - [Feature Name]
     </CardTitle>
     <CardDescription className="text-blue-700">
       You have admin access to [feature description].
@@ -210,11 +239,62 @@ if (!isAdmin) {
 </Card>;
 ```
 
-### 6. **Forbidden Navigation Patterns**
+### 6. **Navigation State Management**
+
+**Hierarchical active state detection:**
+
+```tsx
+const isActiveItem = (item: NavigationItem): boolean => {
+  if (item.href) {
+    return (
+      pathname === item.href ||
+      (item.href !== '/dashboard' && pathname.startsWith(item.href))
+    );
+  }
+  // For parent items without href, check if any children are active
+  if (item.children) {
+    return item.children.some(
+      child =>
+        child.href &&
+        (pathname === child.href ||
+          (child.href !== '/dashboard' && pathname.startsWith(child.href))),
+    );
+  }
+  return false;
+};
+```
+
+**Admin menu expansion logic:**
+
+- **Auto-expand**: Admin menu opens when navigating to any admin page
+- **Manual toggle**: Click the Admin parent item to expand/collapse
+- **Persistent state**: Expansion state maintained during navigation
+- **Collapsed sidebar**: No expansion when sidebar is collapsed
+
+**Admin role checking:**
+
+- **Primary method**: API call to `/api/admin/users?limit=1`
+- **Fallback method**: Email check for `brad@feld.com`
+- **Loading states**: Shows animated placeholders while checking admin status
+- **Error handling**: Graceful fallback if API is unavailable
+
+### 7. **Forbidden Navigation Patterns**
 
 **❌ NEVER do these:**
 
-1. **Custom "Back" buttons in headers:**
+1. **Flat admin navigation mixed with user items:**
+
+```tsx
+// ❌ WRONG - Don't mix admin and user items at same level
+const navigationItems = [
+  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Admin Dashboard', href: '/admin/dashboard', adminOnly: true },
+  { name: 'Books', href: '/books' },
+  { name: 'User Management', href: '/admin/users', adminOnly: true },
+];
+```
+
+2. **Custom "Back" buttons in headers:**
 
 ```tsx
 // ❌ WRONG - Don't add back buttons
@@ -223,89 +303,54 @@ if (!isAdmin) {
 </Link>
 ```
 
-2. **Inconsistent user profile displays:**
+3. **Multiple admin parent sections:**
 
 ```tsx
-// ❌ WRONG - Don't add custom user buttons
-<CustomUserButton />
-```
-
-3. **Direct routing without authentication:**
-
-```tsx
-// ❌ WRONG - Always check authentication
-export default function Page() {
-  // Missing auth check!
-}
+// ❌ WRONG - Don't create multiple admin sections
+{ name: 'Admin Users', children: [...] },
+{ name: 'Admin System', children: [...] },
 ```
 
 4. **Missing admin permission checks:**
 
 ```tsx
-// ❌ WRONG - Admin pages without permission check
+// ❌ WRONG - Admin pages without proper role checking
 export default async function AdminPage() {
-  // Missing admin check - anyone can access!
+  // Missing admin role check - anyone can access!
 }
 ```
 
-### 7. **Navigation State Management**
+### 8. **Modern Design Benefits**
 
-**Active state detection (automatic in sidebar):**
+**✅ Why hierarchical navigation is better:**
 
-```tsx
-const isActive =
-  pathname === item.href ||
-  (item.href !== '/dashboard' && pathname.startsWith(item.href));
-```
+1. **Clean Organization**: Clear separation between user and admin functions
+2. **Scalability**: Easy to add more admin features without overwhelming navigation
+3. **Industry Standard**: Follows patterns used by Vercel, Linear, GitHub, Notion
+4. **Better UX**: Users expect grouped navigation in modern applications
+5. **Visual Clarity**: Reduces cognitive load with logical grouping
+6. **Mobile Friendly**: Hierarchical structure works better on smaller screens
 
-**Sidebar collapse state:**
-
-- Automatically handled by `DashboardLayout`
-- Mobile responsive with overlay
-- Desktop collapsible to icon-only mode
-
-### 8. **Error Prevention Rules**
-
-**404 Prevention:**
-
-1. EVERY sidebar navigation item MUST have a working page
-2. Create stub pages for unimplemented features
-3. Test all navigation paths before committing
-4. Use TypeScript for route validation when possible
-
-**Server restart requirements:**
-
-- ALWAYS restart dev server after creating new pages
-- Use `npm run restart` for clean cache clearing
-- Test navigation thoroughly after major changes
-
-### 9. **Vercel Design Compliance**
-
-**Styling standards:**
-
-- Use consistent `space-y-6` for page sections
-- Follow Vercel's color palette (grays 50-950)
-- Use proper card layouts for content sections
-- Maintain consistent button styling with icons
-- Follow Vercel's typography hierarchy
-
-**Icon usage:**
-
-- Lucide React icons ONLY
-- Consistent sizing: `h-4 w-4` for buttons, `h-5 w-5` for titles
-- Always include meaningful icons for navigation items
-
-### 10. **Testing Checklist**
+### 9. **Testing Checklist**
 
 **Before committing navigation changes:**
 
-- [ ] All sidebar items have working pages (no 404s)
-- [ ] Admin sections only visible to brad@feld.com
+- [ ] All navigation items have working pages (no 404s)
+- [ ] Admin section only visible to authenticated admins
+- [ ] Admin menu expands/collapses properly
+- [ ] Auto-expansion works when visiting admin pages
 - [ ] All pages use DashboardLayout consistently
-- [ ] No custom "Back" buttons or inconsistent headers
-- [ ] Server restart performed and tested
+- [ ] Active states work for both parent and child items
 - [ ] Mobile responsiveness verified
-- [ ] Coming soon pages are professional and consistent
+- [ ] Sidebar collapse/expand works with nested items
+
+**Navigation flow testing:**
+
+1. **Non-admin user**: Should see only user navigation items
+2. **Admin user**: Should see Admin section with expandable sub-items
+3. **Admin page visit**: Admin menu should auto-expand
+4. **Sidebar collapse**: Admin items should hide when sidebar is collapsed
+5. **Active states**: Should highlight both active child and parent items
 
 ---
 
@@ -315,15 +360,33 @@ const isActive =
 # Test all navigation (no 404s should occur)
 npm run restart
 # Visit: /dashboard, /books, /profile, /analytics, /settings
-# Admin test: /admin/dashboard, /admin/waitlist, /admin/users, /admin/analytics
+# Admin test: Click "Admin" to expand, then test all sub-items
 
-# Create new navigation page
-mkdir -p src/app/(dashboard)/[page-name]
-# Copy stub template above
-# Add to sidebar navigationItems array
-# Test and restart server
+# Create new admin navigation page
+mkdir -p src/app/admin/[page-name]
+# Copy admin page template above
+# Add to admin children array in sidebar navigationItems
+# Test expansion and active states
 ```
 
 ---
 
-**Remember:** Navigation consistency is critical for professional UX. Every navigation item must work, every admin page must have proper permissions, and every page must use the standard layout. No exceptions!
+**Current Clean Navigation Structure:**
+
+```
+📁 User Navigation
+├── 🏠 Dashboard
+├── 📚 Books
+├── 📊 Analytics
+├── 👤 Profile
+└── ⚙️ Settings
+
+📁 Admin Navigation (Hierarchical)
+└── 🛡️ Admin ▼
+    ├── 🏠 Dashboard
+    ├── 👥 User Management
+    ├── 📈 Analytics
+    └── 🖥️ System Health
+```
+
+**Remember:** The hierarchical navigation provides better organization, follows modern design patterns, and scales beautifully as the admin feature set grows. Every admin function is grouped under the Admin parent, creating a clear separation of concerns and improved user experience.

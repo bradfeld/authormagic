@@ -1,11 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
-import { AnalyticsOverview } from '@/components/admin/AnalyticsOverview';
+import { AdminAuditLog } from '@/components/admin/AdminAuditLog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WaitlistService } from '@/lib/services/waitlist.service';
 
-export default async function AdminAnalyticsPage() {
+export default async function AdminActivityPage() {
   const { userId } = await auth();
 
   if (!userId) {
@@ -27,16 +27,16 @@ export default async function AdminAnalyticsPage() {
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Analytics Dashboard
+            Activity & Audit Logs
           </h1>
           <p className="mt-2 text-gray-600">
-            Real-time insights into user growth, engagement, and platform
-            performance.
+            Monitor all administrative actions, track system events, and
+            maintain compliance through comprehensive audit trails.
           </p>
         </div>
 
-        {/* Analytics Overview with Charts */}
-        <AnalyticsOverview />
+        {/* Admin Audit Log Dashboard */}
+        <AdminAuditLog />
       </div>
     </DashboardLayout>
   );

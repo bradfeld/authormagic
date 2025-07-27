@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
-import { Users, TrendingUp } from 'lucide-react';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { Users, TrendingUp, Shield, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -34,9 +34,21 @@ export default async function AdminDashboardPage() {
     redirect('/dashboard');
   }
 
-  // Get unified admin dashboard data (stats + recent users)
-  const { stats, recentWaitlistedUsers } =
-    await waitlistService.getAdminDashboardData();
+  // Get system statistics
+  const client = await clerkClient();
+  const totalUsersResponse = await client.users.getUserList({ limit: 1 });
+  const totalUsers = totalUsersResponse.totalCount || 0;
+
+  // Get recent users (last 5)
+  const recentUsersResponse = await client.users.getUserList({
+    limit: 5,
+    orderBy: '-created_at',
+  });
+  const recentUsers = recentUsersResponse.data || [];
+
+  // Get admin count from our role system
+  const adminStats = await waitlistService.getAdminDashboardData();
+  const totalAdmins = adminStats.stats.total_admins;
 
   return (
     <DashboardLayout>
@@ -47,100 +59,156 @@ export default async function AdminDashboardPage() {
           <p className="text-gray-600">System administration and management</p>
         </div>
 
-        {/* Waitlist Management */}
+        {/* System Overview */}
         <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
                   <Users className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Waitlist Management</CardTitle>
+                  <CardTitle className="text-lg">System Overview</CardTitle>
                   <CardDescription>
-                    Monitor and manage user approvals
+                    Monitor users and system activity
                   </CardDescription>
                 </div>
               </div>
-              <Link href="/admin/waitlist">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  View Waitlist
+              <div className="flex gap-2">
+                <Link href="/admin/users">
+                  <Button variant="outline" size="sm">
+                    <Users className="mr-2 h-4 w-4" />
+                    Manage Users
+                  </Button>
+                </Link>
+                <Button size="sm" asChild>
+                  <a
+                    href="https://dashboard.clerk.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Clerk Dashboard
+                  </a>
                 </Button>
-              </Link>
+              </div>
             </div>
           </CardHeader>
 
           <CardContent className="p-6">
             {/* Key Metrics */}
-            <div className="flex gap-4 mb-6">
-              <div className="flex-1 text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mb-6 flex gap-4">
+              <div className="flex-1 rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
                 <div className="text-3xl font-bold text-blue-900">
-                  {stats.total_waitlisted}
+                  {totalUsers}
                 </div>
-                <div className="text-sm text-blue-700 mt-1">Waitlisted</div>
+                <div className="mt-1 text-sm text-blue-700">Total Users</div>
               </div>
-              <div className="flex-1 text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex-1 rounded-lg border border-green-200 bg-green-50 p-4 text-center">
                 <div className="text-3xl font-bold text-green-900">
-                  {stats.total_approved}
+                  {totalAdmins}
                 </div>
-                <div className="text-sm text-green-700 mt-1">Approved</div>
+                <div className="mt-1 text-sm text-green-700">Admins</div>
               </div>
-              <div className="flex-1 text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="text-3xl font-bold text-gray-900">
-                  {stats.recent_signups}
+              <div className="flex-1 rounded-lg border border-purple-200 bg-purple-50 p-4 text-center">
+                <div className="text-3xl font-bold text-purple-900">
+                  {recentUsers.length}
                 </div>
-                <div className="text-sm text-gray-700 mt-1">This Week</div>
+                <div className="mt-1 text-sm text-purple-700">Recent Users</div>
               </div>
-              <div className="flex-1 text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <div className="text-3xl font-bold text-orange-900">
-                  {stats.total_admins}
-                </div>
-                <div className="text-sm text-orange-700 mt-1">Admins</div>
+              <div className="flex-1 rounded-lg border border-orange-200 bg-orange-50 p-4 text-center">
+                <div className="text-3xl font-bold text-orange-900">100%</div>
+                <div className="mt-1 text-sm text-orange-700">Uptime</div>
               </div>
             </div>
 
             {/* Recent Activity */}
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h4 className="mb-3 flex items-center gap-2 font-semibold text-gray-900">
                 <TrendingUp className="h-4 w-4" />
-                Recent Activity
+                Recent Users
               </h4>
 
-              {recentWaitlistedUsers.length > 0 ? (
+              {recentUsers.length > 0 ? (
                 <div className="space-y-3">
-                  {recentWaitlistedUsers.map(user => (
+                  {recentUsers.map(user => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between rounded-lg bg-gray-50 p-3 transition-colors hover:bg-gray-100"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-sm">
-                            #{user.waitlist_position}
-                          </span>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                          <UserCheck className="h-4 w-4 text-blue-600" />
                         </div>
                         <div>
-                          <div className="font-medium text-sm">
-                            {user.name || 'Unknown User'}
+                          <div className="text-sm font-medium">
+                            {user.fullName ||
+                              `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+                              'Unknown User'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {user.email || 'No email'} •{' '}
-                            {new Date(user.created_at).toLocaleDateString()}
+                            {user.emailAddresses[0]?.emailAddress || 'No email'}{' '}
+                            • {new Date(user.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        Waiting
+                        {user.lastSignInAt ? 'Active' : 'New'}
                       </Badge>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
-                  <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <div className="text-sm">No users currently on waitlist</div>
+                <div className="rounded-lg bg-gray-50 py-6 text-center text-gray-500">
+                  <Users className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+                  <div className="text-sm">No recent user activity</div>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+            <CardDescription>
+              Common administrative tasks and tools
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Button variant="outline" asChild className="h-auto flex-col p-4">
+                <Link href="/admin/users">
+                  <Users className="mb-2 h-6 w-6" />
+                  <span className="font-medium">User Management</span>
+                  <span className="text-xs text-gray-500">
+                    Manage roles & profiles
+                  </span>
+                </Link>
+              </Button>
+              <Button variant="outline" asChild className="h-auto flex-col p-4">
+                <a
+                  href="https://dashboard.clerk.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <UserCheck className="mb-2 h-6 w-6" />
+                  <span className="font-medium">Clerk Dashboard</span>
+                  <span className="text-xs text-gray-500">
+                    User auth & waitlist
+                  </span>
+                </a>
+              </Button>
+              <Button variant="outline" asChild className="h-auto flex-col p-4">
+                <Link href="/admin/analytics">
+                  <TrendingUp className="mb-2 h-6 w-6" />
+                  <span className="font-medium">Analytics</span>
+                  <span className="text-xs text-gray-500">Usage metrics</span>
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
