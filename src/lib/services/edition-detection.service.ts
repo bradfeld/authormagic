@@ -9,6 +9,7 @@ import { UIBook } from '@/lib/types/ui-book';
 // Development logging helper
 const devLog = (message: string) => {
   if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
     console.log(message);
   }
 };
@@ -894,13 +895,26 @@ export class EditionDetectionService {
     const unmappedBooks: typeof booksWithEditions = [];
 
     for (const bookData of booksWithEditions) {
+      // SPECIFIC DEBUG: Track the Indian hardcover through each step
+      const isIndianHardcover = bookData.book.isbn === '9788126572113';
+
       if (bookData.editionNumber !== null) {
         if (!editionMap.has(bookData.editionNumber)) {
           editionMap.set(bookData.editionNumber, []);
         }
         editionMap.get(bookData.editionNumber)!.push(bookData);
+
+        if (isIndianHardcover) {
+          devLog(
+            `  🇮🇳 INDIAN HARDCOVER: Assigned to Edition ${bookData.editionNumber} in Step 2 (explicit edition)`,
+          );
+        }
       } else {
         unmappedBooks.push(bookData);
+
+        if (isIndianHardcover) {
+          devLog(`  🇮🇳 INDIAN HARDCOVER: Remains unmapped after Step 2`);
+        }
       }
     }
 
@@ -940,14 +954,28 @@ export class EditionDetectionService {
     const nonAudiobooks: typeof unmappedBooks = [];
 
     for (const bookData of unmappedBooks) {
-      if (
-        this.isAudiobookFormat(
-          bookData.book.binding || bookData.book.print_type,
-        )
-      ) {
+      const isAudiobook = this.isAudiobookFormat(
+        bookData.book.binding || bookData.book.print_type,
+      );
+
+      if (isAudiobook) {
         audiobooks.push(bookData);
+
+        // SPECIFIC DEBUG: Check if Indian hardcover is misclassified as audiobook
+        if (bookData.book.isbn === '9788126572113') {
+          devLog(
+            `  🇮🇳 INDIAN HARDCOVER: MISCLASSIFIED as audiobook (binding: ${bookData.book.binding || bookData.book.print_type}) - THIS IS A BUG!`,
+          );
+        }
       } else {
         nonAudiobooks.push(bookData);
+
+        // SPECIFIC DEBUG: Confirm Indian hardcover is correctly classified as non-audiobook
+        if (bookData.book.isbn === '9788126572113') {
+          devLog(
+            `  🇮🇳 INDIAN HARDCOVER: Correctly classified as non-audiobook (binding: ${bookData.book.binding || bookData.book.print_type})`,
+          );
+        }
       }
     }
 
@@ -976,6 +1004,13 @@ export class EditionDetectionService {
         if (closestEdition !== null) {
           editionMap.get(closestEdition)!.push(audiobookData);
           wasGrouped = true;
+
+          // SPECIFIC DEBUG: Track if the Indian hardcover gets assigned here (shouldn't happen)
+          if (audiobookData.book.isbn === '9788126572113') {
+            devLog(
+              `  🇮🇳 INDIAN HARDCOVER: INCORRECTLY assigned to Edition ${closestEdition} in Step 3 (audiobook logic) - THIS IS A BUG!`,
+            );
+          }
         }
       }
 
@@ -989,7 +1024,12 @@ export class EditionDetectionService {
     const editionTimeline = this.createEditionTimeline(editionMap);
 
     // Step 5: Map remaining unmapped books to editions based on publication date ranges
-    this.mapBooksByDateRange(nonAudiobooks, editionTimeline, editionMap);
+    // ONLY if they have very similar titles and close publication dates
+    this.mapBooksByDateRangeConservative(
+      nonAudiobooks,
+      editionTimeline,
+      editionMap,
+    );
 
     // Step 5: Convert to EditionGroup format
     const editionGroups: EditionGroup[] = [];
@@ -1172,9 +1212,58 @@ export class EditionDetectionService {
   }
 
   /**
-   * Map books without explicit edition numbers to editions based on publication date ranges
+   * Detect if an ISBN indicates an international/regional edition
    */
-  private static mapBooksByDateRange(
+  private static isInternationalEdition(isbn?: string): boolean {
+    if (!isbn) return false;
+
+    // Remove any hyphens/spaces and get first few digits
+    const cleanIsbn = isbn.replace(/[-\s]/g, '');
+
+    // Common international ISBN prefixes that often indicate regional reprints
+    const internationalPrefixes = [
+      '97881', // India
+      '97882', // Japan
+      '97883', // Poland
+      '97884', // Spain
+      '97885', // Brazil
+      '97886', // Serbia
+      '97887', // Denmark
+      '97888', // Italian language
+      '978612', // Peru
+      '978613', // Mauritius
+      '978950', // Argentina
+      '978956', // Chile
+      '978967', // Malaysia
+      '978971', // Philippines
+      '978972', // Portugal
+      '978973', // Romania
+      '978974', // Thailand
+      '978975', // Turkey
+      '978976', // Caribbean
+      '978977', // Egypt
+      '978978', // Nigeria
+      '978979', // Indonesia
+      '978980', // Venezuela
+      '978981', // Singapore
+      '978982', // South Pacific
+      '978983', // Malaysia
+      '978984', // Bangladesh
+      '978985', // Belarus
+      '978986', // Taiwan
+      '978987', // Argentina
+      '978988', // Hong Kong
+      '978989', // Portugal
+    ];
+
+    return internationalPrefixes.some(prefix => cleanIsbn.startsWith(prefix));
+  }
+
+  /**
+   * Map books without explicit edition numbers to editions based on publication date ranges
+   * ULTRA-CONSERVATIVE VERSION - blocks international editions from wrong assignment
+   */
+  private static mapBooksByDateRangeConservative(
     unmappedBooks: Array<{
       book: UIBook;
       editionNumber: number | null;
@@ -1196,30 +1285,58 @@ export class EditionDetectionService {
       if (!bookData.publicationYear) continue;
 
       const pubYear = bookData.publicationYear;
-
-      // Find which edition this book belongs to based on date range
       let targetEdition: number | null = null;
 
+      // Check if this is an international edition
+      const isInternational = this.isInternationalEdition(bookData.book.isbn);
+
+      // ULTRA-CONSERVATIVE APPROACH FOR INTERNATIONAL EDITIONS:
+      // Block ALL international editions from date-range assignment to prevent incorrect grouping
+      // International editions should only be grouped if they have explicit edition numbers
+      if (isInternational) {
+        // SPECIFIC DEBUG: Track international edition blocking
+        if (bookData.book.isbn === '9788126572113') {
+          devLog(
+            `  🇮🇳 INDIAN HARDCOVER: BLOCKED from date-range assignment (international edition protection)`,
+          );
+        }
+        continue; // Skip to next book - international editions stay unmapped
+      }
+
+      // For domestic editions only: conservative date-range assignment
       for (let i = 0; i < timeline.length; i++) {
         const currentEdition = timeline[i];
-        const nextEdition = timeline[i + 1];
+        const yearDiff = Math.abs(pubYear - currentEdition.year);
 
-        // Check if book falls within this edition's date range
-        if (pubYear >= currentEdition.year) {
-          if (!nextEdition || pubYear < nextEdition.year) {
-            targetEdition = currentEdition.edition;
-            break;
+        // Only consider if publication year is within 1 year of the edition
+        if (yearDiff <= 1) {
+          // Check if title similarity meets threshold for domestic editions
+          const existingBooks = editionMap.get(currentEdition.edition) || [];
+          if (existingBooks.length > 0) {
+            const titleSimilarity = this.calculateTitleSimilarity(
+              this.normalizeTitleForComparison(bookData.book.title || ''),
+              this.normalizeTitleForComparison(
+                existingBooks[0].book.title || '',
+              ),
+            );
+
+            // Domestic editions: require 0.85+ similarity
+            if (titleSimilarity >= 0.85) {
+              targetEdition = currentEdition.edition;
+              break;
+            }
           }
         }
       }
 
-      // If we found a target edition, add the book to it
+      // If we found a confident target edition, add the book to it
       if (targetEdition !== null) {
         if (!editionMap.has(targetEdition)) {
           editionMap.set(targetEdition, []);
         }
         editionMap.get(targetEdition)!.push(bookData);
       }
+      // NOTE: Books that don't meet ultra-conservative criteria stay unmapped
     }
   }
 
