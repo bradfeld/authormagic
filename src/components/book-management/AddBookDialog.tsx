@@ -89,8 +89,6 @@ export function AddBookDialog({
           );
         // Add validation parameters to filter out phantom books
         queryParams.append('validate', 'true');
-        queryParams.append('filter_unverified', 'true');
-        queryParams.append('min_confidence', '0.7');
         const response = await fetch(`/api/books/title-author?${queryParams}`);
         if (!response.ok) throw new Error('Failed to search books');
         const result = await response.json();

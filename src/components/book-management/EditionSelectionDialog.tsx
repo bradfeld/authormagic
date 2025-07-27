@@ -103,8 +103,6 @@ export function EditionSelectionDialog({
 
         // Add validation parameters to filter out phantom books
         queryParams.append('validate', 'true');
-        queryParams.append('filter_unverified', 'true');
-        queryParams.append('min_confidence', '0.7');
         const response = await fetch(`/api/books/title-author?${queryParams}`);
 
         if (!response.ok) {
@@ -250,20 +248,20 @@ export function EditionSelectionDialog({
   const renderSearchStep = () => (
     <div className="space-y-6">
       {/* Search Interface */}
-      <div className="border rounded-lg p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Search className="w-5 h-5 text-muted-foreground" />
+      <div className="space-y-4 rounded-lg border p-4">
+        <div className="mb-4 flex items-center gap-2">
+          <Search className="text-muted-foreground h-5 w-5" />
           <h3 className="text-lg font-semibold">Search for Book</h3>
         </div>
 
         {/* Search Error Display */}
         {searchError && (
           <div
-            className="bg-destructive/10 border border-destructive/20 rounded-lg p-3"
+            className="bg-destructive/10 border-destructive/20 rounded-lg border p-3"
             role="alert"
             aria-live="assertive"
           >
-            <p className="text-sm text-destructive" id="search-error-message">
+            <p className="text-destructive text-sm" id="search-error-message">
               {searchError}
             </p>
           </div>
@@ -271,11 +269,11 @@ export function EditionSelectionDialog({
         {/* Loading Spinner */}
         {isLoading && (
           <div
-            className="flex justify-center items-center py-8"
+            className="flex items-center justify-center py-8"
             role="status"
             aria-live="polite"
           >
-            <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
+            <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
             <span className="sr-only">Loading...</span>
           </div>
         )}
@@ -289,13 +287,13 @@ export function EditionSelectionDialog({
               role="status"
               aria-live="polite"
             >
-              <p className="text-base text-muted-foreground">
+              <p className="text-muted-foreground text-base">
                 No books found for your search.
               </p>
             </div>
           )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="bookTitle" className="text-sm font-medium">
               Book Title
@@ -313,7 +311,7 @@ export function EditionSelectionDialog({
                 searchError ? 'search-error-message' : undefined
               }
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Enter book title or ISBN number
             </p>
           </div>
@@ -335,7 +333,7 @@ export function EditionSelectionDialog({
                 searchError ? 'search-error-message' : undefined
               }
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Author name helps improve search accuracy
             </p>
           </div>
@@ -348,12 +346,12 @@ export function EditionSelectionDialog({
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Searching...
               </>
             ) : (
               <>
-                <Search className="w-4 h-4 mr-2" />
+                <Search className="mr-2 h-4 w-4" />
                 Search Books
               </>
             )}
@@ -366,10 +364,10 @@ export function EditionSelectionDialog({
         searchResults.length === 0 &&
         (bookTitle.trim() || author.trim()) &&
         !searchError && (
-          <div className="border rounded-lg p-8 text-center">
+          <div className="rounded-lg border p-8 text-center">
             <div className="text-muted-foreground">
-              <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-lg mb-2">No books found</p>
+              <Search className="mx-auto mb-3 h-12 w-12 opacity-30" />
+              <p className="mb-2 text-lg">No books found</p>
               <p className="text-sm">
                 Try adjusting your search terms or check spelling
               </p>
@@ -385,7 +383,7 @@ export function EditionSelectionDialog({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Select Primary Edition</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Choose which edition to add as your primary book
           </p>
         </div>
@@ -400,17 +398,17 @@ export function EditionSelectionDialog({
           {editionGroups.map((edition, index) => (
             <div
               key={index}
-              className={`border rounded-lg p-4 cursor-pointer transition-all ${
+              className={`cursor-pointer rounded-lg border p-4 transition-all ${
                 selectedEdition === edition
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                  ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
                   : 'border-border hover:border-primary/50'
               }`}
               onClick={() => setSelectedEdition(edition)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                  <div className="mb-2 flex items-center gap-2">
+                    <BookOpen className="text-muted-foreground h-4 w-4" />
                     <h4 className="font-medium">
                       {EditionDetectionService.getEditionDisplayName(edition)}
                     </h4>
@@ -420,10 +418,10 @@ export function EditionSelectionDialog({
                   </div>
 
                   {/* Edition Info */}
-                  <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
+                  <div className="text-muted-foreground mb-3 flex items-center gap-4 text-sm">
                     {edition.publication_year && (
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
+                        <Calendar className="h-3 w-3" />
                         <span>{edition.publication_year}</span>
                       </div>
                     )}
@@ -458,11 +456,11 @@ export function EditionSelectionDialog({
 
                   {/* Sample Book Details */}
                   {edition.books[0] && (
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="mt-3 border-t pt-3">
+                      <div className="text-muted-foreground flex items-center gap-4 text-xs">
                         {edition.books[0].publisher && (
                           <div className="flex items-center gap-1">
-                            <Building className="w-3 h-3" />
+                            <Building className="h-3 w-3" />
                             <span>{edition.books[0].publisher}</span>
                           </div>
                         )}
@@ -471,14 +469,14 @@ export function EditionSelectionDialog({
                         )}
                         {edition.books[0].language && (
                           <div className="flex items-center gap-1">
-                            <Languages className="w-3 h-3" />
+                            <Languages className="h-3 w-3" />
                             <span>{edition.books[0].language}</span>
                           </div>
                         )}
                       </div>
 
                       {edition.books[0].description && (
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        <p className="text-muted-foreground mt-2 line-clamp-2 text-sm">
                           {edition.books[0].description}
                         </p>
                       )}
@@ -502,7 +500,7 @@ export function EditionSelectionDialog({
         >
           {isSaving ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Adding...
             </>
           ) : (
@@ -513,8 +511,8 @@ export function EditionSelectionDialog({
 
       {/* Search Error Display */}
       {searchError && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-          <p className="text-sm text-destructive">{searchError}</p>
+        <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
+          <p className="text-destructive text-sm">{searchError}</p>
         </div>
       )}
     </div>
@@ -523,7 +521,7 @@ export function EditionSelectionDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {step === 'search' ? 'Add New Book' : 'Select Primary Edition'}
