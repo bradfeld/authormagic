@@ -87,49 +87,129 @@ export class SmartEnhancementService {
   private static addKnownMissingBooks(books: UIBook[]): UIBook[] {
     const result = [...books];
 
-    // Check if this is a Venture Deals search missing the 2011 hardcover
-    const isVentureDealsSearch = books.some(book =>
-      book.title?.toLowerCase().includes('venture deals'),
-    );
+    // Get all known missing books that should be added for this search
+    const missingBooks = this.getKnownMissingBooks(books);
 
-    const has2011Hardcover = books.some(
-      book =>
-        book.isbn === '9780470929827' ||
-        (book.binding === 'hardcover' &&
-          (book.year === 2011 || book.published_date?.includes('2011'))),
-    );
+    for (const missingBook of missingBooks) {
+      // Only add if not already present
+      const alreadyExists = books.some(
+        book =>
+          book.isbn === missingBook.isbn ||
+          (book.binding === missingBook.binding &&
+            book.year === missingBook.year &&
+            this.titlesSimilar(book.title || '', missingBook.title)),
+      );
 
-    if (isVentureDealsSearch && !has2011Hardcover) {
-      // Add the missing 2011 first edition hardcover
-      const missing2011Hardcover: UIBook = {
-        id: '9780470929827-missing',
-        isbn: '9780470929827',
-        title:
-          'Venture Deals: Be Smarter Than Your Lawyer and Venture Capitalist',
-        authors: ['Brad Feld', 'Jason Mendelson'],
-        publisher: 'Wiley',
-        published_date: '2011',
-        year: 2011,
-        binding: 'hardcover',
-        page_count: 272,
-        source: 'google-books',
-        data_source: 'known-missing-enhanced',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        language: 'en',
-        categories: [
-          'Business & Economics',
-          'Entrepreneurship',
-          'Venture Capital',
-        ],
-        description:
-          'The first edition of the definitive guide to venture capital deals, providing entrepreneurs with insider knowledge of the VC process, term sheets, and negotiation strategies.',
-      };
-
-      result.push(missing2011Hardcover);
+      if (!alreadyExists) {
+        result.push(missingBook);
+      }
     }
 
     return result;
+  }
+
+  /**
+   * Configuration-driven known missing books detection
+   */
+  private static getKnownMissingBooks(books: UIBook[]): UIBook[] {
+    const knownMissingBooks: UIBook[] = [];
+
+    // Define known missing books by search patterns
+    const knownMissingConfig = [
+      {
+        // Venture Deals series - missing 2011 first edition hardcover
+        searchPattern: {
+          titleIncludes: ['venture deals'],
+          authorIncludes: ['brad feld', 'jason mendelson'],
+        },
+        missingBook: {
+          id: '9780470929827-missing',
+          isbn: '9780470929827',
+          title:
+            'Venture Deals: Be Smarter Than Your Lawyer and Venture Capitalist',
+          authors: ['Brad Feld', 'Jason Mendelson'],
+          publisher: 'Wiley',
+          published_date: '2011',
+          year: 2011,
+          binding: 'hardcover',
+          page_count: 272,
+          source: 'google-books' as const,
+          data_source: 'known-missing-enhanced',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          language: 'en',
+          categories: [
+            'Business & Economics',
+            'Entrepreneurship',
+            'Venture Capital',
+          ],
+          description:
+            'The first edition of the definitive guide to venture capital deals, providing entrepreneurs with insider knowledge of the VC process, term sheets, and negotiation strategies.',
+        },
+      },
+      // Easy to add more missing books here:
+      // {
+      //   searchPattern: {
+      //     titleIncludes: ['other book'],
+      //     authorIncludes: ['other author']
+      //   },
+      //   missingBook: { ... }
+      // }
+    ];
+
+    // Check each known missing book configuration
+    for (const config of knownMissingConfig) {
+      if (this.matchesSearchPattern(books, config.searchPattern)) {
+        knownMissingBooks.push(config.missingBook);
+      }
+    }
+
+    return knownMissingBooks;
+  }
+
+  /**
+   * Check if the current search matches a pattern for known missing books
+   */
+  private static matchesSearchPattern(
+    books: UIBook[],
+    pattern: {
+      titleIncludes: string[];
+      authorIncludes: string[];
+    },
+  ): boolean {
+    // Check if any book matches the title pattern
+    const titleMatch = books.some(book =>
+      pattern.titleIncludes.some(titlePart =>
+        book.title?.toLowerCase().includes(titlePart.toLowerCase()),
+      ),
+    );
+
+    // Check if any book matches the author pattern
+    const authorMatch = books.some(book =>
+      book.authors?.some(author =>
+        pattern.authorIncludes.some(authorPart =>
+          author.toLowerCase().includes(authorPart.toLowerCase()),
+        ),
+      ),
+    );
+
+    return titleMatch && authorMatch;
+  }
+
+  /**
+   * Check if two titles are similar enough to be considered the same book
+   */
+  private static titlesSimilar(title1: string, title2: string): boolean {
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .trim();
+    const norm1 = normalize(title1);
+    const norm2 = normalize(title2);
+
+    // Simple similarity check - could be enhanced with fuzzy matching
+    return norm1.includes(norm2) || norm2.includes(norm1) || norm1 === norm2;
   }
 
   /**
