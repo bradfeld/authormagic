@@ -41,17 +41,18 @@ export class SmartEnhancementService {
    * Enhance books using Google Books ISBN lookup
    */
   static async enhanceBooks(books: UIBook[]): Promise<UIBook[]> {
-    const candidates = this.detectEnhancementCandidates(books);
+    // FIRST: Add known missing critical books
+    const booksWithKnownMissing = this.addKnownMissingBooks(books);
+
+    // THEN: Detect enhancement candidates from the expanded list (including newly added books)
+    const candidates = this.detectEnhancementCandidates(booksWithKnownMissing);
 
     if (candidates.length === 0) {
-      return books;
+      return booksWithKnownMissing;
     }
 
-    // Check for known missing critical books and add them if needed
-    const enhancedWithKnownBooks = this.addKnownMissingBooks(books);
-
-    const enhancementPromises = enhancedWithKnownBooks.map(async book => {
-      // Only enhance candidates
+    const enhancementPromises = booksWithKnownMissing.map(async book => {
+      // Only enhance candidates (now includes newly added known missing books)
       if (!candidates.includes(book)) {
         return book;
       }
@@ -77,7 +78,7 @@ export class SmartEnhancementService {
       return await Promise.race([enhancementPromise, timeoutPromise]);
     } catch {
       // If timeout or error, return books with known additions
-      return enhancedWithKnownBooks;
+      return booksWithKnownMissing;
     }
   }
 
