@@ -18,6 +18,7 @@ import {
   EditionDetectionService,
   EditionGroup,
 } from './edition-detection.service';
+import { SmartEnhancementService } from './smart-enhancement.service';
 
 export class PrimaryBookService {
   private static _supabase: ReturnType<typeof createServiceClient> | null =
@@ -40,8 +41,14 @@ export class PrimaryBookService {
     searchResults: UIBook[],
     selectedEditionNumber?: number,
   ): Promise<PrimaryBook> {
+    // Apply Smart Enhancement to ensure consistency with search results
+    const enhancedSearchResults =
+      await SmartEnhancementService.enhanceBooks(searchResults);
+
     // Group books by edition
-    const editionGroups = EditionDetectionService.groupByEdition(searchResults);
+    const editionGroups = EditionDetectionService.groupByEdition(
+      enhancedSearchResults,
+    );
 
     // Create primary book record
     const primaryBookData: PrimaryBookInsert = {
@@ -134,8 +141,14 @@ export class PrimaryBookService {
     primaryBookId: string,
     searchResults: UIBook[],
   ): Promise<PrimaryBook> {
+    // Apply Smart Enhancement to ensure consistency with search results
+    const enhancedSearchResults =
+      await SmartEnhancementService.enhanceBooks(searchResults);
+
     // Group books by edition
-    const editionGroups = EditionDetectionService.groupByEdition(searchResults);
+    const editionGroups = EditionDetectionService.groupByEdition(
+      enhancedSearchResults,
+    );
 
     // Add new editions and bindings (existing ones will be skipped due to unique constraints)
     await this.createEditionsWithBindings(primaryBookId, editionGroups);
@@ -404,7 +417,7 @@ export class PrimaryBookService {
       const bindingData: PrimaryBookBindingInsert[] = group.books.map(book => ({
         book_edition_id: edition.id,
         isbn: book.isbn13 || book.isbn,
-        binding_type: PrimaryBookService.normalizeBindingType(
+        binding_type: EditionDetectionService.normalizeBindingType(
           book.print_type || book.binding,
         ),
         price: book.msrp ? parseFloat(book.msrp.toString()) : undefined,
@@ -497,44 +510,6 @@ export class PrimaryBookService {
     const suffix = ['th', 'st', 'nd', 'rd'];
     const v = num % 100;
     return num + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
-  }
-
-  /**
-   * Normalize binding type to consistent values
-   */
-  private static normalizeBindingType(binding?: string): string {
-    if (!binding) return 'unknown';
-
-    const normalized = binding.toLowerCase().trim();
-
-    // Map common variations to standard types
-    const bindingMap: { [key: string]: string } = {
-      hardcover: 'hardcover',
-      hardback: 'hardcover',
-      'hard cover': 'hardcover',
-      hc: 'hardcover',
-
-      paperback: 'paperback',
-      softcover: 'paperback',
-      'soft cover': 'paperback',
-      pb: 'paperback',
-      'trade paperback': 'paperback',
-
-      ebook: 'ebook',
-      'e-book': 'ebook',
-      digital: 'ebook',
-      kindle: 'ebook',
-
-      audiobook: 'audiobook',
-      'audio book': 'audiobook',
-      audio: 'audiobook',
-
-      'mass market': 'mass market paperback',
-      'mass market paperback': 'mass market paperback',
-      mmpb: 'mass market paperback',
-    };
-
-    return bindingMap[normalized] || normalized;
   }
 
   /**
