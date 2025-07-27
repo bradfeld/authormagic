@@ -7,7 +7,7 @@ import { UIBook } from '@/lib/types/ui-book';
 // Development logging helper
 const devLog = (message: string) => {
   if (process.env.NODE_ENV === 'development') {
-    devLog(message);
+    console.log(message);
   }
 };
 
