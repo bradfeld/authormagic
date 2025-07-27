@@ -6,6 +6,13 @@
 import { BookEdition, BookBinding } from '@/lib/types/primary-book';
 import { UIBook } from '@/lib/types/ui-book';
 
+// Development logging helper
+const devLog = (message: string) => {
+  if (process.env.NODE_ENV === 'development') {
+    devLog(message);
+  }
+};
+
 export interface EditionGroup {
   edition_number: number;
   edition_type?: string; // For special editions like "unabridged", "revised", etc.
@@ -18,37 +25,56 @@ export class EditionDetectionService {
    * Main entry point: Group books by edition using explicit edition number parsing
    */
   static groupByEdition(books: UIBook[]): EditionGroup[] {
+    const startTime = performance.now();
+    devLog(`📚 EDITION DETECTION: Starting with ${books?.length || 0} books`);
+
     if (!books || books.length === 0) return [];
 
     // Step 1: Filter and clean the book data
+    const step1Start = performance.now();
     const cleanBooks = this.filterAndCleanBooks(books);
-
-    // Remove debug logging
+    const step1Time = performance.now() - step1Start;
 
     // Step 2: NORMALIZE AND CONSOLIDATE messy data (respecting unique ISBNs)
+    const step2Start = performance.now();
     const normalizedBooks = this.normalizeAndConsolidateBooks(cleanBooks);
+    const step2Time = performance.now() - step2Start;
 
     // Step 3: Normalize and group books by title similarity
+    const step3Start = performance.now();
     const titleGroups = this.groupByNormalizedTitle(normalizedBooks);
-
-    // Removed debug logging
+    const step3Time = performance.now() - step3Start;
 
     const editionGroups: EditionGroup[] = [];
 
     // Step 4: For each title group, create edition groups using explicit edition parsing
+    const step4Start = performance.now();
     for (const titleBooks of titleGroups.values()) {
       const groups = this.createEditionGroupsByExplicitNumbers(titleBooks);
       editionGroups.push(...groups);
     }
-
-    // Step 6: Removed manual book additions - using algorithmic matching
+    const step4Time = performance.now() - step4Start;
 
     // Step 7: Sort edition groups by edition number (newest first)
-    return editionGroups.sort((a, b) => {
+    const step7Start = performance.now();
+    const sortedGroups = editionGroups.sort((a, b) => {
       const editionA = a.edition_number || 0;
       const editionB = b.edition_number || 0;
       return editionB - editionA; // Newest edition first
     });
+    const step7Time = performance.now() - step7Start;
+
+    const totalTime = performance.now() - startTime;
+
+    devLog(`📚 EDITION DETECTION BREAKDOWN (${totalTime.toFixed(2)}ms total):
+🧹 Step 1 - Filter/Clean: ${step1Time.toFixed(2)}ms (${books.length} → ${cleanBooks.length} books)
+🔄 Step 2 - Normalize/Consolidate: ${step2Time.toFixed(2)}ms (${cleanBooks.length} → ${normalizedBooks.length} books)
+📝 Step 3 - Title Grouping: ${step3Time.toFixed(2)}ms (${normalizedBooks.length} books → ${titleGroups.size} title groups)
+📚 Step 4 - Edition Grouping: ${step4Time.toFixed(2)}ms (${titleGroups.size} title groups → ${editionGroups.length} edition groups)
+🔀 Step 7 - Sorting: ${step7Time.toFixed(2)}ms
+🎯 Final Result: ${sortedGroups.length} edition groups`);
+
+    return sortedGroups;
   }
 
   /**

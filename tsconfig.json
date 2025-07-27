@@ -44,5 +44,5 @@
     ".next/types/**/*.ts",
     "src/setupTests.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "supabase/functions"]
 }
