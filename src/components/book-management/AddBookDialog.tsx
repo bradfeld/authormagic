@@ -118,21 +118,81 @@ export function AddBookDialog({
       // Flatten all books from all edition groups to pass to the API
       const allBooks = editionGroups.flatMap(edition => edition.books);
 
+      // Normalize language codes to 2-character ISO codes for validation
+      const normalizeLanguage = (lang?: string): string | undefined => {
+        if (!lang) return undefined;
+        // Convert common language names/codes to 2-character ISO codes
+        const langMap: { [key: string]: string } = {
+          english: 'en',
+          'en-us': 'en',
+          'en-gb': 'en',
+          'english (united states)': 'en',
+          spanish: 'es',
+          french: 'fr',
+          german: 'de',
+          italian: 'it',
+          portuguese: 'pt',
+          russian: 'ru',
+          chinese: 'zh',
+          japanese: 'ja',
+          korean: 'ko',
+        };
+
+        const normalized = lang.toLowerCase();
+        if (langMap[normalized]) return langMap[normalized];
+
+        // If already 2 characters, return as-is
+        if (lang.length === 2) return lang.toLowerCase();
+
+        // Extract first 2 characters for longer codes
+        return lang.substring(0, 2).toLowerCase();
+      };
+
+      // Normalize language codes in book data
+      const normalizeBookLanguage = (book: any) => ({
+        ...book,
+        language: normalizeLanguage(book.language),
+      });
+
+      const normalizedPrimaryBook = normalizeBookLanguage(primaryBook);
+      const normalizedAllBooks = allBooks.map(normalizeBookLanguage);
+
       // Store the primary book with all edition data for the PrimaryBookService
       const response = await fetch('/api/books', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          book: { ...primaryBook },
-          allEditionData: allBooks, // Pass all books for the PrimaryBookService to process
+          book: normalizedPrimaryBook,
+          allEditionData: normalizedAllBooks,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Failed to add book: ${response.status}`,
-        );
+        let errorMessage = `Failed to add book: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            // If error is a JSON string, try to parse it for better readability
+            if (
+              typeof errorData.error === 'string' &&
+              errorData.error.startsWith('[')
+            ) {
+              try {
+                const parsedErrors = JSON.parse(errorData.error);
+                errorMessage = parsedErrors
+                  .map((err: any) => err.message)
+                  .join(', ');
+              } catch {
+                errorMessage = errorData.error;
+              }
+            } else {
+              errorMessage = errorData.error;
+            }
+          }
+        } catch {
+          // If JSON parsing fails, use the status code message
+        }
+        throw new Error(errorMessage);
       }
 
       await response.json();
