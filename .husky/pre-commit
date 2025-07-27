@@ -1,5 +1,24 @@
 #!/usr/bin/env sh
 
+# Prevent direct commits to main branch
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" = "main" ]; then
+  echo ""
+  echo "❌ BLOCKED: Direct commits to main branch are prohibited!"
+  echo ""
+  echo "🚀 You just deployed to production - work on a feature branch instead:"
+  echo "   git checkout -b fix/your-fix-name"
+  echo "   git checkout -b feature/your-feature-name"
+  echo ""
+  echo "💡 Current workflow:"
+  echo "   1. Create feature branch from main"
+  echo "   2. Make changes and commit to feature branch"
+  echo "   3. Test thoroughly in dev environment"
+  echo "   4. Merge to main only when ready for production"
+  echo ""
+  exit 1
+fi
+
 echo "🔍 Running pre-commit validations..."
 
 # Run lint-staged for staged files
