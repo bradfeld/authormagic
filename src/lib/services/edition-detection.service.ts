@@ -1320,8 +1320,8 @@ export class EditionDetectionService {
               ),
             );
 
-            // Domestic editions: require 0.85+ similarity
-            if (titleSimilarity >= 0.85) {
+            // Domestic editions: require 0.5+ similarity (more lenient to capture legitimate bindings)
+            if (titleSimilarity >= 0.5) {
               targetEdition = currentEdition.edition;
               break;
             }
