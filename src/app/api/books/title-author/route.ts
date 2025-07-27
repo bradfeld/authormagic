@@ -5,6 +5,7 @@ import { EditionDetectionService } from '@/lib/services/edition-detection.servic
 import { GoogleBooksService } from '@/lib/services/google-books.service';
 import { ImageEnhancementQueueService } from '@/lib/services/image-enhancement-queue.service';
 import { isbnDbService } from '@/lib/services/isbn-db.service';
+import { SmartEnhancementService } from '@/lib/services/smart-enhancement.service';
 import { ISBNDBBookResponse } from '@/lib/types/api';
 import { convertISBNDBToUIBook, UIBook } from '@/lib/types/ui-book';
 
@@ -174,10 +175,23 @@ export async function GET(request: NextRequest) {
     let enhancedPrimaryBooks: UIBook[];
 
     try {
-      // Add 5-second timeout for entire enhancement process
+      // PHASE 1: Smart Enhancement for missing critical data (publication year, images, etc.)
+      const smartEnhancementStart = performance.now();
+      const smartEnhancedBooks =
+        await SmartEnhancementService.enhanceBooks(primaryBooks);
+      const smartEnhancementTime = performance.now() - smartEnhancementStart;
+
+      const smartSummary = SmartEnhancementService.getEnhancementSummary(
+        primaryBooks,
+        smartEnhancedBooks,
+      );
+      devLog(`${smartSummary} in ${smartEnhancementTime.toFixed(2)}ms`);
+
+      // PHASE 2: ISBNDB Image Enhancement (fallback for remaining missing images)
+      const isbndbEnhancementStart = performance.now();
       const enhancementPromise = Promise.all(
-        primaryBooks.map(async book => {
-          // Only enhance ISBNDB books that lack images
+        smartEnhancedBooks.map(async book => {
+          // Only enhance ISBNDB books that still lack images after smart enhancement
           if (book.source === 'isbn-db' && !book.image && book.isbn) {
             try {
               const directLookup = await isbnDbService.getBookByISBN(book.isbn);
@@ -208,8 +222,11 @@ export async function GET(request: NextRequest) {
         timeoutPromise,
       ]);
 
+      const isbndbEnhancementTime = performance.now() - isbndbEnhancementStart;
+      const totalEnhancementTime = performance.now() - enhancementStart;
+
       devLog(
-        `📈 ENHANCEMENT: Successfully enhanced ${enhancedPrimaryBooks.length} primary books in ${(performance.now() - enhancementStart).toFixed(2)}ms`,
+        `📈 ENHANCEMENT: Successfully enhanced ${enhancedPrimaryBooks.length} primary books in ${totalEnhancementTime.toFixed(2)}ms (Smart: ${smartEnhancementTime.toFixed(2)}ms, ISBNDB: ${isbndbEnhancementTime.toFixed(2)}ms)`,
       );
     } catch {
       // If enhancement times out or fails, use original primary books

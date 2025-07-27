@@ -67,9 +67,9 @@ export class GoogleBooksService {
     }
   }
 
-  // Check if Google Books API is properly configured
+  // Check if Google Books API is available (works without API key for basic searches)
   isAvailable(): boolean {
-    return Boolean(this.apiKey);
+    return true; // Google Books API works without API key for basic functionality
   }
 
   // Search books by title and author
@@ -134,10 +134,10 @@ export class GoogleBooksService {
     title: string,
     author?: string,
   ): Promise<ApiResponse<UIBook[]>> {
-    // Build search query - use more flexible search for better coverage
-    let query = `"${title}"`;
+    // Build search query - use simple space-separated format for better results
+    let query = title;
     if (author) {
-      query += ` "${author}"`;
+      query += ` ${author}`;
     }
 
     const url = new URL(`${this.baseUrl}/volumes`);
