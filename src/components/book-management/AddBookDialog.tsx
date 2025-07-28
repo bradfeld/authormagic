@@ -178,17 +178,26 @@ export function AddBookDialog({
               try {
                 const parsedErrors = JSON.parse(errorData.error);
                 errorMessage = parsedErrors
-                  .map((err: any) => err.message)
+                  .map((err: { message: string }) => err.message)
                   .join(', ');
               } catch {
                 errorMessage = errorData.error;
               }
-            } else {
+            } else if (typeof errorData.error === 'string') {
               errorMessage = errorData.error;
+            } else {
+              // Handle object errors
+              errorMessage = JSON.stringify(errorData.error);
             }
           }
         } catch {
-          // If JSON parsing fails, use the status code message
+          // If JSON parsing fails, use the response text
+          try {
+            const textError = await response.text();
+            errorMessage = textError || `HTTP ${response.status}`;
+          } catch {
+            errorMessage = `HTTP ${response.status}`;
+          }
         }
         throw new Error(errorMessage);
       }
