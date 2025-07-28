@@ -102,19 +102,12 @@ const navigationItems: NavigationItem[] = [
   },
 ];
 
-export function Sidebar({
+// CI-safe wrapper component
+function SidebarContent({
   collapsed: controlledCollapsed,
   onCollapsedChange,
 }: SidebarProps) {
-  // Always call useUser hook to satisfy React Hooks rules
-  const userData = useUser();
-
-  // Handle CI builds where Clerk is disabled
-  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
-
-  // Use mock data in CI, real data otherwise
-  const { user } = isCI ? { user: null } : userData;
-
+  const { user } = useUser();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
@@ -134,7 +127,7 @@ export function Sidebar({
   // Check if user is admin using the proper role-based system
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (isCI || !user?.id) {
+      if (!user?.id) {
         setIsAdmin(false);
         setAdminCheckLoading(false);
         return;
@@ -173,7 +166,7 @@ export function Sidebar({
     };
 
     checkAdminStatus();
-  }, [user?.id, user?.emailAddresses, isCI]);
+  }, [user?.id, user?.emailAddresses]);
 
   // Auto-expand admin menu if we're on an admin page
   useEffect(() => {
@@ -352,22 +345,17 @@ export function Sidebar({
             <Avatar className="h-8 w-8">
               <AvatarImage src={user?.imageUrl} />
               <AvatarFallback className="text-xs">
-                {isCI
-                  ? 'U'
-                  : `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`}
+                {user?.firstName?.[0] || ''}
+                {user?.lastName?.[0] || ''}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900">
-                {isCI
-                  ? 'User Name'
-                  : user?.fullName ||
-                    `${user?.firstName || ''} ${user?.lastName || ''}`}
+                {user?.fullName ||
+                  `${user?.firstName || ''} ${user?.lastName || ''}`}
               </p>
               <p className="truncate text-xs text-gray-500">
-                {isCI
-                  ? 'user@example.com'
-                  : user?.emailAddresses?.[0]?.emailAddress}
+                {user?.emailAddresses?.[0]?.emailAddress}
                 {isAdmin && !adminCheckLoading && (
                   <span className="ml-1 font-medium text-blue-600">Admin</span>
                 )}
@@ -379,14 +367,113 @@ export function Sidebar({
             <Avatar className="h-8 w-8">
               <AvatarImage src={user?.imageUrl} />
               <AvatarFallback className="text-xs">
-                {isCI
-                  ? 'U'
-                  : `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`}
+                {user?.firstName?.[0] || ''}
+                {user?.lastName?.[0] || ''}
               </AvatarFallback>
             </Avatar>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export function Sidebar({
+  collapsed: controlledCollapsed,
+  onCollapsedChange,
+}: SidebarProps) {
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  if (isCI) {
+    // Return CI-safe version without Clerk hooks
+    const collapsed = controlledCollapsed ?? false;
+
+    return (
+      <div
+        className={cn(
+          'flex h-screen flex-col border-r border-gray-200 bg-white transition-all duration-200 ease-in-out',
+          collapsed ? 'w-16' : 'w-64',
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-200 p-4">
+          {!collapsed && (
+            <div className="flex items-center space-x-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-black">
+                <span className="text-xs font-bold text-white">A</span>
+              </div>
+              <span className="font-semibold text-gray-900">AuthorMagic</span>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onCollapsedChange && onCollapsedChange(!collapsed)}
+            className={cn(
+              'h-8 w-8 transition-transform duration-200',
+              collapsed && 'rotate-180',
+            )}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 p-2">
+          {navigationItems.map(item => {
+            // Skip admin items in CI
+            if (item.adminOnly) return null;
+
+            if (item.href) {
+              return (
+                <Link key={item.name} href={item.href}>
+                  <div className="flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                    <item.icon
+                      className={cn('h-5 w-5', !collapsed && 'mr-3')}
+                    />
+                    {!collapsed && <span className="flex-1">{item.name}</span>}
+                  </div>
+                </Link>
+              );
+            }
+            return null;
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-4">
+          {!collapsed ? (
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs">U</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">
+                  User Name
+                </p>
+                <p className="truncate text-xs text-gray-500">
+                  user@example.com
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs">U</AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Return normal component with Clerk hooks for non-CI builds
+  return (
+    <SidebarContent
+      collapsed={controlledCollapsed}
+      onCollapsedChange={onCollapsedChange}
+    />
   );
 }

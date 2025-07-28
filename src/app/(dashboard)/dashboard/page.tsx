@@ -8,35 +8,26 @@ import { BookLibraryGrid } from '@/components/dashboard/BookLibraryGrid';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SimplifiedBook } from '@/lib/types/book';
 
-export default function DashboardPage() {
-  // Always call useUser to satisfy React Hooks rules
-  const clerkHookData = useUser();
-
-  // Handle CI builds where Clerk is disabled
-  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
-
-  // Use mock data in CI, real data otherwise
-  const { user, isLoaded } = isCI
-    ? { user: null, isLoaded: true }
-    : clerkHookData;
-
+// CI-safe wrapper component
+function DashboardPageContent() {
+  const { user, isLoaded } = useUser();
   const router = useRouter();
   const [books, setBooks] = useState<SimplifiedBook[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [booksError, setBooksError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isCI && isLoaded && !user) {
+    if (isLoaded && !user) {
       router.push('/sign-in');
     }
-  }, [isLoaded, user, router, isCI]);
+  }, [isLoaded, user, router]);
 
-  // Fetch books when user is loaded (skip in CI)
+  // Fetch books when user is loaded
   useEffect(() => {
-    if (!isCI && user && isLoaded) {
+    if (user && isLoaded) {
       fetchBooks();
     }
-  }, [user, isLoaded, isCI]);
+  }, [user, isLoaded]);
 
   const fetchBooks = async () => {
     setBooksLoading(true);
@@ -57,25 +48,6 @@ export default function DashboardPage() {
       setBooksLoading(false);
     }
   };
-
-  // Show placeholder content during CI builds
-  if (isCI) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">
-              Welcome back, Author! Here&apos;s your author overview.
-            </p>
-          </div>
-          <div className="w-full">
-            <BookLibraryGrid books={[]} onRefresh={() => {}} />
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   if (!isLoaded) {
     return (
@@ -144,4 +116,31 @@ export default function DashboardPage() {
       </div>
     </DashboardLayout>
   );
+}
+
+export default function DashboardPage() {
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  if (isCI) {
+    // Return CI-safe version without Clerk hooks
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">
+              Welcome back, Author! Here&apos;s your author overview.
+            </p>
+          </div>
+          <div className="w-full">
+            <BookLibraryGrid books={[]} onRefresh={() => {}} />
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Return normal component with Clerk hooks for non-CI builds
+  return <DashboardPageContent />;
 }

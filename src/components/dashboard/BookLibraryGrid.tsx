@@ -15,7 +15,8 @@ interface BookLibraryGridProps {
   onRefresh?: () => void;
 }
 
-export function BookLibraryGrid({
+// CI-safe wrapper component
+function BookLibraryGridContent({
   books,
   isLoading,
   onRefresh,
@@ -29,6 +30,7 @@ export function BookLibraryGrid({
       onRefresh();
     }
   };
+
   // Loading state
   if (isLoading) {
     return (
@@ -115,5 +117,92 @@ export function BookLibraryGrid({
         ))}
       </div>
     </div>
+  );
+}
+
+export function BookLibraryGrid({
+  books,
+  isLoading,
+  onRefresh,
+}: BookLibraryGridProps) {
+  // Always call useState to satisfy React Hooks rules
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_addDialogOpen, _setAddDialogOpen] = useState(false);
+
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  if (isCI) {
+    // Return CI-safe version without Clerk hooks
+
+    // Loading state
+    if (isLoading) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-end">
+            <Button disabled>Add Book</Button>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-64 animate-pulse rounded-lg bg-gray-100"
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Empty state (CI version)
+    if (!books || books.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+              <span className="text-4xl">📚</span>
+            </div>
+            <h3 className="mb-2 text-xl font-semibold">
+              No books in your collection yet
+            </h3>
+            <p className="mb-6 max-w-md text-gray-600">
+              Start building your book collection by searching for and adding
+              your published works. Each book you add will help you track
+              editions, formats, and marketing opportunities.
+            </p>
+            <Button disabled size="lg">
+              Add Your First Book
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Books display (CI version)
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            {books.length} {books.length === 1 ? 'book' : 'books'}
+          </div>
+          <Button disabled>Add Book</Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {books.map(book => (
+            <BookCard key={book.id} book={book} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Return normal component with Clerk hooks for non-CI builds
+  return (
+    <BookLibraryGridContent
+      books={books}
+      isLoading={isLoading}
+      onRefresh={onRefresh}
+    />
   );
 }

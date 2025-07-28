@@ -3,24 +3,16 @@
 import { UserButton, useAuth, useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 
-export function CustomUserButton() {
-  // Always call Clerk hooks to satisfy React Hooks rules
-  const authData = useAuth();
-  const userData = useUser();
-
-  // Handle CI builds where Clerk is disabled
-  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
-
-  // Use mock data in CI, real data otherwise
-  const { isLoaded: authLoaded } = isCI ? { isLoaded: true } : authData;
-  const { user } = isCI ? { user: null } : userData;
-
+// CI-safe wrapper component
+function CustomUserButtonContent() {
+  const { isLoaded: authLoaded } = useAuth();
+  const { user } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoaded, setAdminCheckLoaded] = useState(false);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (isCI || !user?.id) {
+      if (!user?.id) {
         setAdminCheckLoaded(true);
         return;
       }
@@ -36,15 +28,10 @@ export function CustomUserButton() {
       }
     };
 
-    if (authLoaded && (user || isCI)) {
+    if (authLoaded && user) {
       checkAdminStatus();
     }
-  }, [authLoaded, user, isCI]);
-
-  // Show placeholder during CI builds
-  if (isCI) {
-    return <div className="h-10 w-10 rounded-full bg-gray-200" />;
-  }
+  }, [authLoaded, user]);
 
   if (!authLoaded || !adminCheckLoaded) {
     return <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />;
@@ -81,4 +68,17 @@ export function CustomUserButton() {
       </UserButton.MenuItems>
     </UserButton>
   );
+}
+
+export function CustomUserButton() {
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  if (isCI) {
+    // Show placeholder during CI builds
+    return <div className="h-10 w-10 rounded-full bg-gray-200" />;
+  }
+
+  // Return normal component with Clerk hooks for non-CI builds
+  return <CustomUserButtonContent />;
 }
