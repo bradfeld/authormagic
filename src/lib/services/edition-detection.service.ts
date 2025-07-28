@@ -6,13 +6,9 @@
 import { BookEdition, BookBinding } from '@/lib/types/book';
 import { UIBook } from '@/lib/types/ui-book';
 
-// Development logging helper
-const devLog = (message: string) => {
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.log(message);
-  }
-};
+// Edition detection logging removed for production build
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const devLog = (..._args: unknown[]) => {}; // No-op function for production
 
 export interface EditionGroup {
   edition_number: number;

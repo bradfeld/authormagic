@@ -12,405 +12,47 @@ export type Database = {
       authors: {
         Row: {
           id: string;
-          clerk_user_id: string;
+          user_id: string;
+          name: string;
           bio: string | null;
-          website_url: string | null;
-          twitter_username: string | null;
-          linkedin_url: string | null;
-          facebook_url: string | null;
-          github_username: string | null;
-          goodreads_url: string | null;
-          amazon_author_url: string | null;
-          created_at: string;
-          updated_at: string;
-          // Waitlist system fields
-          status: 'waitlisted' | 'approved' | 'blocked';
+          website: string | null;
+          social_links: Json | null;
+          status: string | null;
           waitlist_position: number | null;
           approved_at: string | null;
-          admin_notes: string | null;
+          clerk_user_id: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
-          clerk_user_id: string;
+          user_id: string;
+          name: string;
           bio?: string | null;
-          website_url?: string | null;
-          twitter_username?: string | null;
-          linkedin_url?: string | null;
-          facebook_url?: string | null;
-          github_username?: string | null;
-          goodreads_url?: string | null;
-          amazon_author_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          // Waitlist system fields
-          status?: 'waitlisted' | 'approved' | 'blocked';
+          website?: string | null;
+          social_links?: Json | null;
+          status?: string | null;
           waitlist_position?: number | null;
           approved_at?: string | null;
-          admin_notes?: string | null;
+          clerk_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
-          clerk_user_id?: string;
+          user_id?: string;
+          name?: string;
           bio?: string | null;
-          website_url?: string | null;
-          twitter_username?: string | null;
-          linkedin_url?: string | null;
-          facebook_url?: string | null;
-          github_username?: string | null;
-          goodreads_url?: string | null;
-          amazon_author_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          // Waitlist system fields
-          status?: 'waitlisted' | 'approved' | 'blocked';
+          website?: string | null;
+          social_links?: Json | null;
+          status?: string | null;
           waitlist_position?: number | null;
           approved_at?: string | null;
-          admin_notes?: string | null;
+          clerk_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
-      };
-
-      book_authors: {
-        Row: {
-          id: string;
-          book_id: string;
-          author_id: string;
-          author_role: string | null;
-          author_order: number | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          author_id: string;
-          author_role?: string | null;
-          author_order?: number | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          author_id?: string;
-          author_role?: string | null;
-          author_order?: number | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'book_authors_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'book_authors_author_id_fkey';
-            columns: ['author_id'];
-            isOneToOne: false;
-            referencedRelation: 'authors';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-
-      external_book_data: {
-        Row: {
-          id: string;
-          book_id: string;
-          source: string;
-          external_id: string;
-          data: Json;
-          last_synced: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          source: string;
-          external_id: string;
-          data: Json;
-          last_synced?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          source?: string;
-          external_id?: string;
-          data?: Json;
-          last_synced?: string | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'external_book_data_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      sales_data: {
-        Row: {
-          id: string;
-          book_id: string;
-          platform: string;
-          sales_count: number | null;
-          revenue: number | null;
-          date: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          platform: string;
-          sales_count?: number | null;
-          revenue?: number | null;
-          date: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          platform?: string;
-          sales_count?: number | null;
-          revenue?: number | null;
-          date?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'sales_data_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      marketing_campaigns: {
-        Row: {
-          id: string;
-          book_id: string;
-          name: string;
-          type: string;
-          status: string | null;
-          start_date: string | null;
-          end_date: string | null;
-          budget: number | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          name: string;
-          type: string;
-          status?: string | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          budget?: number | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          name?: string;
-          type?: string;
-          status?: string | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          budget?: number | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'marketing_campaigns_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      media_contacts: {
-        Row: {
-          id: string;
-          author_id: string;
-          name: string;
-          email: string | null;
-          organization: string | null;
-          type: string | null;
-          notes: string | null;
-          contacted_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          author_id: string;
-          name: string;
-          email?: string | null;
-          organization?: string | null;
-          type?: string | null;
-          notes?: string | null;
-          contacted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          author_id?: string;
-          name?: string;
-          email?: string | null;
-          organization?: string | null;
-          type?: string | null;
-          notes?: string | null;
-          contacted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'media_contacts_author_id_fkey';
-            columns: ['author_id'];
-            isOneToOne: false;
-            referencedRelation: 'authors';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      events: {
-        Row: {
-          id: string;
-          book_id: string;
-          title: string;
-          description: string | null;
-          event_type: string | null;
-          date: string | null;
-          time: string | null;
-          location: string | null;
-          status: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          title: string;
-          description?: string | null;
-          event_type?: string | null;
-          date?: string | null;
-          time?: string | null;
-          location?: string | null;
-          status?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          title?: string;
-          description?: string | null;
-          event_type?: string | null;
-          date?: string | null;
-          time?: string | null;
-          location?: string | null;
-          status?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'events_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      website_analytics: {
-        Row: {
-          id: string;
-          author_id: string;
-          page_views: number | null;
-          unique_visitors: number | null;
-          bounce_rate: number | null;
-          conversion_rate: number | null;
-          date: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          author_id: string;
-          page_views?: number | null;
-          unique_visitors?: number | null;
-          bounce_rate?: number | null;
-          conversion_rate?: number | null;
-          date: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          author_id?: string;
-          page_views?: number | null;
-          unique_visitors?: number | null;
-          bounce_rate?: number | null;
-          conversion_rate?: number | null;
-          date?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'website_analytics_author_id_fkey';
-            columns: ['author_id'];
-            isOneToOne: false;
-            referencedRelation: 'authors';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      content_generated: {
-        Row: {
-          id: string;
-          book_id: string;
-          content_type: string;
-          content: string;
-          platform: string | null;
-          used: boolean | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          content_type: string;
-          content: string;
-          platform?: string | null;
-          used?: boolean | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          content_type?: string;
-          content?: string;
-          platform?: string | null;
-          used?: boolean | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'content_generated_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       books: {
         Row: {
@@ -454,23 +96,26 @@ export type Database = {
         Row: {
           id: string;
           book_id: string;
-          edition_number: number;
+          edition_number: number | null;
           publication_year: number | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           book_id: string;
-          edition_number: number;
+          edition_number?: number | null;
           publication_year?: number | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           book_id?: string;
-          edition_number?: number;
+          edition_number?: number | null;
           publication_year?: number | null;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -486,41 +131,29 @@ export type Database = {
         Row: {
           id: string;
           book_edition_id: string;
-          isbn: string | null;
+          isbn: string;
           binding_type: string;
-          price: number | null;
-          publisher: string | null;
           cover_image_url: string | null;
-          description: string | null;
-          pages: number | null;
-          language: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           book_edition_id: string;
-          isbn?: string | null;
+          isbn: string;
           binding_type: string;
-          price?: number | null;
-          publisher?: string | null;
           cover_image_url?: string | null;
-          description?: string | null;
-          pages?: number | null;
-          language?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           book_edition_id?: string;
-          isbn?: string | null;
+          isbn?: string;
           binding_type?: string;
-          price?: number | null;
-          publisher?: string | null;
           cover_image_url?: string | null;
-          description?: string | null;
-          pages?: number | null;
-          language?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -535,30 +168,27 @@ export type Database = {
       user_roles: {
         Row: {
           id: string;
-          clerk_user_id: string;
-          role: 'admin' | 'user';
+          user_id: string;
+          role: string;
+          clerk_user_id: string | null;
           granted_by: string | null;
-          granted_at: string;
           created_at: string;
-          updated_at: string;
         };
         Insert: {
           id?: string;
-          clerk_user_id: string;
-          role: 'admin' | 'user';
+          user_id?: string;
+          role: string;
+          clerk_user_id?: string | null;
           granted_by?: string | null;
-          granted_at?: string;
           created_at?: string;
-          updated_at?: string;
         };
         Update: {
           id?: string;
-          clerk_user_id?: string;
-          role?: 'admin' | 'user';
+          user_id?: string;
+          role?: string;
+          clerk_user_id?: string | null;
           granted_by?: string | null;
-          granted_at?: string;
           created_at?: string;
-          updated_at?: string;
         };
         Relationships: [];
       };
@@ -567,12 +197,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      setup_initial_admin: {
-        Args: {
-          brad_clerk_user_id: string;
-        };
-        Returns: void;
-      };
+      [_ in never]: never;
     };
     Enums: {
       [_ in never]: never;
@@ -582,101 +207,3 @@ export type Database = {
     };
   };
 };
-
-// Type helpers
-export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof Database['public']['Tables']
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
-      Row: infer R;
-    }
-    ? R
-    : never
-  : PublicTableNameOrOptions extends keyof Database['public']['Tables']
-    ? Database['public']['Tables'][PublicTableNameOrOptions] extends {
-        Row: infer R;
-      }
-      ? R
-      : never
-    : never;
-
-export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof Database['public']['Tables']
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
-      Insert: infer I;
-    }
-    ? I
-    : never
-  : PublicTableNameOrOptions extends keyof Database['public']['Tables']
-    ? Database['public']['Tables'][PublicTableNameOrOptions] extends {
-        Insert: infer I;
-      }
-      ? I
-      : never
-    : never;
-
-export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof Database['public']['Tables']
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
-      Update: infer U;
-    }
-    ? U
-    : never
-  : PublicTableNameOrOptions extends keyof Database['public']['Tables']
-    ? Database['public']['Tables'][PublicTableNameOrOptions] extends {
-        Update: infer U;
-      }
-      ? U
-      : never
-    : never;
-
-export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof Database['public']['Enums']
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions['schema']]['Enums']
-    : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : PublicEnumNameOrOptions extends keyof Database['public']['Enums']
-    ? Database['public']['Enums'][PublicEnumNameOrOptions]
-    : never;
-
-// Convenient type aliases
-export type AuthorRow = Tables<'authors'>;
-// Author types (still used)
-export type AuthorInsert = TablesInsert<'authors'>;
-export type AuthorUpdate = TablesUpdate<'authors'>;
-
-// Books system types (actively used - renamed from primary_books)
-export type BookRow = Tables<'books'>;
-export type BookInsert = TablesInsert<'books'>;
-export type BookUpdate = TablesUpdate<'books'>;
-
-export type BookEditionRow = Tables<'book_editions'>;
-export type BookEditionInsert = TablesInsert<'book_editions'>;
-export type BookEditionUpdate = TablesUpdate<'book_editions'>;
-
-export type BookBindingRow = Tables<'book_bindings'>;
-export type BookBindingInsert = TablesInsert<'book_bindings'>;
-export type BookBindingUpdate = TablesUpdate<'book_bindings'>;
-
-// Legacy exports removed: BookRow, BookInsert, BookUpdate (old books table)

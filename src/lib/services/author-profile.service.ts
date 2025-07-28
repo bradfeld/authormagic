@@ -92,7 +92,7 @@ export class AuthorProfileService {
       const completeProfile: CompleteAuthorProfile = {
         // Supabase fields (minimal - just linking)
         id: supabaseProfile.id,
-        clerk_user_id: supabaseProfile.clerk_user_id,
+        clerk_user_id: supabaseProfile.user_id,
         created_at: supabaseProfile.created_at,
         updated_at: supabaseProfile.updated_at,
 

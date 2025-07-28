@@ -16,6 +16,7 @@ export async function GET() {
 
     return NextResponse.json({ books: userBooks });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching user books:', error);
     return NextResponse.json(
       { error: 'Failed to fetch books' },

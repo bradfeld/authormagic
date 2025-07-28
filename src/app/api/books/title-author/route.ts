@@ -9,12 +9,9 @@ import { SmartEnhancementService } from '@/lib/services/smart-enhancement.servic
 import { ISBNDBBookResponse } from '@/lib/types/api';
 import { convertISBNDBToUIBook, UIBook } from '@/lib/types/ui-book';
 
-// Development logging helper
-const devLog = (message: string) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(message);
-  }
-};
+// Performance logging removed for production build
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const devLog = (..._args: unknown[]) => {}; // No-op function for production
 
 export async function GET(request: NextRequest) {
   const startTime = performance.now();

@@ -80,7 +80,11 @@ export class WaitlistService {
       throw error;
     }
 
-    return data;
+    return data as {
+      status: UserStatus;
+      waitlist_position: number | null;
+      approved_at: string | null;
+    };
   }
 
   /**
@@ -115,7 +119,7 @@ export class WaitlistService {
       throw error;
     }
 
-    return data?.role || null;
+    return (data?.role as UserRole) || null;
   }
 
   /**
@@ -137,7 +141,7 @@ export class WaitlistService {
       throw error;
     }
 
-    return data || [];
+    return (data as { clerk_user_id: string; role: UserRole }[]) || [];
   }
 
   /**
@@ -233,6 +237,9 @@ export class WaitlistService {
     const enrichedAdmins = await Promise.all(
       adminUsers.map(async user => {
         try {
+          if (!user.clerk_user_id) {
+            throw new Error('No clerk_user_id for user');
+          }
           const client = await clerkClient();
           const clerkUser = await client.users.getUser(user.clerk_user_id);
 
@@ -244,6 +251,7 @@ export class WaitlistService {
               null,
             email: clerkUser.emailAddresses[0]?.emailAddress || null,
             profile_image_url: clerkUser.imageUrl || null,
+            admin_notes: null,
             role: 'admin' as const,
           };
         } catch {
@@ -252,13 +260,14 @@ export class WaitlistService {
             name: null,
             email: null,
             profile_image_url: null,
+            admin_notes: null,
             role: 'admin' as const,
           };
         }
       }),
     );
 
-    return enrichedAdmins;
+    return enrichedAdmins as WaitlistUser[];
   }
 
   /**
@@ -267,9 +276,12 @@ export class WaitlistService {
   async setupInitialAdmin(bradClerkUserId: string): Promise<void> {
     try {
       // Call the database function to setup initial admin
-      const { error } = await this.supabase.rpc('setup_initial_admin', {
-        brad_clerk_user_id: bradClerkUserId,
-      });
+      const { error } = await (this.supabase as any).rpc(
+        'setup_initial_admin',
+        {
+          brad_clerk_user_id: bradClerkUserId,
+        },
+      );
 
       if (error) {
         throw error;

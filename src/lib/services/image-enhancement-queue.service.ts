@@ -4,12 +4,9 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { UIBook } from '@/lib/types/ui-book';
 
-// Development logging helper
-const devLog = (message: string) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(message);
-  }
-};
+// Queue logging removed for production build
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const devLog = (..._args: unknown[]) => {}; // No-op function for production
 
 export interface EnhancementQueueJob {
   id: string;
