@@ -43,9 +43,19 @@ export const BookSchema = z.object({
   thumbnail: z.string().url('Invalid thumbnail URL').optional(),
 });
 
+// Edition Group schema for preserving search results structure
+export const EditionGroupSchema = z.object({
+  edition_number: z.number().int().positive(),
+  edition_type: z.string().optional(),
+  publication_year: z.number().int().min(1800).max(2030).optional(),
+  books: z.array(BookSchema).min(1, 'Edition must have at least one book'),
+});
+
 export const BookCreateRequestSchema = z.object({
   book: BookSchema,
-  allEditionData: z.array(BookSchema).optional(),
+  editionGroups: z
+    .array(EditionGroupSchema)
+    .min(1, 'At least one edition group required'),
 });
 
 // Profile-related schemas

@@ -18,7 +18,6 @@ import {
   EditionDetectionService,
   EditionGroup,
 } from './edition-detection.service';
-import { SmartEnhancementService } from './smart-enhancement.service';
 
 export class PrimaryBookService {
   private static _supabase: ReturnType<typeof createServiceClient> | null =
@@ -33,22 +32,17 @@ export class PrimaryBookService {
 
   /**
    * Create a new Primary Book with editions and bindings
+   * Uses pre-grouped edition data to preserve search results structure
    */
   static async createPrimaryBook(
     userId: string,
     title: string,
     author: string,
-    searchResults: UIBook[],
+    editionGroups: EditionGroup[],
     selectedEditionNumber?: number,
   ): Promise<PrimaryBook> {
-    // Apply Smart Enhancement to ensure consistency with search results
-    const enhancedSearchResults =
-      await SmartEnhancementService.enhanceBooks(searchResults);
-
-    // Group books by edition
-    const editionGroups = EditionDetectionService.groupByEdition(
-      enhancedSearchResults,
-    );
+    // Use the pre-grouped edition structure directly (no re-detection)
+    // This preserves the exact search results that the user saw
 
     // Create primary book record
     const primaryBookData: PrimaryBookInsert = {
@@ -71,7 +65,7 @@ export class PrimaryBookService {
       );
     }
 
-    // Create editions and bindings
+    // Create editions and bindings using the preserved structure
     const editions = await this.createEditionsWithBindings(
       primaryBook.id,
       editionGroups,
@@ -136,19 +130,14 @@ export class PrimaryBookService {
 
   /**
    * Update existing book with new edition data
+   * Uses pre-grouped edition data to preserve search results structure
    */
   static async updateBookWithNewEditions(
     primaryBookId: string,
-    searchResults: UIBook[],
+    editionGroups: EditionGroup[],
   ): Promise<PrimaryBook> {
-    // Apply Smart Enhancement to ensure consistency with search results
-    const enhancedSearchResults =
-      await SmartEnhancementService.enhanceBooks(searchResults);
-
-    // Group books by edition
-    const editionGroups = EditionDetectionService.groupByEdition(
-      enhancedSearchResults,
-    );
+    // Use the pre-grouped edition structure directly (no re-detection)
+    // This preserves the exact search results that the user saw
 
     // Add new editions and bindings (existing ones will be skipped due to unique constraints)
     await this.createEditionsWithBindings(primaryBookId, editionGroups);
@@ -210,6 +199,75 @@ export class PrimaryBookService {
         bindings: edition.bindings,
       })),
     }));
+  }
+
+  /**
+   * Get user's primary books for dashboard display (simplified structure)
+   */
+  static async getUserPrimaryBooksSimplified(userId: string) {
+    const { data: result, error } = await this.getSupabase()
+      .from('primary_books')
+      .select(
+        `
+        id,
+        title,
+        author,
+        created_at,
+        selected_edition_id,
+        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+          id,
+          edition_number,
+          publication_year,
+          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (
+            cover_image_url
+          )
+        )
+      `,
+      )
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch primary books: ${error.message}`);
+    }
+
+    return result.map(book => {
+      // Calculate totals
+      const totalEditions = book.editions?.length || 0;
+      const totalBooks =
+        book.editions?.reduce(
+          (total, edition) => total + (edition.bindings?.length || 0),
+          0,
+        ) || 0;
+
+      // Get primary edition (selected or latest by publication year)
+      const primaryEdition = book.selected_edition_id
+        ? book.editions?.find(e => e.id === book.selected_edition_id)
+        : book.editions?.sort(
+            (a, b) => (b.publication_year || 0) - (a.publication_year || 0),
+          )?.[0];
+
+      // Get cover image from any binding
+      const coverImage = book.editions
+        ?.flatMap(e => e.bindings || [])
+        ?.find(b => b.cover_image_url)?.cover_image_url;
+
+      return {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        created_at: book.created_at,
+        total_editions: totalEditions,
+        total_books: totalBooks,
+        primary_edition: primaryEdition
+          ? {
+              edition_number: primaryEdition.edition_number,
+              publication_year: primaryEdition.publication_year,
+            }
+          : null,
+        cover_image: coverImage || null,
+      };
+    });
   }
 
   /**
@@ -447,8 +505,7 @@ export class PrimaryBookService {
               await this.getSupabase()
                 .from('primary_book_bindings')
                 .select('*')
-                .eq('book_edition_id', edition.id)
-                .eq('binding_type', binding.binding_type)
+                .eq('isbn', binding.isbn)
                 .single();
 
             if (fetchError) {

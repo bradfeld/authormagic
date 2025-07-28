@@ -2,7 +2,6 @@ import { revalidatePath } from 'next/cache';
 import { NextRequest } from 'next/server';
 
 import { PrimaryBookService } from '@/lib/services/primary-book.service';
-import { UIBook } from '@/lib/types/ui-book';
 import { ApiErrorHandler, STATUS_CODES } from '@/lib/utils/api-error-handler';
 import {
   BookCreateRequestSchema,
@@ -34,25 +33,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { book, allEditionData } = validation.data;
+    const { book, editionGroups } = validation.data;
+
+    // Add IDs to books to match UIBook type (preserving structure)
+    const editionGroupsWithIds = editionGroups.map(editionGroup => ({
+      ...editionGroup,
+      books: editionGroup.books.map(bookData => ({
+        ...bookData,
+        id: crypto.randomUUID(), // Generate ID for UIBook compatibility
+      })),
+    }));
 
     // Extract title and author from validated data
     const title = book.title;
     const author = Array.isArray(book.authors)
       ? book.authors.join(', ')
       : book.authors[0] || 'Unknown Author';
-
-    // Convert validated books to UIBook format (adding IDs)
-    const convertToUIBook = (bookData: typeof book): UIBook => ({
-      ...bookData,
-      id: crypto.randomUUID(), // Generate temporary ID for processing
-    });
-
-    // Use all edition data if provided, otherwise just the single book
-    const searchResults: UIBook[] =
-      allEditionData && allEditionData.length > 0
-        ? allEditionData.map(convertToUIBook)
-        : [convertToUIBook(book)];
 
     // Check if the book already exists
     const existingBook = await ApiErrorHandler.handleAsync(
@@ -65,26 +61,26 @@ export async function POST(request: NextRequest) {
     let statusCode: number = STATUS_CODES.CREATED;
 
     if (existingBook) {
-      // Update existing book with new edition data
+      // Update existing book with new edition data (preserve structure)
       primaryBook = await ApiErrorHandler.handleAsync(
         () =>
           PrimaryBookService.updateBookWithNewEditions(
             existingBook.id,
-            searchResults,
+            editionGroupsWithIds,
           ),
         'Failed to update book with new editions',
       );
       message = 'Book already in collection - updated with latest edition data';
       statusCode = STATUS_CODES.OK;
     } else {
-      // Create new primary book
+      // Create new primary book (preserve structure)
       primaryBook = await ApiErrorHandler.handleAsync(
         () =>
           PrimaryBookService.createPrimaryBook(
             userId,
             title,
             author,
-            searchResults,
+            editionGroupsWithIds,
           ),
         'Failed to create new book',
       );

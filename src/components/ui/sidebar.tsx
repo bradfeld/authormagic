@@ -132,6 +132,14 @@ export function Sidebar({
         return;
       }
 
+      // Only run admin check on client-side to avoid SSR issues
+      if (typeof window === 'undefined') {
+        // During SSR, just use email check as fallback
+        setIsAdmin(user?.emailAddresses?.[0]?.emailAddress === 'brad@feld.com');
+        setAdminCheckLoading(false);
+        return;
+      }
+
       try {
         // Use the existing admin API that checks roles properly
         const response = await fetch('/api/admin/users?limit=1');

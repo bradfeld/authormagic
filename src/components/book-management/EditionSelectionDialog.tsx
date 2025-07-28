@@ -156,12 +156,21 @@ export function EditionSelectionDialog({
         return;
       }
 
-      // Create primary book with selected edition
+      // Create primary book with selected edition (convert to editionGroups format)
+      const editionGroups = [
+        {
+          edition_number: selectedEdition.edition_number,
+          edition_type: selectedEdition.edition_type,
+          publication_year: selectedEdition.publication_year,
+          books: selectedEdition.books,
+        },
+      ];
+
       await PrimaryBookService.createPrimaryBook(
         user.id,
         bookTitle,
         author,
-        selectedEdition.books,
+        editionGroups,
         selectedEdition.edition_number,
       );
 

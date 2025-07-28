@@ -163,11 +163,28 @@ export const BINDING_TYPES = {
   LEATHER_BOUND: 'leather_bound',
 } as const;
 
-export type BindingType = typeof BINDING_TYPES[keyof typeof BINDING_TYPES];
+export type BindingType = (typeof BINDING_TYPES)[keyof typeof BINDING_TYPES];
 
 /**
  * Utility type for working with selected edition
  */
 export interface PrimaryBookWithSelectedEdition extends PrimaryBook {
   selected_edition?: BookEdition;
-} 
+}
+
+/**
+ * Simplified book structure for dashboard display
+ */
+export interface SimplifiedBook {
+  id: string;
+  title: string;
+  author: string;
+  created_at: string;
+  total_editions: number;
+  total_books: number;
+  primary_edition: {
+    edition_number: number;
+    publication_year?: number;
+  } | null;
+  cover_image: string | null;
+}

@@ -14,19 +14,13 @@ type AuthorProfile = Database['public']['Tables']['authors']['Row'];
 
 // Combined profile type that includes Clerk metadata
 export interface CompleteAuthorProfile {
-  // Supabase fields
+  // Supabase fields (minimal - just linking)
   id: string;
   clerk_user_id: string;
   created_at: string;
   updated_at: string;
 
-  // Waitlist system fields
-  status: 'waitlisted' | 'approved' | 'blocked';
-  waitlist_position: number | null;
-  approved_at: string | null;
-  admin_notes: string | null;
-
-  // Clerk basic profile data
+  // Clerk basic profile data (primary source of truth)
   name: string;
   email: string;
   profile_image_url: string | null;
@@ -96,19 +90,13 @@ export class AuthorProfileService {
 
       // Combine all data
       const completeProfile: CompleteAuthorProfile = {
-        // Supabase fields
+        // Supabase fields (minimal - just linking)
         id: supabaseProfile.id,
         clerk_user_id: supabaseProfile.clerk_user_id,
         created_at: supabaseProfile.created_at,
         updated_at: supabaseProfile.updated_at,
 
-        // Waitlist system fields
-        status: supabaseProfile.status,
-        waitlist_position: supabaseProfile.waitlist_position,
-        approved_at: supabaseProfile.approved_at,
-        admin_notes: supabaseProfile.admin_notes,
-
-        // Clerk basic profile data
+        // Clerk basic profile data (primary source of truth)
         name:
           clerkUser.fullName ||
           `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
@@ -137,48 +125,19 @@ export class AuthorProfileService {
     initialMetadata?: Partial<AuthorMetadata>;
   }): Promise<CompleteAuthorProfile> {
     try {
-      // Import waitlist service for admin detection
-      const { WaitlistService } = await import(
-        '@/lib/services/waitlist.service'
-      );
-      const waitlistService = new WaitlistService();
-
-      // Get user details from Clerk to check if this is brad@feld.com
-      const client = await clerkClient();
-      const clerkUser = await client.users.getUser(profileData.clerk_user_id);
-      const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
-
-      // Determine initial status - auto-approve brad@feld.com, waitlist everyone else
-      const isInitialAdmin = userEmail === 'brad@feld.com';
-      const initialStatus = isInitialAdmin ? 'approved' : 'waitlisted';
-
-      // Create Supabase profile record with waitlist status
+      // Simple Clerk-first profile creation - just link Clerk user to Supabase
       const { data: newProfile, error } = await this.getSupabase()
         .from('authors')
         .insert({
           clerk_user_id: profileData.clerk_user_id,
-          status: initialStatus,
-          // If approved, set approved_at timestamp
-          ...(isInitialAdmin && { approved_at: new Date().toISOString() }),
-          // Note: bio and other fields are now handled by Clerk metadata
+          // Clerk handles all user approval/management
+          // All author metadata stored in Clerk
         })
         .select()
         .single();
 
       if (error) {
         throw new Error(`Failed to create Supabase profile: ${error.message}`);
-      }
-
-      // Setup initial admin if this is brad@feld.com
-      if (isInitialAdmin) {
-        try {
-          await waitlistService.setupInitialAdmin(profileData.clerk_user_id);
-        } catch (adminError) {
-          // Don't fail profile creation if admin setup fails, but include context
-          throw new Error(
-            `Profile created but admin setup failed: ${adminError instanceof Error ? adminError.message : 'Unknown error'}`,
-          );
-        }
       }
 
       // Initialize author metadata in Clerk

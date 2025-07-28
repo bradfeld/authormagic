@@ -5,9 +5,9 @@ import { GoogleBooksService } from './google-books.service';
 /**
  * Smart Enhancement Service
  *
- * Strategically enhances books with missing critical data using targeted
- * Google Books ISBN lookups. Focuses on primary books from edition groups
- * to maximize impact while minimizing API calls.
+ * Enhances books with missing critical data using targeted
+ * Google Books ISBN lookups. Focuses on books with missing
+ * metadata to improve data completeness.
  */
 export class SmartEnhancementService {
   private static googleBooksService = new GoogleBooksService();
@@ -39,20 +39,17 @@ export class SmartEnhancementService {
 
   /**
    * Enhance books using Google Books ISBN lookup
+   * No hardcoded book injection - only enhances existing books
    */
   static async enhanceBooks(books: UIBook[]): Promise<UIBook[]> {
-    // FIRST: Add known missing critical books
-    const booksWithKnownMissing = this.addKnownMissingBooks(books);
-
-    // THEN: Detect enhancement candidates from the expanded list (including newly added books)
-    const candidates = this.detectEnhancementCandidates(booksWithKnownMissing);
+    const candidates = this.detectEnhancementCandidates(books);
 
     if (candidates.length === 0) {
-      return booksWithKnownMissing;
+      return books;
     }
 
-    const enhancementPromises = booksWithKnownMissing.map(async book => {
-      // Only enhance candidates (now includes newly added known missing books)
+    const enhancementPromises = books.map(async book => {
+      // Only enhance candidates
       if (!candidates.includes(book)) {
         return book;
       }
@@ -77,140 +74,9 @@ export class SmartEnhancementService {
 
       return await Promise.race([enhancementPromise, timeoutPromise]);
     } catch {
-      // If timeout or error, return books with known additions
-      return booksWithKnownMissing;
+      // If timeout or error, return original books
+      return books;
     }
-  }
-
-  /**
-   * Add known missing critical books that should exist but are missing from data sources
-   */
-  private static addKnownMissingBooks(books: UIBook[]): UIBook[] {
-    const result = [...books];
-
-    // Get all known missing books that should be added for this search
-    const missingBooks = this.getKnownMissingBooks(books);
-
-    for (const missingBook of missingBooks) {
-      // Only add if not already present
-      const alreadyExists = books.some(
-        book =>
-          book.isbn === missingBook.isbn ||
-          (book.binding === missingBook.binding &&
-            book.year === missingBook.year &&
-            this.titlesSimilar(book.title || '', missingBook.title)),
-      );
-
-      if (!alreadyExists) {
-        result.push(missingBook);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Configuration-driven known missing books detection
-   */
-  private static getKnownMissingBooks(books: UIBook[]): UIBook[] {
-    const knownMissingBooks: UIBook[] = [];
-
-    // Define known missing books by search patterns
-    const knownMissingConfig = [
-      {
-        // Venture Deals series - missing 2011 first edition hardcover
-        searchPattern: {
-          titleIncludes: ['venture deals'],
-          authorIncludes: ['brad feld', 'jason mendelson'],
-        },
-        missingBook: {
-          id: '9780470929827-missing',
-          isbn: '9780470929827',
-          title:
-            'Venture Deals: Be Smarter Than Your Lawyer and Venture Capitalist',
-          authors: ['Brad Feld', 'Jason Mendelson'],
-          publisher: 'Wiley',
-          published_date: '2011',
-          year: 2011,
-          binding: 'hardcover',
-          page_count: 272,
-          source: 'google-books' as const,
-          data_source: 'known-missing-enhanced',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          language: 'en',
-          categories: [
-            'Business & Economics',
-            'Entrepreneurship',
-            'Venture Capital',
-          ],
-          description:
-            'The first edition of the definitive guide to venture capital deals, providing entrepreneurs with insider knowledge of the VC process, term sheets, and negotiation strategies.',
-        },
-      },
-      // Easy to add more missing books here:
-      // {
-      //   searchPattern: {
-      //     titleIncludes: ['other book'],
-      //     authorIncludes: ['other author']
-      //   },
-      //   missingBook: { ... }
-      // }
-    ];
-
-    // Check each known missing book configuration
-    for (const config of knownMissingConfig) {
-      if (this.matchesSearchPattern(books, config.searchPattern)) {
-        knownMissingBooks.push(config.missingBook);
-      }
-    }
-
-    return knownMissingBooks;
-  }
-
-  /**
-   * Check if the current search matches a pattern for known missing books
-   */
-  private static matchesSearchPattern(
-    books: UIBook[],
-    pattern: {
-      titleIncludes: string[];
-      authorIncludes: string[];
-    },
-  ): boolean {
-    // Check if any book matches the title pattern
-    const titleMatch = books.some(book =>
-      pattern.titleIncludes.some(titlePart =>
-        book.title?.toLowerCase().includes(titlePart.toLowerCase()),
-      ),
-    );
-
-    // Check if any book matches the author pattern
-    const authorMatch = books.some(book =>
-      book.authors?.some(author =>
-        pattern.authorIncludes.some(authorPart =>
-          author.toLowerCase().includes(authorPart.toLowerCase()),
-        ),
-      ),
-    );
-
-    return titleMatch && authorMatch;
-  }
-
-  /**
-   * Check if two titles are similar enough to be considered the same book
-   */
-  private static titlesSimilar(title1: string, title2: string): boolean {
-    const normalize = (str: string) =>
-      str
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .trim();
-    const norm1 = normalize(title1);
-    const norm2 = normalize(title2);
-
-    // Simple similarity check - could be enhanced with fuzzy matching
-    return norm1.includes(norm2) || norm2.includes(norm1) || norm1 === norm2;
   }
 
   /**

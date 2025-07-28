@@ -113,9 +113,6 @@ export function AddBookDialog({
         throw new Error('No suitable primary book found');
       }
 
-      // Flatten all books from all edition groups to pass to the API
-      const allBooks = editionGroups.flatMap(edition => edition.books);
-
       // Normalize language codes to 2-character ISO codes for validation
       const normalizeLanguage = (lang?: string): string | undefined => {
         if (!lang) return undefined;
@@ -146,22 +143,25 @@ export function AddBookDialog({
         return lang.substring(0, 2).toLowerCase();
       };
 
-      // Normalize language codes in book data
-      const normalizeBookLanguage = (book: any) => ({
-        ...book,
-        language: normalizeLanguage(book.language),
-      });
+      // Normalize language codes in edition groups (preserve structure)
+      const normalizedEditionGroups = editionGroups.map(editionGroup => ({
+        ...editionGroup,
+        books: editionGroup.books.map(book => ({
+          ...book,
+          language: normalizeLanguage(book.language),
+        })),
+      }));
 
-      const normalizedPrimaryBook = normalizeBookLanguage(primaryBook);
-      const normalizedAllBooks = allBooks.map(normalizeBookLanguage);
-
-      // Store the primary book with all edition data for the PrimaryBookService
+      // Send the complete edition groups structure to preserve detection results
       const response = await fetch('/api/books', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          book: normalizedPrimaryBook,
-          allEditionData: normalizedAllBooks,
+          book: {
+            ...primaryBook,
+            language: normalizeLanguage(primaryBook.language),
+          },
+          editionGroups: normalizedEditionGroups,
         }),
       });
 
@@ -200,7 +200,6 @@ export function AddBookDialog({
       onOpenChange(false);
       if (onBookAdded) onBookAdded();
     } catch (error) {
-      console.error('Error adding book:', error);
       // For now, we'll log the error. In a future iteration we can add proper error UI
       alert(
         `Failed to add book: ${error instanceof Error ? error.message : 'Unknown error'}`,

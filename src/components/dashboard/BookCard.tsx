@@ -3,32 +3,18 @@ import Image from 'next/image';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { PrimaryBook } from '@/lib/types/primary-book';
+import { SimplifiedBook } from '@/lib/types/primary-book';
 
 interface BookCardProps {
-  book: PrimaryBook;
+  book: SimplifiedBook;
 }
 
 export function BookCard({ book }: BookCardProps) {
-  // Calculate edition and binding counts
-  const editionCount = book.editions?.length || 0;
-  const bindingCount =
-    book.editions?.reduce(
-      (total, edition) => total + (edition.bindings?.length || 0),
-      0,
-    ) || 0;
-
-  // Get primary edition info (selected edition, most recent by publication year, or first)
-  const primaryEdition =
-    book.editions?.find(e => e.id === book.selected_edition_id) ||
-    book.editions?.sort(
-      (a, b) => (b.publication_year || 0) - (a.publication_year || 0),
-    )?.[0];
-
-  // Get cover image from first binding with an image, or use placeholder
-  const coverImage = book.editions
-    ?.flatMap(e => e.bindings || [])
-    ?.find(b => b.cover_image_url)?.cover_image_url;
+  // Use the simplified structure directly
+  const editionCount = book.total_editions;
+  const bindingCount = book.total_books;
+  const primaryEdition = book.primary_edition;
+  const coverImage = book.cover_image;
 
   // Format the added date
   const addedDate = formatDistanceToNow(new Date(book.created_at), {
@@ -36,12 +22,12 @@ export function BookCard({ book }: BookCardProps) {
   });
 
   return (
-    <Card className="group hover:shadow-lg transition-shadow duration-200 h-full w-full">
+    <Card className="group h-full w-full transition-shadow duration-200 hover:shadow-lg">
       <CardHeader className="pb-4">
         <div className="flex gap-6">
           {/* Book Cover */}
           <div className="flex-shrink-0">
-            <div className="w-20 h-28 relative bg-gray-100 rounded-md overflow-hidden shadow-sm">
+            <div className="relative h-28 w-20 overflow-hidden rounded-md bg-gray-100 shadow-sm">
               {coverImage ? (
                 <Image
                   src={coverImage}
@@ -51,23 +37,23 @@ export function BookCard({ book }: BookCardProps) {
                   sizes="80px"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                  <span className="text-blue-600 text-sm font-medium">📚</span>
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+                  <span className="text-sm font-medium text-blue-600">📚</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Book Info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-xl leading-tight mb-2 line-clamp-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-2 line-clamp-2 text-xl leading-tight font-semibold">
               {book.title}
             </h3>
-            <p className="text-gray-600 text-base mb-3">by {book.author}</p>
+            <p className="mb-3 text-base text-gray-600">by {book.author}</p>
 
             {/* Edition Info */}
             {primaryEdition && (
-              <p className="text-sm text-gray-500 mb-3">
+              <p className="mb-3 text-sm text-gray-500">
                 {primaryEdition.edition_number &&
                 primaryEdition.publication_year
                   ? `${primaryEdition.edition_number}${getOrdinalSuffix(primaryEdition.edition_number)} Edition, ${primaryEdition.publication_year}`
@@ -82,15 +68,15 @@ export function BookCard({ book }: BookCardProps) {
 
       <CardContent className="pt-0">
         {/* Stats Badges */}
-        <div className="flex flex-wrap gap-3 mb-4">
+        <div className="mb-4 flex flex-wrap gap-3">
           {editionCount > 0 && (
-            <Badge variant="secondary" className="text-sm px-3 py-1">
+            <Badge variant="secondary" className="px-3 py-1 text-sm">
               {editionCount} {editionCount === 1 ? 'edition' : 'editions'}
             </Badge>
           )}
           {bindingCount > 0 && (
-            <Badge variant="secondary" className="text-sm px-3 py-1">
-              {bindingCount} {bindingCount === 1 ? 'format' : 'formats'}
+            <Badge variant="secondary" className="px-3 py-1 text-sm">
+              {bindingCount} {bindingCount === 1 ? 'book' : 'books'}
             </Badge>
           )}
         </div>
