@@ -6,10 +6,6 @@
 import { BookEdition, BookBinding } from '@/lib/types/book';
 import { UIBook } from '@/lib/types/ui-book';
 
-// Edition detection logging removed for production build
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const devLog = (..._args: unknown[]) => {}; // No-op function for production
-
 export interface EditionGroup {
   edition_number: number;
   edition_type?: string; // For special editions like "unabridged", "revised", etc.
@@ -22,54 +18,33 @@ export class EditionDetectionService {
    * Main entry point: Group books by edition using explicit edition number parsing
    */
   static groupByEdition(books: UIBook[]): EditionGroup[] {
-    const startTime = performance.now();
-    devLog(`📚 EDITION DETECTION: Starting with ${books?.length || 0} books`);
-
     if (!books || books.length === 0) return [];
 
     // Step 1: Filter and clean the book data
-    const step1Start = performance.now();
     const cleanBooks = this.filterAndCleanBooks(books);
-    const step1Time = performance.now() - step1Start;
 
     // Step 2: NORMALIZE AND CONSOLIDATE messy data (respecting unique ISBNs)
-    const step2Start = performance.now();
     const normalizedBooks = this.normalizeAndConsolidateBooks(cleanBooks);
-    const step2Time = performance.now() - step2Start;
 
     // Step 3: Normalize and group books by title similarity
-    const step3Start = performance.now();
     const titleGroups = this.groupByNormalizedTitle(normalizedBooks);
-    const step3Time = performance.now() - step3Start;
 
     const editionGroups: EditionGroup[] = [];
 
     // Step 4: For each title group, create edition groups using explicit edition parsing
-    const step4Start = performance.now();
     for (const titleBooks of titleGroups.values()) {
       const groups = this.createEditionGroupsByExplicitNumbers(titleBooks);
       editionGroups.push(...groups);
     }
-    const step4Time = performance.now() - step4Start;
 
     // Step 7: Sort edition groups by edition number (newest first)
-    const step7Start = performance.now();
     const sortedGroups = editionGroups.sort((a, b) => {
       const editionA = a.edition_number || 0;
       const editionB = b.edition_number || 0;
       return editionB - editionA; // Newest edition first
     });
-    const step7Time = performance.now() - step7Start;
 
-    const totalTime = performance.now() - startTime;
-
-    devLog(`📚 EDITION DETECTION BREAKDOWN (${totalTime.toFixed(2)}ms total):
-🧹 Step 1 - Filter/Clean: ${step1Time.toFixed(2)}ms (${books.length} → ${cleanBooks.length} books)
-🔄 Step 2 - Normalize/Consolidate: ${step2Time.toFixed(2)}ms (${cleanBooks.length} → ${normalizedBooks.length} books)
-📝 Step 3 - Title Grouping: ${step3Time.toFixed(2)}ms (${normalizedBooks.length} books → ${titleGroups.size} title groups)
-📚 Step 4 - Edition Grouping: ${step4Time.toFixed(2)}ms (${titleGroups.size} title groups → ${editionGroups.length} edition groups)
-🔀 Step 7 - Sorting: ${step7Time.toFixed(2)}ms
-🎯 Final Result: ${sortedGroups.length} edition groups`);
+    // Performance tracking removed to clean up development console output
 
     return sortedGroups;
   }
@@ -892,7 +867,7 @@ export class EditionDetectionService {
 
     for (const bookData of booksWithEditions) {
       // SPECIFIC DEBUG: Track the Indian hardcover through each step
-      const isIndianHardcover = bookData.book.isbn === '9788126572113';
+      // Debug code removed
 
       if (bookData.editionNumber !== null) {
         if (!editionMap.has(bookData.editionNumber)) {
@@ -900,17 +875,11 @@ export class EditionDetectionService {
         }
         editionMap.get(bookData.editionNumber)!.push(bookData);
 
-        if (isIndianHardcover) {
-          devLog(
-            `  🇮🇳 INDIAN HARDCOVER: Assigned to Edition ${bookData.editionNumber} in Step 2 (explicit edition)`,
-          );
-        }
+        // Debug logging removed
       } else {
         unmappedBooks.push(bookData);
 
-        if (isIndianHardcover) {
-          devLog(`  🇮🇳 INDIAN HARDCOVER: Remains unmapped after Step 2`);
-        }
+        // Debug logging removed
       }
     }
 
@@ -957,21 +926,11 @@ export class EditionDetectionService {
       if (isAudiobook) {
         audiobooks.push(bookData);
 
-        // SPECIFIC DEBUG: Check if Indian hardcover is misclassified as audiobook
-        if (bookData.book.isbn === '9788126572113') {
-          devLog(
-            `  🇮🇳 INDIAN HARDCOVER: MISCLASSIFIED as audiobook (binding: ${bookData.book.binding || bookData.book.print_type}) - THIS IS A BUG!`,
-          );
-        }
+        // Debug logging removed
       } else {
         nonAudiobooks.push(bookData);
 
-        // SPECIFIC DEBUG: Confirm Indian hardcover is correctly classified as non-audiobook
-        if (bookData.book.isbn === '9788126572113') {
-          devLog(
-            `  🇮🇳 INDIAN HARDCOVER: Correctly classified as non-audiobook (binding: ${bookData.book.binding || bookData.book.print_type})`,
-          );
-        }
+        // Debug logging removed
       }
     }
 
@@ -1001,12 +960,7 @@ export class EditionDetectionService {
           editionMap.get(closestEdition)!.push(audiobookData);
           wasGrouped = true;
 
-          // SPECIFIC DEBUG: Track if the Indian hardcover gets assigned here (shouldn't happen)
-          if (audiobookData.book.isbn === '9788126572113') {
-            devLog(
-              `  🇮🇳 INDIAN HARDCOVER: INCORRECTLY assigned to Edition ${closestEdition} in Step 3 (audiobook logic) - THIS IS A BUG!`,
-            );
-          }
+          // Debug logging removed
         }
       }
 
@@ -1290,12 +1244,7 @@ export class EditionDetectionService {
       // Block ALL international editions from date-range assignment to prevent incorrect grouping
       // International editions should only be grouped if they have explicit edition numbers
       if (isInternational) {
-        // SPECIFIC DEBUG: Track international edition blocking
-        if (bookData.book.isbn === '9788126572113') {
-          devLog(
-            `  🇮🇳 INDIAN HARDCOVER: BLOCKED from date-range assignment (international edition protection)`,
-          );
-        }
+        // Debug logging removed
         continue; // Skip to next book - international editions stay unmapped
       }
 

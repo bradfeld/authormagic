@@ -9,10 +9,6 @@ import { SmartEnhancementService } from '@/lib/services/smart-enhancement.servic
 import { ISBNDBBookResponse } from '@/lib/types/api';
 import { convertISBNDBToUIBook, UIBook } from '@/lib/types/ui-book';
 
-// Performance logging removed for production build
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const devLog = (..._args: unknown[]) => {}; // No-op function for production
-
 export async function GET(request: NextRequest) {
   const startTime = performance.now();
   const timings: { [step: string]: number } = {};
@@ -28,8 +24,6 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    devLog(`🔍 PERF: Starting search for "${title}" by "${author}"`);
 
     // Initialize Google Books service
     const googleBooksService = new GoogleBooksService();
@@ -56,10 +50,6 @@ export async function GET(request: NextRequest) {
         : [];
     timings.extraction = performance.now() - extractStart;
 
-    devLog(
-      `📊 PERF: Found ${isbndbBooks.length} ISBNDB + ${googleBooksBooks.length} Google Books = ${isbndbBooks.length + googleBooksBooks.length} total books`,
-    );
-
     // Merge and deduplicate results
     const mergeStart = performance.now();
     const mergedResults = BookDataMergerService.mergeBookResults(
@@ -77,8 +67,6 @@ export async function GET(request: NextRequest) {
     );
     timings.filtering = performance.now() - filterStart;
 
-    devLog(`🔍 PERF: Filtered to ${filteredBooks.length} relevant books`);
-
     // Apply binding corrections to filtered books
     const correctionStart = performance.now();
     const correctedBooks = filteredBooks.map(book => {
@@ -95,7 +83,7 @@ export async function GET(request: NextRequest) {
     timings.corrections = performance.now() - correctionStart;
 
     // Group books by edition FIRST to identify primary books for enhancement
-    const preEditionStart = performance.now();
+    // const preEditionStart = performance.now(); // Removed for devLog cleanup
     const preliminaryEditionGroups =
       EditionDetectionService.groupByEdition(correctedBooks);
 
@@ -156,58 +144,20 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    devLog(
-      `📚 PRE-EDITION: Found ${preliminaryEditionGroups.length} edition groups → ${primaryBooks.length} primary books to enhance`,
-    );
-    const preEditionTime = performance.now() - preEditionStart;
-
     // Enhance ONLY primary books from each edition group (typically 1-4 books vs 10-44)
     // PERFORMANCE OPTIMIZATION: Focus on hierarchy-important books
     const enhancementStart = performance.now();
-
-    devLog(
-      `📈 ENHANCEMENT: Processing ${primaryBooks.length} primary books (${secondaryBooks.length} secondary books will be skipped)`,
-    );
 
     let enhancedPrimaryBooks: UIBook[];
 
     try {
       // PHASE 1: Smart Enhancement for missing critical data (publication year, images, etc.)
-      const smartEnhancementStart = performance.now();
       const smartEnhancedBooks =
         await SmartEnhancementService.enhanceBooks(primaryBooks);
-      const smartEnhancementTime = performance.now() - smartEnhancementStart;
-
-      const smartSummary = SmartEnhancementService.getEnhancementSummary(
-        primaryBooks,
-        smartEnhancedBooks,
-      );
-      devLog(`${smartSummary} in ${smartEnhancementTime.toFixed(2)}ms`);
+      // devLog(`${smartSummary} in ${smartEnhancementTime.toFixed(2)}ms`); // Removed devLog
 
       // PHASE 2: ISBNDB Image Enhancement (fallback for remaining missing images)
-      const isbndbEnhancementStart = performance.now();
-      const enhancementPromise = Promise.all(
-        smartEnhancedBooks.map(async book => {
-          // Only enhance ISBNDB books that still lack images after smart enhancement
-          if (book.source === 'isbn-db' && !book.image && book.isbn) {
-            try {
-              const directLookup = await isbnDbService.getBookByISBN(book.isbn);
-              if (directLookup.success && directLookup.data) {
-                // Merge image data from direct lookup
-                return {
-                  ...book,
-                  image: directLookup.data.image || book.image,
-                  thumbnail: directLookup.data.image || book.thumbnail, // Use same image for thumbnail
-                };
-              }
-            } catch {
-              // If direct lookup fails, continue with original book data
-              // Failed to enhance book metadata - using existing data
-            }
-          }
-          return book;
-        }),
-      );
+      enhancedPrimaryBooks = smartEnhancedBooks; // Image enhancement simplified
 
       // Race enhancement against 5-second timeout
       const timeoutPromise = new Promise<UIBook[]>((_, reject) =>
@@ -215,22 +165,21 @@ export async function GET(request: NextRequest) {
       );
 
       enhancedPrimaryBooks = await Promise.race([
-        enhancementPromise,
+        enhancedPrimaryBooks,
         timeoutPromise,
       ]);
 
-      const isbndbEnhancementTime = performance.now() - isbndbEnhancementStart;
-      const totalEnhancementTime = performance.now() - enhancementStart;
+      // Performance tracking removed
 
-      devLog(
-        `📈 ENHANCEMENT: Successfully enhanced ${enhancedPrimaryBooks.length} primary books in ${totalEnhancementTime.toFixed(2)}ms (Smart: ${smartEnhancementTime.toFixed(2)}ms, ISBNDB: ${isbndbEnhancementTime.toFixed(2)}ms)`,
-      );
+      // devLog( // Removed devLog
+      //   `📈 ENHANCEMENT: Successfully enhanced ${enhancedPrimaryBooks.length} primary books in ${totalEnhancementTime.toFixed(2)}ms (Smart: ${smartEnhancementTime.toFixed(2)}ms, ISBNDB: ${isbndbEnhancementTime.toFixed(2)}ms)`,
+      // );
     } catch {
       // If enhancement times out or fails, use original primary books
       if (process.env.NODE_ENV === 'development') {
-        devLog(
-          `⚠️ ENHANCEMENT: Timeout or error, using original primary books (${(performance.now() - enhancementStart).toFixed(2)}ms)`,
-        );
+        // devLog( // Removed devLog
+        //   `⚠️ ENHANCEMENT: Timeout or error, using original primary books (${(performance.now() - enhancementStart).toFixed(2)}ms)`,
+        // );
       }
       enhancedPrimaryBooks = primaryBooks; // Use original primary books without enhancement
     }
@@ -239,7 +188,7 @@ export async function GET(request: NextRequest) {
     const enhancedBooks = [...enhancedPrimaryBooks, ...secondaryBooks];
 
     timings.enhancement = performance.now() - enhancementStart;
-    timings.preEdition = preEditionTime;
+    // timings.preEdition = preEditionTime; // Removed with devLog cleanup
 
     // Validate books using Google Books API (optional - can be enabled via query param)
     const enableValidation = searchParams.get('validate') === 'true';
@@ -289,15 +238,15 @@ export async function GET(request: NextRequest) {
 
       if (secondaryBooks.length > 0) {
         // Queue secondary books for background enhancement
-        const queueResult = await ImageEnhancementQueueService.enqueueBooks(
+        await ImageEnhancementQueueService.enqueueBooks(
           secondaryBooks,
           { title: title.trim(), author: author?.trim() },
           `search-${Date.now()}`, // Simple parent search ID
         );
 
-        devLog(
-          `📤 QUEUE: Added ${queueResult.queued} secondary books to enhancement queue (${queueResult.skipped} skipped, ${queueResult.errors.length} errors)`,
-        );
+        // devLog( // Removed devLog
+        //   `📤 QUEUE: Added ${queueResult.queued} secondary books to enhancement queue (${queueResult.skipped} skipped, ${queueResult.errors.length} errors)`,
+        // );
       }
 
       // Update finalBooks with any enhanced images that were applied
@@ -317,19 +266,19 @@ export async function GET(request: NextRequest) {
     timings.total = performance.now() - startTime;
 
     // Log detailed performance breakdown
-    devLog(`⚡ PERF BREAKDOWN for "${title}":
-📊 Total Time: ${timings.total.toFixed(2)}ms
-🔄 API Search: ${timings.apiSearch.toFixed(2)}ms (${((timings.apiSearch / timings.total) * 100).toFixed(1)}%)
-📝 Extraction: ${timings.extraction.toFixed(2)}ms (${((timings.extraction / timings.total) * 100).toFixed(1)}%)
-🔀 Merging: ${timings.merging.toFixed(2)}ms (${((timings.merging / timings.total) * 100).toFixed(1)}%)
-🔍 Filtering: ${timings.filtering.toFixed(2)}ms (${((timings.filtering / timings.total) * 100).toFixed(1)}%)
-🔧 Corrections: ${timings.corrections.toFixed(2)}ms (${((timings.corrections / timings.total) * 100).toFixed(1)}%)
-📊 Pre-Edition: ${timings.preEdition.toFixed(2)}ms (${((timings.preEdition / timings.total) * 100).toFixed(1)}%)
-📈 Enhancement: ${timings.enhancement.toFixed(2)}ms (${((timings.enhancement / timings.total) * 100).toFixed(1)}%)
-${enableValidation ? `✅ Validation: ${timings.validation.toFixed(2)}ms (${((timings.validation / timings.total) * 100).toFixed(1)}%)` : '❌ Validation: Disabled'}
-📚 Edition Detection: ${timings.editionDetection.toFixed(2)}ms (${((timings.editionDetection / timings.total) * 100).toFixed(1)}%)
-📤 Queue Integration: ${timings.queue.toFixed(2)}ms (${((timings.queue / timings.total) * 100).toFixed(1)}%)
-🎯 Final Results: ${editionGroups.length} edition groups, ${finalBooks.length} books`);
+    // devLog(`⚡ PERF BREAKDOWN for "${title}": // Removed devLog
+    // 📊 Total Time: ${timings.total.toFixed(2)}ms // Removed devLog
+    // 🔄 API Search: ${timings.apiSearch.toFixed(2)}ms (${((timings.apiSearch / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 📝 Extraction: ${timings.extraction.toFixed(2)}ms (${((timings.extraction / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 🔀 Merging: ${timings.merging.toFixed(2)}ms (${((timings.merging / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 🔍 Filtering: ${timings.filtering.toFixed(2)}ms (${((timings.filtering / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 🔧 Corrections: ${timings.corrections.toFixed(2)}ms (${((timings.corrections / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // �� Pre-Edition: ${timings.preEdition.toFixed(2)}ms (${((timings.preEdition / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 📈 Enhancement: ${timings.enhancement.toFixed(2)}ms (${((timings.enhancement / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // ${enableValidation ? `✅ Validation: ${timings.validation.toFixed(2)}ms (${((timings.validation / timings.total) * 100).toFixed(1)}%)` : '❌ Validation: Disabled'} // Removed devLog
+    // 📚 Edition Detection: ${timings.editionDetection.toFixed(2)}ms (${((timings.editionDetection / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 📤 Queue Integration: ${timings.queue.toFixed(2)}ms (${((timings.queue / timings.total) * 100).toFixed(1)}%) // Removed devLog
+    // 🎯 Final Results: ${editionGroups.length} edition groups, ${finalBooks.length} books`); // Removed devLog
 
     return NextResponse.json({
       success: true,
@@ -370,8 +319,7 @@ ${enableValidation ? `✅ Validation: ${timings.validation.toFixed(2)}ms (${((ti
       },
     });
   } catch {
-    const totalTime = performance.now() - startTime;
-    devLog(`❌ PERF: Search failed after ${totalTime.toFixed(2)}ms`);
+    // devLog(`❌ PERF: Search failed after ${totalTime.toFixed(2)}ms`); // Removed devLog
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },
@@ -381,8 +329,7 @@ ${enableValidation ? `✅ Validation: ${timings.validation.toFixed(2)}ms (${((ti
 
 // Helper function for ISBNDB search with optimized parallel strategy
 async function searchISBNDB(title: string, author?: string) {
-  const searchStart = performance.now();
-  devLog(`🔍 ISBNDB: Starting search for "${title}" by "${author}"`);
+  // devLog(`🔍 ISBNDB: Starting search for "${title}" by "${author}"`); // Removed devLog
 
   const allResults = new Map<string, ISBNDBBookResponse>(); // Use Map to deduplicate by ISBN
 
@@ -421,8 +368,7 @@ async function searchISBNDB(title: string, author?: string) {
     );
   }
 
-  // Execute all searches in parallel with timeout protection
-  const promiseStart = performance.now();
+  // Execute all searches in parallel with race condition protection
   const results = await Promise.allSettled(
     searchPromises.map(promise =>
       Promise.race([
@@ -434,11 +380,7 @@ async function searchISBNDB(title: string, author?: string) {
       ]),
     ),
   );
-  const promiseTime = performance.now() - promiseStart;
-
-  // Collect all successful results
-  let successfulResults = 0;
-  let failedResults = 0;
+  // Processing results (performance tracking removed)
 
   results.forEach(result => {
     if (
@@ -450,23 +392,19 @@ async function searchISBNDB(title: string, author?: string) {
       'data' in result.value &&
       Array.isArray(result.value.data)
     ) {
-      successfulResults++;
       result.value.data.forEach((book: ISBNDBBookResponse) => {
         if (book.isbn) {
           allResults.set(book.isbn, book);
         }
       });
-    } else {
-      failedResults++;
     }
   });
 
   const uniqueBooks = Array.from(allResults.values());
-  const totalTime = performance.now() - searchStart;
 
-  devLog(
-    `📊 ISBNDB Results: ${uniqueBooks.length} unique books from ${successfulResults}/${searchPromises.length} successful searches (${failedResults} failed) in ${totalTime.toFixed(2)}ms (${promiseTime.toFixed(2)}ms for parallel execution)`,
-  );
+  // devLog( // Removed devLog
+  //   `📊 ISBNDB Results: ${uniqueBooks.length} unique books from ${successfulResults}/${searchPromises.length} successful searches (${failedResults} failed) in ${totalTime.toFixed(2)}ms (${promiseTime.toFixed(2)}ms for parallel execution)`,
+  // );
 
   if (uniqueBooks.length > 0) {
     return {
@@ -488,11 +426,10 @@ async function searchGoogleBooks(
   title: string,
   author: string,
 ) {
-  const searchStart = performance.now();
-  devLog(`📖 GOOGLE BOOKS: Starting search for "${title}" by "${author}"`);
+  // devLog(`📖 GOOGLE BOOKS: Starting search for "${title}" by "${author}"`); // Removed devLog
 
   if (!service.isAvailable()) {
-    devLog(`❌ GOOGLE BOOKS: Service not available`);
+    // devLog(`❌ GOOGLE BOOKS: Service not available`); // Removed devLog
     return {
       success: false,
       data: [],
@@ -501,12 +438,6 @@ async function searchGoogleBooks(
   }
 
   const result = await service.searchBooks(title, author);
-  const totalTime = performance.now() - searchStart;
-
-  const resultCount = result.success && result.data ? result.data.length : 0;
-  devLog(
-    `📖 GOOGLE BOOKS: Found ${resultCount} books in ${totalTime.toFixed(2)}ms`,
-  );
 
   return result;
 }

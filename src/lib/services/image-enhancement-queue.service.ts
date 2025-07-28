@@ -4,10 +4,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { UIBook } from '@/lib/types/ui-book';
 
-// Queue logging removed for production build
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const devLog = (..._args: unknown[]) => {}; // No-op function for production
-
 export interface EnhancementQueueJob {
   id: string;
   isbn: string;
@@ -80,9 +76,6 @@ export class ImageEnhancementQueueService {
           }
 
           results.queued++;
-          devLog(
-            `📤 QUEUE: Added ${book.isbn} (${book.title}) to enhancement queue`,
-          );
         } catch (jobError) {
           results.errors.push(
             `Error queuing ${book.isbn}: ${jobError instanceof Error ? jobError.message : 'Unknown error'}`,
@@ -91,9 +84,9 @@ export class ImageEnhancementQueueService {
       }
 
       if (results.queued > 0) {
-        devLog(
-          `📊 QUEUE SUMMARY: ${results.queued} books queued, ${results.skipped} skipped, ${results.errors.length} errors`,
-        );
+        // devLog(
+        //   `📊 QUEUE SUMMARY: ${results.queued} books queued, ${results.skipped} skipped, ${results.errors.length} errors`,
+        // );
       }
 
       return results;
@@ -249,9 +242,9 @@ export class ImageEnhancementQueueService {
       const enhancedBooks = books.map(book => {
         if (book.isbn && enhancedImageMap.has(book.isbn)) {
           const enhancedImage = enhancedImageMap.get(book.isbn);
-          devLog(
-            `🎨 ENHANCED: Applied background-enhanced image for ${book.isbn}`,
-          );
+          // devLog(
+          //   `🎨 ENHANCED: Applied background-enhanced image for ${book.isbn}`,
+          // );
           return {
             ...book,
             image: enhancedImage,
