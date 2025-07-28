@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { SimplifiedBook } from '@/lib/types/primary-book';
+import { SimplifiedBook } from '@/lib/types/book';
 
 interface BookCardProps {
   book: SimplifiedBook;

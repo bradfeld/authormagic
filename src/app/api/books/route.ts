@@ -1,7 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextRequest } from 'next/server';
 
-import { PrimaryBookService } from '@/lib/services/primary-book.service';
+import { BookService } from '@/lib/services/book.service';
 import { ApiErrorHandler, STATUS_CODES } from '@/lib/utils/api-error-handler';
 import {
   BookCreateRequestSchema,
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { book, editionGroups } = validation.data;
+    const { book: bookData, editionGroups } = validation.data;
 
     // Add IDs to books to match UIBook type (preserving structure)
     const editionGroupsWithIds = editionGroups.map(editionGroup => ({
@@ -45,26 +45,26 @@ export async function POST(request: NextRequest) {
     }));
 
     // Extract title and author from validated data
-    const title = book.title;
-    const author = Array.isArray(book.authors)
-      ? book.authors.join(', ')
-      : book.authors[0] || 'Unknown Author';
+    const title = bookData.title;
+    const author = Array.isArray(bookData.authors)
+      ? bookData.authors.join(', ')
+      : bookData.authors[0] || 'Unknown Author';
 
     // Check if the book already exists
     const existingBook = await ApiErrorHandler.handleAsync(
-      () => PrimaryBookService.findExistingBook(userId, title, author),
+      () => BookService.findExistingBook(userId, title, author),
       'Failed to check for existing book',
     );
 
-    let primaryBook;
+    let book;
     let message: string;
     let statusCode: number = STATUS_CODES.CREATED;
 
     if (existingBook) {
       // Update existing book with new edition data (preserve structure)
-      primaryBook = await ApiErrorHandler.handleAsync(
+      book = await ApiErrorHandler.handleAsync(
         () =>
-          PrimaryBookService.updateBookWithNewEditions(
+          BookService.updateBookWithNewEditions(
             existingBook.id,
             editionGroupsWithIds,
           ),
@@ -73,15 +73,10 @@ export async function POST(request: NextRequest) {
       message = 'Book already in collection - updated with latest edition data';
       statusCode = STATUS_CODES.OK;
     } else {
-      // Create new primary book (preserve structure)
-      primaryBook = await ApiErrorHandler.handleAsync(
+      // Create new book (preserve structure)
+      book = await ApiErrorHandler.handleAsync(
         () =>
-          PrimaryBookService.createPrimaryBook(
-            userId,
-            title,
-            author,
-            editionGroupsWithIds,
-          ),
+          BookService.createBook(userId, title, author, editionGroupsWithIds),
         'Failed to create new book',
       );
       message = 'Book added to collection successfully';
@@ -92,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return ApiErrorHandler.createSuccessResponse(
       {
-        primaryBook,
+        book,
         isUpdate: !!existingBook,
       },
       message,

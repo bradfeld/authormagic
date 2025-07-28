@@ -21,11 +21,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { BookService } from '@/lib/services/book.service';
 import {
   EditionDetectionService,
   EditionGroup,
 } from '@/lib/services/edition-detection.service';
-import { PrimaryBookService } from '@/lib/services/primary-book.service';
 import { UIBook } from '@/lib/types/ui-book';
 
 interface EditionSelectionDialogProps {
@@ -145,7 +145,7 @@ export function EditionSelectionDialog({
     setIsSaving(true);
     try {
       // Check if user already has this book
-      const existing = await PrimaryBookService.findExistingPrimaryBook(
+      const existing = await BookService.findExistingPrimaryBook(
         user.id,
         bookTitle,
         author,
@@ -166,7 +166,7 @@ export function EditionSelectionDialog({
         },
       ];
 
-      await PrimaryBookService.createPrimaryBook(
+      await BookService.createPrimaryBook(
         user.id,
         bookTitle,
         author,

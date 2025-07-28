@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-import { PrimaryBookService } from '@/lib/services/primary-book.service';
+import { BookService } from '@/lib/services/book.service';
 
 export async function GET() {
   try {
@@ -11,9 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's primary books using the simplified method
-    const userBooks =
-      await PrimaryBookService.getUserPrimaryBooksSimplified(userId);
+    // Get user's books using the simplified method
+    const userBooks = await BookService.getUserBooksSimplified(userId);
 
     return NextResponse.json({ books: userBooks });
   } catch (error) {

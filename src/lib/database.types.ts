@@ -69,54 +69,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      books: {
-        Row: {
-          id: string;
-          title: string;
-          subtitle: string | null;
-          series: string | null;
-          series_number: number | null;
-          primary_isbn: string | null;
-          publication_year: number | null;
-          genre: string[] | null;
-          language: string | null;
-          description: string | null;
-          cover_image_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          subtitle?: string | null;
-          series?: string | null;
-          series_number?: number | null;
-          primary_isbn?: string | null;
-          publication_year?: number | null;
-          genre?: string[] | null;
-          language?: string | null;
-          description?: string | null;
-          cover_image_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          title?: string;
-          subtitle?: string | null;
-          series?: string | null;
-          series_number?: number | null;
-          primary_isbn?: string | null;
-          publication_year?: number | null;
-          genre?: string[] | null;
-          language?: string | null;
-          description?: string | null;
-          cover_image_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
+
       book_authors: {
         Row: {
           id: string;
@@ -159,118 +112,7 @@ export type Database = {
           },
         ];
       };
-      book_editions: {
-        Row: {
-          id: string;
-          book_id: string;
-          edition_name: string | null;
-          publisher: string | null;
-          publication_date: string | null;
-          isbn_13: string | null;
-          isbn_10: string | null;
-          language: string | null;
-          page_count: number | null;
-          dimensions: string | null;
-          weight_grams: number | null;
-          description: string | null;
-          cover_image_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          book_id: string;
-          edition_name?: string | null;
-          publisher?: string | null;
-          publication_date?: string | null;
-          isbn_13?: string | null;
-          isbn_10?: string | null;
-          language?: string | null;
-          page_count?: number | null;
-          dimensions?: string | null;
-          weight_grams?: number | null;
-          description?: string | null;
-          cover_image_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          book_id?: string;
-          edition_name?: string | null;
-          publisher?: string | null;
-          publication_date?: string | null;
-          isbn_13?: string | null;
-          isbn_10?: string | null;
-          language?: string | null;
-          page_count?: number | null;
-          dimensions?: string | null;
-          weight_grams?: number | null;
-          description?: string | null;
-          cover_image_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'book_editions_book_id_fkey';
-            columns: ['book_id'];
-            isOneToOne: false;
-            referencedRelation: 'books';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      book_bindings: {
-        Row: {
-          id: string;
-          edition_id: string;
-          binding_type: string;
-          isbn_13: string | null;
-          isbn_10: string | null;
-          price_usd: number | null;
-          availability: string | null;
-          format_specific_data: Json | null;
-          retailer_urls: Json | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          edition_id: string;
-          binding_type: string;
-          isbn_13?: string | null;
-          isbn_10?: string | null;
-          price_usd?: number | null;
-          availability?: string | null;
-          format_specific_data?: Json | null;
-          retailer_urls?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          edition_id?: string;
-          binding_type?: string;
-          isbn_13?: string | null;
-          isbn_10?: string | null;
-          price_usd?: number | null;
-          availability?: string | null;
-          format_specific_data?: Json | null;
-          retailer_urls?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'book_bindings_edition_id_fkey';
-            columns: ['edition_id'];
-            isOneToOne: false;
-            referencedRelation: 'book_editions';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
+
       external_book_data: {
         Row: {
           id: string;
@@ -570,7 +412,7 @@ export type Database = {
           },
         ];
       };
-      primary_books: {
+      books: {
         Row: {
           id: string;
           user_id: string;
@@ -600,47 +442,47 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: 'fk_primary_books_selected_edition';
+            foreignKeyName: 'fk_books_selected_edition';
             columns: ['selected_edition_id'];
             isOneToOne: false;
-            referencedRelation: 'primary_book_editions';
+            referencedRelation: 'book_editions';
             referencedColumns: ['id'];
           },
         ];
       };
-      primary_book_editions: {
+      book_editions: {
         Row: {
           id: string;
-          primary_book_id: string;
+          book_id: string;
           edition_number: number;
           publication_year: number | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          primary_book_id: string;
+          book_id: string;
           edition_number: number;
           publication_year?: number | null;
           created_at?: string;
         };
         Update: {
           id?: string;
-          primary_book_id?: string;
+          book_id?: string;
           edition_number?: number;
           publication_year?: number | null;
           created_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'primary_book_editions_primary_book_id_fkey';
-            columns: ['primary_book_id'];
+            foreignKeyName: 'book_editions_book_id_fkey';
+            columns: ['book_id'];
             isOneToOne: false;
-            referencedRelation: 'primary_books';
+            referencedRelation: 'books';
             referencedColumns: ['id'];
           },
         ];
       };
-      primary_book_bindings: {
+      book_bindings: {
         Row: {
           id: string;
           book_edition_id: string;
@@ -682,10 +524,10 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: 'primary_book_bindings_book_edition_id_fkey';
+            foreignKeyName: 'book_bindings_book_edition_id_fkey';
             columns: ['book_edition_id'];
             isOneToOne: false;
-            referencedRelation: 'primary_book_editions';
+            referencedRelation: 'book_editions';
             referencedColumns: ['id'];
           },
         ];
@@ -824,17 +666,17 @@ export type AuthorRow = Tables<'authors'>;
 export type AuthorInsert = TablesInsert<'authors'>;
 export type AuthorUpdate = TablesUpdate<'authors'>;
 
-// Primary Books system types (actively used)
-export type PrimaryBookRow = Tables<'primary_books'>;
-export type PrimaryBookInsert = TablesInsert<'primary_books'>;
-export type PrimaryBookUpdate = TablesUpdate<'primary_books'>;
+// Books system types (actively used - renamed from primary_books)
+export type BookRow = Tables<'books'>;
+export type BookInsert = TablesInsert<'books'>;
+export type BookUpdate = TablesUpdate<'books'>;
 
-export type PrimaryBookEditionRow = Tables<'primary_book_editions'>;
-export type PrimaryBookEditionInsert = TablesInsert<'primary_book_editions'>;
-export type PrimaryBookEditionUpdate = TablesUpdate<'primary_book_editions'>;
+export type BookEditionRow = Tables<'book_editions'>;
+export type BookEditionInsert = TablesInsert<'book_editions'>;
+export type BookEditionUpdate = TablesUpdate<'book_editions'>;
 
-export type PrimaryBookBindingRow = Tables<'primary_book_bindings'>;
-export type PrimaryBookBindingInsert = TablesInsert<'primary_book_bindings'>;
-export type PrimaryBookBindingUpdate = TablesUpdate<'primary_book_bindings'>;
+export type BookBindingRow = Tables<'book_bindings'>;
+export type BookBindingInsert = TablesInsert<'book_bindings'>;
+export type BookBindingUpdate = TablesUpdate<'book_bindings'>;
 
 // Legacy exports removed: BookRow, BookInsert, BookUpdate (old books table)

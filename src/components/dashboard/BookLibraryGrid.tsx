@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { AddBookDialog } from '@/components/book-management/AddBookDialog';
 import { Button } from '@/components/ui/button';
-import { SimplifiedBook } from '@/lib/types/primary-book';
+import { SimplifiedBook } from '@/lib/types/book';
 
 import { BookCard } from './BookCard';
 

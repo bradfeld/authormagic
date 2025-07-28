@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { BookLibraryGrid } from '@/components/dashboard/BookLibraryGrid';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { SimplifiedBook } from '@/lib/types/primary-book';
+import { SimplifiedBook } from '@/lib/types/book';
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();

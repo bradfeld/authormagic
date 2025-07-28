@@ -1,17 +1,17 @@
 /**
- * Primary Book Service
- * Handles CRUD operations for the Primary Books system
+ * Book Service
+ * Handles CRUD operations for the Books system
  */
 
 import { createServiceClient } from '@/lib/supabase/server';
 import {
-  PrimaryBook,
+  Book,
   BookEdition,
   BookBinding,
-  PrimaryBookInsert,
-  PrimaryBookEditionInsert,
-  PrimaryBookBindingInsert,
-} from '@/lib/types/primary-book';
+  BookInsert,
+  BookEditionInsert,
+  BookBindingInsert,
+} from '@/lib/types/book';
 import { UIBook } from '@/lib/types/ui-book';
 
 import {
@@ -19,7 +19,7 @@ import {
   EditionGroup,
 } from './edition-detection.service';
 
-export class PrimaryBookService {
+export class BookService {
   private static _supabase: ReturnType<typeof createServiceClient> | null =
     null;
 
@@ -31,43 +31,40 @@ export class PrimaryBookService {
   }
 
   /**
-   * Create a new Primary Book with editions and bindings
+   * Create a new Book with editions and bindings
    * Uses pre-grouped edition data to preserve search results structure
    */
-  static async createPrimaryBook(
+  static async createBook(
     userId: string,
     title: string,
     author: string,
     editionGroups: EditionGroup[],
     selectedEditionNumber?: number,
-  ): Promise<PrimaryBook> {
+  ): Promise<Book> {
     // Use the pre-grouped edition structure directly (no re-detection)
     // This preserves the exact search results that the user saw
 
-    // Create primary book record
-    const primaryBookData: PrimaryBookInsert = {
+    // Create book record
+    const bookData: BookInsert = {
       user_id: userId,
       title,
       author,
       selected_edition_id: undefined, // Will be set after creating editions
     };
 
-    const { data: primaryBook, error: primaryBookError } =
-      await this.getSupabase()
-        .from('primary_books')
-        .insert(primaryBookData)
-        .select()
-        .single();
+    const { data: book, error: bookError } = await this.getSupabase()
+      .from('books')
+      .insert(bookData)
+      .select()
+      .single();
 
-    if (primaryBookError) {
-      throw new Error(
-        `Failed to create primary book: ${primaryBookError.message}`,
-      );
+    if (bookError) {
+      throw new Error(`Failed to create book: ${bookError.message}`);
     }
 
     // Create editions and bindings using the preserved structure
     const editions = await this.createEditionsWithBindings(
-      primaryBook.id,
+      book.id,
       editionGroups,
     );
 
@@ -77,32 +74,32 @@ export class PrimaryBookService {
       : editions[0]; // First edition (latest due to sorting)
 
     if (selectedEdition) {
-      await this.updateSelectedEdition(primaryBook.id, selectedEdition.id);
+      await this.updateSelectedEdition(book.id, selectedEdition.id);
     }
 
     return {
-      ...primaryBook,
+      ...book,
       editions,
       selected_edition_id: selectedEdition?.id,
     };
   }
 
   /**
-   * Find existing primary book by user, title, and author
+   * Find existing book by user, title, and author
    */
   static async findExistingBook(
     userId: string,
     title: string,
     author: string,
-  ): Promise<PrimaryBook | null> {
+  ): Promise<Book | null> {
     const { data: existingBook, error } = await this.getSupabase()
-      .from('primary_books')
+      .from('books')
       .select(
         `
         *,
-        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+        editions:book_editions!book_editions_book_id_fkey (
           *,
-          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
@@ -133,28 +130,28 @@ export class PrimaryBookService {
    * Uses pre-grouped edition data to preserve search results structure
    */
   static async updateBookWithNewEditions(
-    primaryBookId: string,
+    bookId: string,
     editionGroups: EditionGroup[],
-  ): Promise<PrimaryBook> {
+  ): Promise<Book> {
     // Use the pre-grouped edition structure directly (no re-detection)
     // This preserves the exact search results that the user saw
 
     // Add new editions and bindings (existing ones will be skipped due to unique constraints)
-    await this.createEditionsWithBindings(primaryBookId, editionGroups);
+    await this.createEditionsWithBindings(bookId, editionGroups);
 
     // Get the updated book with all editions
     const { data: updatedBook, error } = await this.getSupabase()
-      .from('primary_books')
+      .from('books')
       .select(
         `
         *,
-        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+        editions:book_editions!book_editions_book_id_fkey (
           *,
-          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
-      .eq('id', primaryBookId)
+      .eq('id', bookId)
       .single();
 
     if (error) {
@@ -171,17 +168,17 @@ export class PrimaryBookService {
   }
 
   /**
-   * Get user's primary books with editions and bindings
+   * Get user's books with editions and bindings
    */
-  static async getUserPrimaryBooks(userId: string): Promise<PrimaryBook[]> {
-    const { data: primaryBooks, error } = await this.getSupabase()
-      .from('primary_books')
+  static async getUserBooks(userId: string): Promise<Book[]> {
+    const { data: books, error } = await this.getSupabase()
+      .from('books')
       .select(
         `
         *,
-        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+        editions:book_editions!book_editions_book_id_fkey (
           *,
-          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
@@ -189,10 +186,10 @@ export class PrimaryBookService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch primary books: ${error.message}`);
+      throw new Error(`Failed to fetch books: ${error.message}`);
     }
 
-    return primaryBooks.map(book => ({
+    return books.map(book => ({
       ...book,
       editions: book.editions.map((edition: BookEdition) => ({
         ...edition,
@@ -202,11 +199,11 @@ export class PrimaryBookService {
   }
 
   /**
-   * Get user's primary books for dashboard display (simplified structure)
+   * Get user's books for dashboard display (simplified structure)
    */
-  static async getUserPrimaryBooksSimplified(userId: string) {
+  static async getUserBooksSimplified(userId: string) {
     const { data: result, error } = await this.getSupabase()
-      .from('primary_books')
+      .from('books')
       .select(
         `
         id,
@@ -214,11 +211,11 @@ export class PrimaryBookService {
         author,
         created_at,
         selected_edition_id,
-        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+        editions:book_editions!book_editions_book_id_fkey (
           id,
           edition_number,
           publication_year,
-          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (
             cover_image_url
           )
         )
@@ -228,7 +225,7 @@ export class PrimaryBookService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch primary books: ${error.message}`);
+      throw new Error(`Failed to fetch books: ${error.message}`);
     }
 
     return result.map(book => {
@@ -273,22 +270,22 @@ export class PrimaryBookService {
   /**
    * Get a specific primary book by ID
    */
-  static async getPrimaryBookById(
-    primaryBookId: string,
+  static async getBookById(
+    bookId: string,
     userId: string,
-  ): Promise<PrimaryBook | null> {
-    const { data: primaryBook, error } = await this.getSupabase()
-      .from('primary_books')
+  ): Promise<Book | null> {
+    const { data: book, error } = await this.getSupabase()
+      .from('books')
       .select(
         `
         *,
-        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+        editions:book_editions!book_editions_book_id_fkey (
           *,
-          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
-      .eq('id', primaryBookId)
+      .eq('id', bookId)
       .eq('user_id', userId)
       .single();
 
@@ -296,12 +293,12 @@ export class PrimaryBookService {
       if (error.code === 'PGRST116') {
         return null; // Not found
       }
-      throw new Error(`Failed to fetch primary book: ${error.message}`);
+      throw new Error(`Failed to fetch book: ${error.message}`);
     }
 
     return {
-      ...primaryBook,
-      editions: primaryBook.editions.map((edition: BookEdition) => ({
+      ...book,
+      editions: book.editions.map((edition: BookEdition) => ({
         ...edition,
         bindings: edition.bindings,
       })),
@@ -312,13 +309,13 @@ export class PrimaryBookService {
    * Update selected edition for a primary book
    */
   static async updateSelectedEdition(
-    primaryBookId: string,
+    bookId: string,
     editionId: string,
   ): Promise<void> {
     const { error } = await this.getSupabase()
-      .from('primary_books')
+      .from('books')
       .update({ selected_edition_id: editionId })
-      .eq('id', primaryBookId);
+      .eq('id', bookId);
 
     if (error) {
       throw new Error(`Failed to update selected edition: ${error.message}`);
@@ -344,21 +341,21 @@ export class PrimaryBookService {
   }
 
   /**
-   * Check if user already has this book as a primary book
+   * Check if user already has this book
    */
   static async findExistingPrimaryBook(
     userId: string,
     title: string,
     author: string,
-  ): Promise<PrimaryBook | null> {
-    const { data: primaryBook, error } = await this.getSupabase()
-      .from('primary_books')
+  ): Promise<Book | null> {
+    const { data: book, error } = await this.getSupabase()
+      .from('books')
       .select(
         `
         *,
-        editions:primary_book_editions!primary_book_editions_primary_book_id_fkey (
+        editions:book_editions!book_editions_book_id_fkey (
           *,
-          bindings:primary_book_bindings!primary_book_bindings_book_edition_id_fkey (*)
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
         )
       `,
       )
@@ -371,14 +368,12 @@ export class PrimaryBookService {
       if (error.code === 'PGRST116') {
         return null; // Not found
       }
-      throw new Error(
-        `Failed to check existing primary book: ${error.message}`,
-      );
+      throw new Error(`Failed to check existing book: ${error.message}`);
     }
 
     return {
-      ...primaryBook,
-      editions: primaryBook.editions.map((edition: BookEdition) => ({
+      ...book,
+      editions: book.editions.map((edition: BookEdition) => ({
         ...edition,
         bindings: edition.bindings,
       })),
@@ -388,15 +383,15 @@ export class PrimaryBookService {
   /**
    * Add new editions to an existing primary book
    */
-  static async addEditionsToPrimaryBook(
-    primaryBookId: string,
+  static async addEditionsToBook(
+    bookId: string,
     userId: string,
     newBooks: UIBook[],
   ): Promise<BookEdition[]> {
     // Verify ownership
-    const existingBook = await this.getPrimaryBookById(primaryBookId, userId);
+    const existingBook = await this.getBookById(bookId, userId);
     if (!existingBook) {
-      throw new Error('Primary book not found or access denied');
+      throw new Error('Book not found or access denied');
     }
 
     // Group new books by edition
@@ -404,7 +399,7 @@ export class PrimaryBookService {
 
     // Filter out editions that already exist
     const existingEditionNumbers = existingBook.editions.map(
-      e => e.edition_number,
+      (e: BookEdition) => e.edition_number,
     );
     const newEditionGroups = editionGroups.filter(
       group => !existingEditionNumbers.includes(group.edition_number),
@@ -415,25 +410,22 @@ export class PrimaryBookService {
     }
 
     // Create new editions
-    return await this.createEditionsWithBindings(
-      primaryBookId,
-      newEditionGroups,
-    );
+    return await this.createEditionsWithBindings(bookId, newEditionGroups);
   }
 
   /**
    * Private method to create editions with their bindings
    */
   private static async createEditionsWithBindings(
-    primaryBookId: string,
+    bookId: string,
     editionGroups: EditionGroup[],
   ): Promise<BookEdition[]> {
     const editions: BookEdition[] = [];
 
     for (const group of editionGroups) {
       // Create edition record
-      const editionData: PrimaryBookEditionInsert = {
-        primary_book_id: primaryBookId,
+      const editionData: BookEditionInsert = {
+        book_id: bookId,
         edition_number: group.edition_number,
         publication_year: group.publication_year,
       };
@@ -442,7 +434,7 @@ export class PrimaryBookService {
       let edition;
       const { data: insertedEdition, error: editionError } =
         await this.getSupabase()
-          .from('primary_book_editions')
+          .from('book_editions')
           .insert(editionData)
           .select()
           .single();
@@ -452,9 +444,9 @@ export class PrimaryBookService {
         if (editionError.code === '23505') {
           const { data: existingEdition, error: fetchError } =
             await this.getSupabase()
-              .from('primary_book_editions')
+              .from('book_editions')
               .select('*')
-              .eq('primary_book_id', primaryBookId)
+              .eq('book_id', bookId)
               .eq('edition_number', group.edition_number)
               .single();
 
@@ -472,7 +464,7 @@ export class PrimaryBookService {
       }
 
       // Create bindings for this edition
-      const bindingData: PrimaryBookBindingInsert[] = group.books.map(book => ({
+      const bindingData: BookBindingInsert[] = group.books.map(book => ({
         book_edition_id: edition.id,
         isbn: book.isbn13 || book.isbn,
         binding_type: EditionDetectionService.normalizeBindingType(
@@ -493,7 +485,7 @@ export class PrimaryBookService {
       for (const binding of bindingData) {
         const { data: insertedBinding, error: bindingError } =
           await this.getSupabase()
-            .from('primary_book_bindings')
+            .from('book_bindings')
             .insert(binding)
             .select()
             .single();
@@ -503,7 +495,7 @@ export class PrimaryBookService {
           if (bindingError.code === '23505') {
             const { data: existingBinding, error: fetchError } =
               await this.getSupabase()
-                .from('primary_book_bindings')
+                .from('book_bindings')
                 .select('*')
                 .eq('isbn', binding.isbn)
                 .single();
@@ -570,29 +562,29 @@ export class PrimaryBookService {
   }
 
   /**
-   * Get statistics for a primary book
+   * Get statistics for a book
    */
-  static getPrimaryBookStats(primaryBook: PrimaryBook): {
+  static getBookStats(book: Book): {
     totalEditions: number;
     totalBindings: number;
     bindingTypes: string[];
     yearRange: { earliest?: number; latest?: number };
   } {
-    const totalEditions = primaryBook.editions.length;
-    const totalBindings = primaryBook.editions.reduce(
+    const totalEditions = book.editions.length;
+    const totalBindings = book.editions.reduce(
       (sum, edition) => sum + edition.bindings.length,
       0,
     );
 
     const bindingTypes = Array.from(
       new Set(
-        primaryBook.editions.flatMap(edition =>
+        book.editions.flatMap(edition =>
           edition.bindings.map(binding => binding.binding_type),
         ),
       ),
     );
 
-    const years = primaryBook.editions
+    const years = book.editions
       .map(edition => edition.publication_year)
       .filter(year => year !== undefined) as number[];
 
@@ -610,5 +602,32 @@ export class PrimaryBookService {
       bindingTypes,
       yearRange,
     };
+  }
+
+  // Legacy method aliases for backwards compatibility during migration
+  /** @deprecated Use createBook instead */
+  static async createPrimaryBook(
+    ...args: Parameters<typeof BookService.createBook>
+  ): Promise<Book> {
+    return this.createBook(...args);
+  }
+
+  /** @deprecated Use getUserBooks instead */
+  static async getUserPrimaryBooks(
+    ...args: Parameters<typeof BookService.getUserBooks>
+  ): Promise<Book[]> {
+    return this.getUserBooks(...args);
+  }
+
+  /** @deprecated Use getUserBooksSimplified instead */
+  static async getUserPrimaryBooksSimplified(
+    ...args: Parameters<typeof BookService.getUserBooksSimplified>
+  ) {
+    return this.getUserBooksSimplified(...args);
+  }
+
+  /** @deprecated Use getBookStats instead */
+  static getPrimaryBookStats(book: Book) {
+    return this.getBookStats(book);
   }
 }
