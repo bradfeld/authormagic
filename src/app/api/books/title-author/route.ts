@@ -16,6 +16,19 @@ const devLog = (message: string) => {
   }
 };
 
+// ENHANCED DEBUG LOGGING - Always log for API comparison
+const debugLog = (message: string, data?: any) => {
+  const env = process.env.NODE_ENV || 'unknown';
+  const timestamp = new Date().toISOString();
+  console.log(`[${env.toUpperCase()}] ${timestamp} - ${message}`);
+  if (data) {
+    console.log(
+      `[${env.toUpperCase()}] DEBUG DATA:`,
+      JSON.stringify(data, null, 2),
+    );
+  }
+};
+
 export async function GET(request: NextRequest) {
   const startTime = performance.now();
   const timings: { [step: string]: number } = {};
@@ -63,6 +76,27 @@ export async function GET(request: NextRequest) {
       `📊 PERF: Found ${isbndbBooks.length} ISBNDB + ${googleBooksBooks.length} Google Books = ${isbndbBooks.length + googleBooksBooks.length} total books`,
     );
 
+    // ENHANCED DEBUG: Log detailed API response data
+    debugLog(`📊 API RESPONSE SUMMARY for "${title}" by "${author}"`, {
+      isbndb: {
+        count: isbndbBooks.length,
+        success:
+          isbndbResult.status === 'fulfilled' && isbndbResult.value.success,
+        isbns: isbndbBooks
+          .map(book => book.isbn13 || book.isbn)
+          .filter(Boolean),
+      },
+      googleBooks: {
+        count: googleBooksBooks.length,
+        success:
+          googleBooksResult.status === 'fulfilled' &&
+          googleBooksResult.value.success,
+        isbns: googleBooksBooks
+          .map(book => book.isbn13 || book.isbn)
+          .filter(Boolean),
+      },
+    });
+
     // Merge and deduplicate results
     const mergeStart = performance.now();
     const mergedResults = BookDataMergerService.mergeBookResults(
@@ -81,6 +115,22 @@ export async function GET(request: NextRequest) {
     timings.filtering = performance.now() - filterStart;
 
     devLog(`🔍 PERF: Filtered to ${filteredBooks.length} relevant books`);
+
+    // ENHANCED DEBUG: Log filtering results
+    debugLog(`🔍 FILTERING RESULTS for "${title}"`, {
+      merged: {
+        count: mergedResults.books.length,
+        uniqueIsbns: mergedResults.books
+          .map(book => book.isbn13 || book.isbn)
+          .filter(Boolean),
+      },
+      filtered: {
+        count: filteredBooks.length,
+        uniqueIsbns: filteredBooks
+          .map(book => book.isbn13 || book.isbn)
+          .filter(Boolean),
+      },
+    });
 
     // Apply binding corrections to filtered books
     const correctionStart = performance.now();
@@ -278,6 +328,25 @@ export async function GET(request: NextRequest) {
     const editionGroups = EditionDetectionService.groupByEdition(finalBooks);
     timings.editionDetection = performance.now() - editionStart;
 
+    // ENHANCED DEBUG: Log edition detection results
+    debugLog(`📚 EDITION DETECTION RESULTS for "${title}"`, {
+      inputBooks: finalBooks.length,
+      editionGroups: editionGroups.length,
+      groupDetails: editionGroups.map((group, index) => ({
+        groupIndex: index,
+        editionNumber: group.edition_number,
+        editionType: group.edition_type,
+        bookCount: group.books.length,
+        isbns: group.books
+          .map(book => book.isbn13 || book.isbn)
+          .filter(Boolean),
+      })),
+      totalBooksInGroups: editionGroups.reduce(
+        (sum, group) => sum + group.books.length,
+        0,
+      ),
+    });
+
     // PHASE 2: Background Image Enhancement Queue Integration
     const queueStart = performance.now();
     try {
@@ -333,6 +402,20 @@ ${enableValidation ? `✅ Validation: ${timings.validation.toFixed(2)}ms (${((ti
 📚 Edition Detection: ${timings.editionDetection.toFixed(2)}ms (${((timings.editionDetection / timings.total) * 100).toFixed(1)}%)
 📤 Queue Integration: ${timings.queue.toFixed(2)}ms (${((timings.queue / timings.total) * 100).toFixed(1)}%)
 🎯 Final Results: ${editionGroups.length} edition groups, ${finalBooks.length} books`);
+
+    // ENHANCED DEBUG: Log final response data
+    debugLog(`🎯 FINAL RESPONSE for "${title}" by "${author}"`, {
+      editionGroups: editionGroups.length,
+      totalBooks: finalBooks.length,
+      finalIsbns: finalBooks
+        .map(book => book.isbn13 || book.isbn)
+        .filter(Boolean),
+      editionGroupSummary: editionGroups.map(group => ({
+        edition: group.edition_number,
+        type: group.edition_type,
+        books: group.books.length,
+      })),
+    });
 
     return NextResponse.json({
       success: true,
