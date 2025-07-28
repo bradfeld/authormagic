@@ -9,24 +9,34 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SimplifiedBook } from '@/lib/types/book';
 
 export default function BooksPage() {
-  const { user, isLoaded } = useUser();
+  // Always call useUser to satisfy React Hooks rules
+  const clerkHookData = useUser();
+
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  // Use mock data in CI, real data otherwise
+  const { user, isLoaded } = isCI
+    ? { user: null, isLoaded: true }
+    : clerkHookData;
+
   const router = useRouter();
   const [books, setBooks] = useState<SimplifiedBook[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [booksError, setBooksError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLoaded && !user) {
+    if (!isCI && isLoaded && !user) {
       router.push('/sign-in');
     }
-  }, [isLoaded, user, router]);
+  }, [isLoaded, user, router, isCI]);
 
-  // Fetch books when user is loaded
+  // Fetch books when user is loaded (skip in CI)
   useEffect(() => {
-    if (user && isLoaded) {
+    if (!isCI && user && isLoaded) {
       fetchBooks();
     }
-  }, [user, isLoaded]);
+  }, [user, isLoaded, isCI]);
 
   const fetchBooks = async () => {
     setBooksLoading(true);
@@ -47,6 +57,27 @@ export default function BooksPage() {
       setBooksLoading(false);
     }
   };
+
+  // Show placeholder content during CI builds
+  if (isCI) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">My Books</h1>
+              <p className="text-gray-600">
+                Manage your book collection, add new books, and track your
+                collection.
+              </p>
+            </div>
+            <div className="text-sm text-gray-500">0 books</div>
+          </div>
+          <BookLibraryGrid books={[]} onRefresh={() => {}} />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!isLoaded) {
     return (

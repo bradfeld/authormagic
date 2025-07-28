@@ -20,10 +20,17 @@ import {
 } from '@/components/ui/card';
 
 export default async function AnalyticsPage() {
-  const { userId } = await auth();
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
 
-  if (!userId) {
-    redirect('/sign-in');
+  let userId = null;
+  if (!isCI) {
+    const authResult = await auth();
+    userId = authResult.userId;
+
+    if (!userId) {
+      redirect('/sign-in');
+    }
   }
 
   return (
@@ -38,7 +45,7 @@ export default async function AnalyticsPage() {
             </p>
           </div>
           <Button>
-            <Calendar className="h-4 w-4 mr-2" />
+            <Calendar className="mr-2 h-4 w-4" />
             View Report
           </Button>
         </div>
@@ -51,8 +58,8 @@ export default async function AnalyticsPage() {
               <CardTitle className="text-2xl">0</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <TrendingUp className="h-3 w-3 mr-1" />
+              <div className="text-muted-foreground flex items-center text-xs">
+                <TrendingUp className="mr-1 h-3 w-3" />
                 This month
               </div>
             </CardContent>
@@ -66,8 +73,8 @@ export default async function AnalyticsPage() {
               <CardTitle className="text-2xl">0%</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Target className="h-3 w-3 mr-1" />
+              <div className="text-muted-foreground flex items-center text-xs">
+                <Target className="mr-1 h-3 w-3" />
                 Progress
               </div>
             </CardContent>
@@ -81,8 +88,8 @@ export default async function AnalyticsPage() {
               <CardTitle className="text-2xl">0</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Eye className="h-3 w-3 mr-1" />
+              <div className="text-muted-foreground flex items-center text-xs">
+                <Eye className="mr-1 h-3 w-3" />
                 This week
               </div>
             </CardContent>
@@ -103,20 +110,20 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
                   <BookOpen className="h-8 w-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="mb-2 text-lg font-medium text-gray-900">
                   Reading Insights Coming Soon
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="mb-4 text-gray-600">
                   We&apos;re building powerful analytics to help you track your
                   reading journey and discover patterns in your literary
                   preferences.
                 </p>
                 <Button variant="outline">
-                  <BarChart3 className="h-4 w-4 mr-2" />
+                  <BarChart3 className="mr-2 h-4 w-4" />
                   View Charts
                 </Button>
               </div>
@@ -135,19 +142,19 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
                   <Eye className="h-8 w-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="mb-2 text-lg font-medium text-gray-900">
                   Profile Insights Coming Soon
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="mb-4 text-gray-600">
                   See how readers discover and engage with your author profile
                   and book collection.
                 </p>
                 <Button variant="outline">
-                  <TrendingUp className="h-4 w-4 mr-2" />
+                  <TrendingUp className="mr-2 h-4 w-4" />
                   View Trends
                 </Button>
               </div>
@@ -167,17 +174,17 @@ export default async function AnalyticsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-6">
-              <p className="text-gray-600 mb-4">
+            <div className="py-6 text-center">
+              <p className="mb-4 text-gray-600">
                 Reading goal tracking and progress monitoring coming soon!
               </p>
               <div className="flex justify-center gap-4">
                 <Button variant="outline">
-                  <Target className="h-4 w-4 mr-2" />
+                  <Target className="mr-2 h-4 w-4" />
                   Set Goals
                 </Button>
                 <Button variant="outline">
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <Calendar className="mr-2 h-4 w-4" />
                   View Progress
                 </Button>
               </div>

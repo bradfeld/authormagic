@@ -317,7 +317,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch {
-    // devLog(`❌ PERF: Search failed after ${totalTime.toFixed(2)}ms`); // Removed devLog
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

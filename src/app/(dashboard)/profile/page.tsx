@@ -9,24 +9,34 @@ import { ProfileManager } from '@/components/profile/ProfileManager';
 import { CompleteAuthorProfile } from '@/lib/services/author-profile.service';
 
 export default function ProfilePage() {
-  const { user, isLoaded } = useUser();
+  // Always call useUser to satisfy React Hooks rules
+  const clerkHookData = useUser();
+
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  // Use mock data in CI, real data otherwise
+  const { user, isLoaded } = isCI
+    ? { user: null, isLoaded: true }
+    : clerkHookData;
+
   const router = useRouter();
   const [profile, setProfile] = useState<CompleteAuthorProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLoaded && !user) {
+    if (!isCI && isLoaded && !user) {
       router.push('/sign-in');
     }
-  }, [isLoaded, user, router]);
+  }, [isLoaded, user, router, isCI]);
 
-  // Fetch profile when user is loaded
+  // Fetch profile when user is loaded (skip in CI)
   useEffect(() => {
-    if (user && isLoaded) {
+    if (!isCI && user && isLoaded) {
       fetchProfile();
     }
-  }, [user, isLoaded]);
+  }, [user, isLoaded, isCI]);
 
   const fetchProfile = async () => {
     setProfileLoading(true);
@@ -47,6 +57,28 @@ export default function ProfilePage() {
       setProfileLoading(false);
     }
   };
+
+  // Show placeholder content during CI builds
+  if (isCI) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+            <p className="text-gray-600">
+              Manage your author profile and connect with readers
+            </p>
+          </div>
+          <div className="max-w-2xl">
+            {/* Show placeholder ProfileManager with empty data during CI */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+              <p className="text-gray-500">Profile content (CI placeholder)</p>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!isLoaded) {
     return (

@@ -13,10 +13,17 @@ import {
 } from '@/components/ui/card';
 
 export default async function SettingsPage() {
-  const { userId } = await auth();
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
 
-  if (!userId) {
-    redirect('/sign-in');
+  let userId = null;
+  if (!isCI) {
+    const authResult = await auth();
+    userId = authResult.userId;
+
+    if (!userId) {
+      redirect('/sign-in');
+    }
   }
 
   return (
@@ -44,8 +51,8 @@ export default async function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
-                <p className="text-gray-600 mb-4">
+              <div className="py-6 text-center">
+                <p className="mb-4 text-gray-600">
                   Account settings are managed through your profile page.
                 </p>
                 <Button variant="outline">Go to Profile</Button>
@@ -65,11 +72,11 @@ export default async function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
-                <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <div className="py-6 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                   <Bell className="h-6 w-6 text-gray-400" />
                 </div>
-                <p className="text-gray-600 mb-4">
+                <p className="mb-4 text-gray-600">
                   Notification preferences coming soon!
                 </p>
               </div>
@@ -88,11 +95,11 @@ export default async function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
-                <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <div className="py-6 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                   <Shield className="h-6 w-6 text-gray-400" />
                 </div>
-                <p className="text-gray-600 mb-4">
+                <p className="mb-4 text-gray-600">
                   Privacy and security settings coming soon!
                 </p>
               </div>
@@ -111,11 +118,11 @@ export default async function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
-                <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <div className="py-6 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                   <Palette className="h-6 w-6 text-gray-400" />
                 </div>
-                <p className="text-gray-600 mb-4">
+                <p className="mb-4 text-gray-600">
                   Theme and appearance options coming soon!
                 </p>
               </div>

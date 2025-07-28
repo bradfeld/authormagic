@@ -58,6 +58,19 @@
 - Escape special characters in JSX (apostrophes become &apos;)
 - Follow consistent naming: PascalCase components, kebab-case CSS classes
 
+### Refactoring and Cleanup Safety
+- **CRITICAL**: When removing variables/functions during cleanup, check ALL references including:
+  - Function calls and method invocations
+  - Object property access (e.g., `timings.variableName.toFixed()`)
+  - Type definitions and interfaces
+  - Response objects and return statements
+  - Template literals and string interpolation
+- **ALWAYS** search codebase for variable name before removal: `grep -r "variableName" src/`
+- **TEST immediately** after cleanup - run API endpoints and UI flows affected
+- **Use feature branches** for cleanup work to enable easy rollback
+- **Document breaking changes** in commit messages with specific error patterns
+- **Example lesson**: Removing `timings.preEdition` calculation but leaving `timings.preEdition.toFixed(2)` in response object caused production API crash
+
 ### File Organization
 - Server actions: /lib/actions/[domain].ts
 - Database utilities: /lib/supabase/

@@ -227,3 +227,41 @@ export default function CustomUserButton() {
 5. Use the development session documentation in Notion
 
 Remember: Local development (`npm run dev`) is more permissive than production builds. Always validate with production build before deployment!
+
+## Common Error Patterns
+
+### API Crashes: "Cannot read properties of undefined"
+
+**Symptoms**:
+
+- API returning 500 Internal Server Error
+- Console shows: `TypeError: Cannot read properties of undefined (reading 'toFixed')`
+- Usually occurs after refactoring/cleanup work
+
+**Root Cause**:
+Variable calculation was removed but usage in response object was missed
+
+**Debugging Steps**:
+
+1. Check server console for exact error line number
+2. Look for object property access on undefined variables (e.g., `timings.variableName.toFixed()`)
+3. Search codebase for all references: `grep -r "variableName" src/`
+4. Compare with recent commits to see what was removed
+
+**Example Fix**:
+
+```diff
+// BROKEN - calculation removed but usage remained
+- preEditionMs: parseFloat(timings.preEdition.toFixed(2)),
+
+// FIXED - remove the property completely
+performance: {
+  totalMs: parseFloat(timings.total.toFixed(2)),
+  // preEditionMs removed
+  enhancementMs: parseFloat(timings.enhancement.toFixed(2)),
+}
+```
+
+**Prevention**: Follow "Refactoring and Cleanup Safety" rules in `.cursorrules`
+
+---
