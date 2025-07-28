@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          // Enhanced CSP for better security (StackHawk recommendation)
+          // Enhanced CSP balancing security and functionality
           // Supports Clerk, Supabase, and necessary external resources
           {
             key: 'Content-Security-Policy',
