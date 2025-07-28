@@ -106,12 +106,20 @@ export function Sidebar({
   collapsed: controlledCollapsed,
   onCollapsedChange,
 }: SidebarProps) {
+  // Always call useUser hook to satisfy React Hooks rules
+  const userData = useUser();
+
+  // Handle CI builds where Clerk is disabled
+  const isCI = process.env.NEXT_PUBLIC_CI_DISABLE_CLERK === 'true';
+
+  // Use mock data in CI, real data otherwise
+  const { user } = isCI ? { user: null } : userData;
+
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [adminMenuExpanded, setAdminMenuExpanded] = useState(false);
   const pathname = usePathname();
-  const { user } = useUser();
 
   const collapsed = controlledCollapsed ?? internalCollapsed;
 
@@ -126,7 +134,7 @@ export function Sidebar({
   // Check if user is admin using the proper role-based system
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!user?.id) {
+      if (isCI || !user?.id) {
         setIsAdmin(false);
         setAdminCheckLoading(false);
         return;
@@ -165,7 +173,7 @@ export function Sidebar({
     };
 
     checkAdminStatus();
-  }, [user?.id, user?.emailAddresses]);
+  }, [user?.id, user?.emailAddresses, isCI]);
 
   // Auto-expand admin menu if we're on an admin page
   useEffect(() => {
@@ -344,16 +352,22 @@ export function Sidebar({
             <Avatar className="h-8 w-8">
               <AvatarImage src={user?.imageUrl} />
               <AvatarFallback className="text-xs">
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
+                {isCI
+                  ? 'U'
+                  : `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900">
-                {user?.fullName || `${user?.firstName} ${user?.lastName}`}
+                {isCI
+                  ? 'User Name'
+                  : user?.fullName ||
+                    `${user?.firstName || ''} ${user?.lastName || ''}`}
               </p>
               <p className="truncate text-xs text-gray-500">
-                {user?.emailAddresses?.[0]?.emailAddress}
+                {isCI
+                  ? 'user@example.com'
+                  : user?.emailAddresses?.[0]?.emailAddress}
                 {isAdmin && !adminCheckLoading && (
                   <span className="ml-1 font-medium text-blue-600">Admin</span>
                 )}
@@ -365,8 +379,9 @@ export function Sidebar({
             <Avatar className="h-8 w-8">
               <AvatarImage src={user?.imageUrl} />
               <AvatarFallback className="text-xs">
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
+                {isCI
+                  ? 'U'
+                  : `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`}
               </AvatarFallback>
             </Avatar>
           </div>
