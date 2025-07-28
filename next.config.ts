@@ -34,13 +34,13 @@ const nextConfig: NextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          // Enhanced CSP with specific image sources (no wildcards)
-          // Supports Clerk, Supabase, and necessary external resources
+          // Enhanced CSP: Removed unsafe-inline from script-src (StackHawk finding)
+          // Testing if Clerk and Next.js work without inline scripts
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://*.clerk.accounts.dev https://*.clerk.com https://books.googleapis.com https://covers.isbndb.com https://images.clerk.dev https://*.gravatar.com https://*.googleusercontent.com",
