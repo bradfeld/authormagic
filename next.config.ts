@@ -8,6 +8,9 @@ const withAnalyzer = withBundleAnalyzer({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Remove X-Powered-By header for security (StackHawk recommendation)
+  poweredByHeader: false,
+
   async headers() {
     return [
       {
@@ -31,12 +34,22 @@ const nextConfig: NextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          // Note: CSP intentionally flexible for Clerk and development
-          // Tighten in production as needed
+          // Enhanced CSP for better security (StackHawk recommendation)
+          // Supports Clerk, Supabase, and necessary external resources
           {
             key: 'Content-Security-Policy',
-            value:
-              "frame-ancestors 'none'; object-src 'none'; base-uri 'self';",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: https: http:",
+              "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://books.googleapis.com https://api.isbndb.com",
+              "frame-ancestors 'none'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
           },
         ],
       },
