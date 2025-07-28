@@ -7,7 +7,7 @@
     "restart": "node scripts/restart-dev-server.js",
     "dev:watch": "node scripts/auto-restart-watcher.js",
     "query": "node scripts/run-query.js",
-    "build": "next build",
+    "build": "NODE_NO_WARNINGS=1 next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",

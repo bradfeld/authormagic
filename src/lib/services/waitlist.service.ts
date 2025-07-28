@@ -276,6 +276,7 @@ export class WaitlistService {
   async setupInitialAdmin(bradClerkUserId: string): Promise<void> {
     try {
       // Call the database function to setup initial admin
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (this.supabase as any).rpc(
         'setup_initial_admin',
         {
