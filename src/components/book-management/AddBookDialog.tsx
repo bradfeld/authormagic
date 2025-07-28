@@ -193,8 +193,8 @@ export function AddBookDialog({
         } catch {
           // If JSON parsing fails, use the response text
           try {
-            const textError = await response.text();
-            errorMessage = textError || `HTTP ${response.status}`;
+            const responseText = await response.text();
+            errorMessage = responseText || `HTTP ${response.status}`;
           } catch {
             errorMessage = `HTTP ${response.status}`;
           }
@@ -202,6 +202,7 @@ export function AddBookDialog({
         throw new Error(errorMessage);
       }
 
+      // Only parse response if it was successful
       await response.json();
       setEditionGroups([]);
       setBookTitle('');
