@@ -303,19 +303,17 @@ export async function GET(request: NextRequest) {
       // Include performance data for debugging
       performance: {
         totalMs: parseFloat(timings.total.toFixed(2)),
-        breakdown: {
-          apiSearchMs: parseFloat(timings.apiSearch.toFixed(2)),
-          mergingMs: parseFloat(timings.merging.toFixed(2)),
-          filteringMs: parseFloat(timings.filtering.toFixed(2)),
-          correctionsMs: parseFloat(timings.corrections.toFixed(2)),
-          preEditionMs: parseFloat(timings.preEdition.toFixed(2)),
-          enhancementMs: parseFloat(timings.enhancement.toFixed(2)),
-          validationMs: enableValidation
-            ? parseFloat(timings.validation.toFixed(2))
-            : 0,
-          editionDetectionMs: parseFloat(timings.editionDetection.toFixed(2)),
-          queueMs: parseFloat(timings.queue.toFixed(2)),
-        },
+        apiSearchMs: parseFloat(timings.apiSearch.toFixed(2)),
+        extractionMs: parseFloat(timings.extraction.toFixed(2)),
+        mergingMs: parseFloat(timings.merging.toFixed(2)),
+        filteringMs: parseFloat(timings.filtering.toFixed(2)),
+        correctionsMs: parseFloat(timings.corrections.toFixed(2)),
+        enhancementMs: parseFloat(timings.enhancement.toFixed(2)),
+        validationMs: enableValidation
+          ? parseFloat(timings.validation.toFixed(2))
+          : 0,
+        editionDetectionMs: parseFloat(timings.editionDetection.toFixed(2)),
+        queueMs: parseFloat(timings.queue.toFixed(2)),
       },
     });
   } catch {
