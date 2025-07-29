@@ -168,6 +168,42 @@ export class BookService {
   }
 
   /**
+   * Update book title and author
+   */
+  static async updateBook(
+    bookId: string,
+    userId: string,
+    title: string,
+    author: string,
+  ): Promise<Book> {
+    // First verify the user owns this book
+    const book = await this.getBookById(bookId, userId);
+    if (!book) {
+      throw new Error('Book not found or access denied');
+    }
+
+    // Update the book
+    const { error } = await this.getSupabase()
+      .from('books')
+      .update({
+        title: title.trim(),
+        author: author.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update book: ${error.message}`);
+    }
+
+    // Return the updated book with full details
+    return this.getBookWithDetails(bookId, userId) as Promise<Book>;
+  }
+
+  /**
    * Get user's books with editions and bindings
    */
   static async getUserBooks(userId: string): Promise<Book[]> {

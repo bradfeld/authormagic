@@ -2,14 +2,17 @@
 
 import { useUser } from '@clerk/nextjs';
 import { formatDistanceToNow } from 'date-fns';
+import { Edit } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { EditBookDialog } from '@/components/book-management/EditBookDialog';
 import { EditionCard } from '@/components/book-management/EditionCard';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Book } from '@/lib/types/book';
 
@@ -23,6 +26,7 @@ function BookDetailPageContent() {
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -60,6 +64,28 @@ function BookDetailPageContent() {
       fetchBookDetails();
     }
   }, [user, isLoaded, bookId]);
+
+  const handleEditBook = async (title: string, author: string) => {
+    try {
+      const response = await fetch(`/api/books/${bookId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, author }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update book');
+      }
+
+      const data = await response.json();
+      setBook(data.data.book);
+    } catch (err) {
+      throw err; // Re-throw so the dialog can handle it
+    }
+  };
 
   if (!isLoaded || loading) {
     return (
@@ -187,116 +213,137 @@ function BookDetailPageContent() {
   });
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Breadcrumb Navigation */}
-        <Breadcrumb
-          items={[{ label: 'Books', href: '/books' }, { label: book.title }]}
-        />
+    <>
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Breadcrumb Navigation */}
+          <Breadcrumb
+            items={[{ label: 'Books', href: '/books' }, { label: book.title }]}
+          />
 
-        {/* Book Header */}
-        <div className="flex gap-8">
-          {/* Book Cover */}
-          <div className="flex-shrink-0">
-            <div className="relative h-64 w-44 overflow-hidden rounded-lg bg-gray-100 shadow-lg">
-              {coverImage ? (
-                <Image
-                  src={coverImage}
-                  alt={`Cover of ${book.title}`}
-                  fill
-                  className="object-cover"
-                  sizes="176px"
-                  onError={e => {
-                    // Hide the broken image and show fallback
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  onLoad={() => {
-                    // Image loaded successfully
-                  }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
-                  <span className="text-4xl">📚</span>
-                </div>
-              )}
+          {/* Book Header */}
+          <div className="flex gap-8">
+            {/* Book Cover */}
+            <div className="flex-shrink-0">
+              <div className="relative h-64 w-44 overflow-hidden rounded-lg bg-gray-100 shadow-lg">
+                {coverImage ? (
+                  <Image
+                    src={coverImage}
+                    alt={`Cover of ${book.title}`}
+                    fill
+                    className="object-cover"
+                    sizes="176px"
+                    onError={e => {
+                      // Hide the broken image and show fallback
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      // Image loaded successfully
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+                    <span className="text-4xl">📚</span>
+                  </div>
+                )}
 
-              {/* Fallback for broken images */}
-              {coverImage && (
-                <div
-                  className="absolute inset-0 flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200"
-                  style={{ zIndex: -1 }}
+                {/* Fallback for broken images */}
+                {coverImage && (
+                  <div
+                    className="absolute inset-0 flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200"
+                    style={{ zIndex: -1 }}
+                  >
+                    <span className="text-4xl">📚</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Book Information */}
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex items-start justify-between">
+                <h1 className="mr-4 text-3xl font-bold text-gray-900">
+                  {book.title}
+                </h1>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditDialogOpen(true)}
+                  className="flex items-center gap-2"
                 >
-                  <span className="text-4xl">📚</span>
-                </div>
-              )}
-            </div>
-          </div>
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              </div>
+              <p className="mb-4 text-xl text-gray-600">by {book.author}</p>
 
-          {/* Book Information */}
-          <div className="min-w-0 flex-1">
-            <h1 className="mb-2 text-3xl font-bold text-gray-900">
-              {book.title}
-            </h1>
-            <p className="mb-4 text-xl text-gray-600">by {book.author}</p>
-
-            {/* Statistics */}
-            <div className="mb-6 flex flex-wrap gap-3">
-              <Badge variant="secondary" className="px-3 py-1">
-                {totalEditions} {totalEditions === 1 ? 'edition' : 'editions'}
-              </Badge>
-              <Badge variant="secondary" className="px-3 py-1">
-                {totalBindings} {totalBindings === 1 ? 'format' : 'formats'}
-              </Badge>
-              {yearRange && (
-                <Badge variant="outline" className="px-3 py-1">
-                  {yearRange}
+              {/* Statistics */}
+              <div className="mb-6 flex flex-wrap gap-3">
+                <Badge variant="secondary" className="px-3 py-1">
+                  {totalEditions} {totalEditions === 1 ? 'edition' : 'editions'}
                 </Badge>
-              )}
-            </div>
+                <Badge variant="secondary" className="px-3 py-1">
+                  {totalBindings} {totalBindings === 1 ? 'format' : 'formats'}
+                </Badge>
+                {yearRange && (
+                  <Badge variant="outline" className="px-3 py-1">
+                    {yearRange}
+                  </Badge>
+                )}
+              </div>
 
-            {/* Metadata */}
-            <div className="space-y-1 text-sm text-gray-500">
-              <p>Added to collection {addedDate}</p>
-              {primaryEdition && (
-                <p>
-                  Primary edition:{' '}
-                  {primaryEdition.edition_number
-                    ? `${primaryEdition.edition_number}${getOrdinalSuffix(primaryEdition.edition_number)} Edition`
-                    : 'Unknown edition'}
-                  {primaryEdition.publication_year &&
-                    ` (${primaryEdition.publication_year})`}
-                </p>
-              )}
+              {/* Metadata */}
+              <div className="space-y-1 text-sm text-gray-500">
+                <p>Added to collection {addedDate}</p>
+                {primaryEdition && (
+                  <p>
+                    Primary edition:{' '}
+                    {primaryEdition.edition_number
+                      ? `${primaryEdition.edition_number}${getOrdinalSuffix(primaryEdition.edition_number)} Edition`
+                      : 'Unknown edition'}
+                    {primaryEdition.publication_year &&
+                      ` (${primaryEdition.publication_year})`}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Editions Section */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold text-gray-900">Editions</h2>
+          {/* Editions Section */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold text-gray-900">Editions</h2>
 
-          {book.editions && book.editions.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {book.editions.map(edition => (
-                <EditionCard key={edition.id} edition={edition} />
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>No Editions Found</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  This book doesn&apos;t have any edition information available
-                  yet.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+            {book.editions && book.editions.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {book.editions.map(edition => (
+                  <EditionCard key={edition.id} edition={edition} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>No Editions Found</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    This book doesn&apos;t have any edition information
+                    available yet.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
-    </DashboardLayout>
+      </DashboardLayout>
+
+      {/* Edit Dialog */}
+      <EditBookDialog
+        isOpen={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        book={book}
+        onSave={handleEditBook}
+      />
+    </>
   );
 }
 
