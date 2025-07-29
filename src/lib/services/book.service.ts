@@ -341,6 +341,30 @@ export class BookService {
   }
 
   /**
+   * Delete a book and all its editions/bindings
+   * This will cascade delete all related editions and bindings
+   */
+  static async deleteBook(bookId: string, userId: string): Promise<void> {
+    // First verify the book exists and user owns it
+    const book = await this.getBookById(bookId, userId);
+    if (!book) {
+      throw new Error('Book not found or access denied');
+    }
+
+    // Delete the book - this will cascade delete editions and bindings
+    // due to foreign key constraints with CASCADE DELETE
+    const { error } = await this.getSupabase()
+      .from('books')
+      .delete()
+      .eq('id', bookId)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`Failed to delete book: ${error.message}`);
+    }
+  }
+
+  /**
    * Check if user already has this book
    */
   static async findExistingPrimaryBook(

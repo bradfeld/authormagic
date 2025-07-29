@@ -113,7 +113,7 @@ function BookLibraryGridContent({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {books.map(book => (
-          <BookCard key={book.id} book={book} />
+          <BookCard key={book.id} book={book} onBookDeleted={onRefresh} />
         ))}
       </div>
     </div>
