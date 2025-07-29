@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Book, BookEdition } from '@/lib/types/book';
+import { Book, BookEdition, BookBinding } from '@/lib/types/book';
 
 // CI-safe wrapper component
 function BookDetailPageContent() {
@@ -104,6 +104,45 @@ function BookDetailPageContent() {
     setBook({
       ...book,
       editions: book.editions.filter(edition => edition.id !== editionId),
+    });
+  };
+
+  const handleBindingUpdated = (
+    editionId: string,
+    updatedBinding: BookBinding,
+  ) => {
+    if (!book) return;
+
+    setBook({
+      ...book,
+      editions: book.editions.map(edition =>
+        edition.id === editionId
+          ? {
+              ...edition,
+              bindings: edition.bindings.map(binding =>
+                binding.id === updatedBinding.id ? updatedBinding : binding,
+              ),
+            }
+          : edition,
+      ),
+    });
+  };
+
+  const handleBindingDeleted = (editionId: string, bindingId: string) => {
+    if (!book) return;
+
+    setBook({
+      ...book,
+      editions: book.editions.map(edition =>
+        edition.id === editionId
+          ? {
+              ...edition,
+              bindings: edition.bindings.filter(
+                binding => binding.id !== bindingId,
+              ),
+            }
+          : edition,
+      ),
     });
   };
 
@@ -341,6 +380,8 @@ function BookDetailPageContent() {
                     edition={edition}
                     onEditionUpdated={handleEditionUpdated}
                     onEditionDeleted={handleEditionDeleted}
+                    onBindingUpdated={handleBindingUpdated}
+                    onBindingDeleted={handleBindingDeleted}
                   />
                 ))}
               </div>

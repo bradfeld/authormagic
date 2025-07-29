@@ -12,8 +12,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BookEdition } from '@/lib/types/book';
+import { BookEdition, BookBinding } from '@/lib/types/book';
 
+import { BindingCard } from './BindingCard';
 import { DeleteEditionDialog } from './DeleteEditionDialog';
 import { EditEditionDialog } from './EditEditionDialog';
 
@@ -21,12 +22,16 @@ interface EditionCardProps {
   edition: BookEdition;
   onEditionUpdated?: (updatedEdition: BookEdition) => void;
   onEditionDeleted?: (editionId: string) => void;
+  onBindingUpdated?: (editionId: string, updatedBinding: BookBinding) => void;
+  onBindingDeleted?: (editionId: string, bindingId: string) => void;
 }
 
 export function EditionCard({
   edition,
   onEditionUpdated,
   onEditionDeleted,
+  onBindingUpdated,
+  onBindingDeleted,
 }: EditionCardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -150,38 +155,20 @@ export function EditionCard({
               </h4>
               <div className="grid gap-3">
                 {edition.bindings.map(binding => (
-                  <div
+                  <BindingCard
                     key={binding.id}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium capitalize">
-                          {binding.binding_type.replace('_', ' ')}
-                        </div>
-                        {binding.isbn && (
-                          <div className="text-xs text-gray-500">
-                            ISBN: {binding.isbn}
-                          </div>
-                        )}
-                        {binding.publisher && (
-                          <div className="text-xs text-gray-500">
-                            Publisher: {binding.publisher}
-                          </div>
-                        )}
-                      </div>
-                      {binding.price && (
-                        <div className="text-sm font-medium text-green-600">
-                          ${binding.price.toFixed(2)}
-                        </div>
-                      )}
-                    </div>
-                    {binding.pages && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        {binding.pages} pages
-                      </div>
-                    )}
-                  </div>
+                    binding={binding}
+                    onBindingUpdated={updatedBinding => {
+                      if (onBindingUpdated) {
+                        onBindingUpdated(edition.id, updatedBinding);
+                      }
+                    }}
+                    onBindingDeleted={bindingId => {
+                      if (onBindingDeleted) {
+                        onBindingDeleted(edition.id, bindingId);
+                      }
+                    }}
+                  />
                 ))}
               </div>
             </div>

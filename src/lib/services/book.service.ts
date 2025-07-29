@@ -797,6 +797,113 @@ export class BookService {
     }
   }
 
+  /**
+   * Get binding by ID with ownership validation
+   */
+  static async getBindingById(
+    bindingId: string,
+    userId: string,
+  ): Promise<BookBinding | null> {
+    const { data: binding, error } = await this.getSupabase()
+      .from('book_bindings')
+      .select(
+        `
+        *,
+        edition:book_editions!book_bindings_book_edition_id_fkey (
+          book:books!book_editions_book_id_fkey (user_id)
+        )
+      `,
+      )
+      .eq('id', bindingId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch binding: ${error.message}`);
+    }
+
+    // Check if user owns the book that contains this binding
+    if (binding.edition.book.user_id !== userId) {
+      return null; // Access denied
+    }
+
+    return binding;
+  }
+
+  /**
+   * Update binding details
+   */
+  static async updateBinding(
+    bindingId: string,
+    userId: string,
+    updateData: {
+      // Removed isbn since it's now read-only
+      binding_type: string;
+      price?: number;
+      publisher?: string;
+      cover_image_url?: string;
+      description?: string;
+      pages?: number;
+      language: string;
+    },
+  ): Promise<BookBinding> {
+    // First verify the user owns this binding
+    const binding = await this.getBindingById(bindingId, userId);
+    if (!binding) {
+      throw new Error('Binding not found or access denied');
+    }
+
+    // Update the binding (excluding ISBN since it's read-only)
+    const { error } = await this.getSupabase()
+      .from('book_bindings')
+      .update({
+        // isbn: excluded since it's read-only
+        binding_type: updateData.binding_type,
+        price: updateData.price || null,
+        publisher: updateData.publisher || null,
+        cover_image_url: updateData.cover_image_url || null,
+        description: updateData.description || null,
+        pages: updateData.pages || null,
+        language: updateData.language,
+      })
+      .eq('id', bindingId);
+
+    if (error) {
+      throw new Error(`Failed to update binding: ${error.message}`);
+    }
+
+    // Return the updated binding with full details
+    const updatedBinding = await this.getBindingById(bindingId, userId);
+    if (!updatedBinding) {
+      throw new Error('Failed to fetch updated binding');
+    }
+
+    return updatedBinding;
+  }
+
+  /**
+   * Delete binding
+   */
+  static async deleteBinding(bindingId: string, userId: string): Promise<void> {
+    // First verify the user owns this binding
+    const binding = await this.getBindingById(bindingId, userId);
+    if (!binding) {
+      throw new Error('Binding not found or access denied');
+    }
+
+    // Delete the binding
+    const { error } = await this.getSupabase()
+      .from('book_bindings')
+      .delete()
+      .eq('id', bindingId);
+
+    if (error) {
+      throw new Error(`Failed to delete binding: ${error.message}`);
+    }
+  }
+
   // Legacy method aliases for backwards compatibility during migration
   /** @deprecated Use createBook instead */
   static async createPrimaryBook(
