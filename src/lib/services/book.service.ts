@@ -365,6 +365,44 @@ export class BookService {
   }
 
   /**
+   * Get book with all editions and bindings for detail view
+   */
+  static async getBookWithDetails(
+    bookId: string,
+    userId: string,
+  ): Promise<Book | null> {
+    const { data: book, error } = await this.getSupabase()
+      .from('books')
+      .select(
+        `
+        *,
+        editions:book_editions!book_editions_book_id_fkey (
+          *,
+          bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
+        )
+      `,
+      )
+      .eq('id', bookId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch book details: ${error.message}`);
+    }
+
+    return {
+      ...book,
+      editions: book.editions.map((edition: BookEdition) => ({
+        ...edition,
+        bindings: edition.bindings || [],
+      })),
+    };
+  }
+
+  /**
    * Check if user already has this book
    */
   static async findExistingPrimaryBook(
