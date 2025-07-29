@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Book } from '@/lib/types/book';
+import { Book, BookEdition } from '@/lib/types/book';
 
 // CI-safe wrapper component
 function BookDetailPageContent() {
@@ -85,6 +85,26 @@ function BookDetailPageContent() {
     } catch (err) {
       throw err; // Re-throw so the dialog can handle it
     }
+  };
+
+  const handleEditionUpdated = (updatedEdition: BookEdition) => {
+    if (!book) return;
+
+    setBook({
+      ...book,
+      editions: book.editions.map(edition =>
+        edition.id === updatedEdition.id ? updatedEdition : edition,
+      ),
+    });
+  };
+
+  const handleEditionDeleted = (editionId: string) => {
+    if (!book) return;
+
+    setBook({
+      ...book,
+      editions: book.editions.filter(edition => edition.id !== editionId),
+    });
   };
 
   if (!isLoaded || loading) {
@@ -316,7 +336,12 @@ function BookDetailPageContent() {
             {book.editions && book.editions.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {book.editions.map(edition => (
-                  <EditionCard key={edition.id} edition={edition} />
+                  <EditionCard
+                    key={edition.id}
+                    edition={edition}
+                    onEditionUpdated={handleEditionUpdated}
+                    onEditionDeleted={handleEditionDeleted}
+                  />
                 ))}
               </div>
             ) : (

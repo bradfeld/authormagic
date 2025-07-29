@@ -702,6 +702,101 @@ export class BookService {
     };
   }
 
+  /**
+   * Get edition by ID with ownership validation
+   */
+  static async getEditionById(
+    editionId: string,
+    userId: string,
+  ): Promise<BookEdition | null> {
+    const { data: edition, error } = await this.getSupabase()
+      .from('book_editions')
+      .select(
+        `
+        *,
+        book:books!book_editions_book_id_fkey (user_id),
+        bindings:book_bindings!book_bindings_book_edition_id_fkey (*)
+      `,
+      )
+      .eq('id', editionId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch edition: ${error.message}`);
+    }
+
+    // Check if user owns the book that contains this edition
+    if (edition.book.user_id !== userId) {
+      return null; // Access denied
+    }
+
+    return {
+      ...edition,
+      bindings: edition.bindings || [],
+    };
+  }
+
+  /**
+   * Update edition details
+   */
+  static async updateEdition(
+    editionId: string,
+    userId: string,
+    editionNumber: number,
+    publicationYear?: number,
+  ): Promise<BookEdition> {
+    // First verify the user owns this edition
+    const edition = await this.getEditionById(editionId, userId);
+    if (!edition) {
+      throw new Error('Edition not found or access denied');
+    }
+
+    // Update the edition
+    const { error } = await this.getSupabase()
+      .from('book_editions')
+      .update({
+        edition_number: editionNumber,
+        publication_year: publicationYear || null,
+      })
+      .eq('id', editionId);
+
+    if (error) {
+      throw new Error(`Failed to update edition: ${error.message}`);
+    }
+
+    // Return the updated edition with full details
+    const updatedEdition = await this.getEditionById(editionId, userId);
+    if (!updatedEdition) {
+      throw new Error('Failed to fetch updated edition');
+    }
+
+    return updatedEdition;
+  }
+
+  /**
+   * Delete edition
+   */
+  static async deleteEdition(editionId: string, userId: string): Promise<void> {
+    // First verify the user owns this edition
+    const edition = await this.getEditionById(editionId, userId);
+    if (!edition) {
+      throw new Error('Edition not found or access denied');
+    }
+
+    // Delete the edition (will cascade to bindings)
+    const { error } = await this.getSupabase()
+      .from('book_editions')
+      .delete()
+      .eq('id', editionId);
+
+    if (error) {
+      throw new Error(`Failed to delete edition: ${error.message}`);
+    }
+  }
+
   // Legacy method aliases for backwards compatibility during migration
   /** @deprecated Use createBook instead */
   static async createPrimaryBook(
