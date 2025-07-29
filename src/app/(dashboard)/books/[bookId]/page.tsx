@@ -15,6 +15,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Book, BookEdition, BookBinding } from '@/lib/types/book';
+import { getBookPrimaryCover, getCurrentEdition } from '@/lib/utils/book-cover';
 
 // CI-safe wrapper component
 function BookDetailPageContent() {
@@ -256,15 +257,11 @@ function BookDetailPageContent() {
         : `${years[0]} - ${years[years.length - 1]}`
       : null;
 
-  // Get primary edition (first one or selected one)
-  const primaryEdition = book.selected_edition_id
-    ? book.editions?.find(e => e.id === book.selected_edition_id)
-    : book.editions?.[0];
+  // Get primary edition (most current edition with cover)
+  const primaryEdition = getCurrentEdition(book);
 
-  // Get cover image from primary edition's first binding with an image
-  const coverImage = primaryEdition?.bindings?.find(
-    b => b.cover_image_url,
-  )?.cover_image_url;
+  // Get cover image using consistent edition-based logic
+  const coverImage = getBookPrimaryCover(book);
 
   // Format the added date
   const addedDate = formatDistanceToNow(new Date(book.created_at), {

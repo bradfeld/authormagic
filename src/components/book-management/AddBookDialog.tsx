@@ -89,6 +89,8 @@ export function AddBookDialog({
           );
         // Add validation parameters to filter out phantom books
         queryParams.append('validate', 'true');
+        // Use new enriched flow for perfect image associations
+        queryParams.append('enriched', 'true');
         const response = await fetch(`/api/books/title-author?${queryParams}`);
         if (!response.ok) throw new Error('Failed to search books');
         const result = await response.json();
@@ -380,6 +382,7 @@ export function AddBookDialog({
                   ...bestBook,
                   ...bestMetadata,
                 };
+
                 const editionDisplay =
                   EditionDetectionService.getEditionDisplayName(edition);
                 return (

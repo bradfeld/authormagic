@@ -13,6 +13,7 @@ import {
   BookBindingInsert,
 } from '@/lib/types/book';
 import { UIBook } from '@/lib/types/ui-book';
+import { getBookPrimaryCover } from '@/lib/utils/book-cover';
 
 import {
   EditionDetectionService,
@@ -280,10 +281,8 @@ export class BookService {
             (a, b) => (b.publication_year || 0) - (a.publication_year || 0),
           )?.[0];
 
-      // Get cover image from any binding
-      const coverImage = book.editions
-        ?.flatMap(e => e.bindings || [])
-        ?.find(b => b.cover_image_url)?.cover_image_url;
+      // Get cover image using consistent edition-based logic
+      const coverImage = getBookPrimaryCover(book);
 
       return {
         id: book.id,

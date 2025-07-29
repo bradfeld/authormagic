@@ -6,7 +6,7 @@ import {
   DollarSign,
   FileText,
   Globe,
-  Image,
+  ImageIcon,
   Hash,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -383,7 +383,7 @@ export function EditBindingDialog({
           {/* Cover Image URL */}
           <div className="space-y-2">
             <label htmlFor="coverImageUrl" className="text-sm font-medium">
-              <Image className="mr-2 inline h-4 w-4" />
+              <ImageIcon className="mr-2 inline h-4 w-4" />
               Cover Image URL
             </label>
             <Input

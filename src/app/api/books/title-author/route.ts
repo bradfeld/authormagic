@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { BookDataMergerService } from '@/lib/services/book-data-merger.service';
+import { BookEnrichmentService } from '@/lib/services/book-enrichment.service';
 import { EditionDetectionService } from '@/lib/services/edition-detection.service';
 import { GoogleBooksService } from '@/lib/services/google-books.service';
 import { ImageEnhancementQueueService } from '@/lib/services/image-enhancement-queue.service';
@@ -8,6 +9,7 @@ import { isbnDbService } from '@/lib/services/isbn-db.service';
 import { SmartEnhancementService } from '@/lib/services/smart-enhancement.service';
 import { ISBNDBBookResponse } from '@/lib/types/api';
 import { convertISBNDBToUIBook, UIBook } from '@/lib/types/ui-book';
+import { extractUniqueISBNs } from '@/lib/utils/isbn-extractor';
 
 export async function GET(request: NextRequest) {
   const startTime = performance.now();
@@ -17,11 +19,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const title = searchParams.get('title');
     const author = searchParams.get('author');
+    const useEnriched = searchParams.get('enriched') === 'true';
 
     if (!title || !author) {
       return NextResponse.json(
         { error: 'Both title and author parameters are required' },
         { status: 400 },
+      );
+    }
+
+    // Use new enriched flow if requested
+    if (useEnriched) {
+      return await handleEnrichedSearchFlow(
+        request,
+        title,
+        author,
+        timings,
+        startTime,
       );
     }
 
@@ -415,6 +429,102 @@ async function searchISBNDB(title: string, author?: string) {
     books: [],
     error: 'No books found with any search strategy',
   };
+}
+
+// NEW: Enriched search flow using ISBN-based detailed lookups
+async function handleEnrichedSearchFlow(
+  request: NextRequest,
+  title: string,
+  author: string,
+  timings: { [step: string]: number },
+  startTime: number,
+) {
+  try {
+    // Phase 1: ISBN Discovery using existing search APIs
+    const discoveryStart = performance.now();
+    const googleBooksService = new GoogleBooksService();
+
+    const [isbndbResult, googleBooksResult] = await Promise.allSettled([
+      searchISBNDB(title.trim(), author.trim()),
+      searchGoogleBooks(googleBooksService, title.trim(), author.trim()),
+    ]);
+
+    const isbndbBooks =
+      isbndbResult.status === 'fulfilled' && isbndbResult.value.success
+        ? isbndbResult.value.books
+        : [];
+    const googleBooksBooks =
+      googleBooksResult.status === 'fulfilled' &&
+      googleBooksResult.value.success
+        ? googleBooksResult.value.data || []
+        : [];
+
+    timings.isbnDiscovery = performance.now() - discoveryStart;
+
+    // Phase 2: Extract unique ISBNs from all discovered books
+    const extractionStart = performance.now();
+    const allDiscoveredBooks = [...isbndbBooks, ...googleBooksBooks];
+    const uniqueISBNs = extractUniqueISBNs(allDiscoveredBooks);
+    timings.isbnExtraction = performance.now() - extractionStart;
+
+    console.log(
+      `📚 Enriched Flow: Discovered ${uniqueISBNs.length} unique ISBNs from ${allDiscoveredBooks.length} books`,
+    );
+
+    // Phase 3: Enrich with detailed ISBNDB data (perfect image associations)
+    const enrichmentStart = performance.now();
+    const enrichmentService = new BookEnrichmentService();
+    const enrichedBooks =
+      await enrichmentService.enrichBooksWithDetailedData(uniqueISBNs);
+    timings.enrichment = performance.now() - enrichmentStart;
+
+    // Phase 4: Apply filtering and processing (simplified since images are already correct)
+    const processingStart = performance.now();
+    const filteredBooks = filterBooksByTitleAuthor(
+      enrichedBooks,
+      title.trim(),
+      author.trim(),
+    );
+
+    // Group by edition (much simpler now since each book has correct images)
+    const editionGroups = EditionDetectionService.groupByEdition(filteredBooks);
+    timings.processing = performance.now() - processingStart;
+
+    // Calculate total time
+    const totalTime = performance.now() - startTime;
+
+    return NextResponse.json({
+      success: true,
+      editionGroups, // ← Top level to match old format
+      books: filteredBooks, // ← Top level to match old format
+      total: filteredBooks.length,
+      sources: {
+        isbndb: isbndbBooks.length,
+        googleBooks: googleBooksBooks.length,
+      },
+      metadata: {
+        totalDiscovered: allDiscoveredBooks.length,
+        uniqueISBNs: uniqueISBNs.length,
+        successfullyEnriched: enrichedBooks.length,
+        finalFiltered: filteredBooks.length,
+        method: 'enriched-isbn-lookup',
+      },
+      timings: {
+        ...timings,
+        total: totalTime,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Enriched search flow error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to process enriched search request',
+        method: 'enriched-isbn-lookup',
+      },
+      { status: 500 },
+    );
+  }
 }
 
 // Helper function for Google Books search

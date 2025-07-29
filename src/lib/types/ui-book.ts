@@ -94,6 +94,9 @@ export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
     binding: book.binding || book.print_type || undefined, // <-- Added for grouping/UI
     edition: book.edition || undefined, // <-- Map edition field directly
     content_version: book.content_version || undefined, // <-- Keep content_version separate
+    // ISBNDB doesn't provide images, but we include the fields for consistency
+    image: undefined,
+    thumbnail: undefined,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

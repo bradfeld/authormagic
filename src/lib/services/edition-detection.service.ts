@@ -1834,80 +1834,18 @@ export class EditionDetectionService {
   static getBestMetadata(books: UIBook[]): Partial<UIBook> {
     if (!books.length) return {};
 
-    // Group books by normalized binding type
-    const bindingGroups: { [binding: string]: UIBook[] } = {};
-    books.forEach(book => {
-      const binding = this.normalizeBindingType(
-        book.binding || book.print_type,
-      );
-      if (!bindingGroups[binding]) bindingGroups[binding] = [];
-      bindingGroups[binding].push(book);
-    });
-
-    // Remove debug logging
-
-    // Priority order for metadata selection
-    const bindingPriority = [
-      'hardcover',
-      'paperback',
-      'kindle',
-      'ebook',
-      'audiobook',
-    ];
-
-    // Find the highest priority binding with useful metadata
-    for (const bindingType of bindingPriority) {
-      const booksInBinding = bindingGroups[bindingType];
-      if (booksInBinding?.length) {
-        // Find book with most complete metadata in this binding
-        const bestBook = booksInBinding.reduce((best, current) => {
-          const bestScore = this.getMetadataScore(best);
-          const currentScore = this.getMetadataScore(current);
-          return currentScore > bestScore ? current : best;
-        });
-
-        if (this.getMetadataScore(bestBook) > 0) {
-          return {
-            published_date:
-              bestBook.published_date || bestBook.year?.toString(),
-            page_count: bestBook.page_count || bestBook.pages,
-            publisher: bestBook.publisher,
-            description: bestBook.description,
-            image: bestBook.image || bestBook.thumbnail,
-            language: bestBook.language,
-          };
-        }
-      }
-    }
-
-    // Fallback: use any book with the best metadata
-    const bestBook = books.reduce((best, current) => {
-      const bestScore = this.getMetadataScore(best);
-      const currentScore = this.getMetadataScore(current);
-      return currentScore > bestScore ? current : best;
-    });
+    // SIMPLIFIED: With enriched flow, each book already has its correct image
+    // from detailed ISBNDB lookup, so no complex prioritization needed
+    const firstBook = books[0];
 
     return {
-      published_date: bestBook.published_date || bestBook.year?.toString(),
-      page_count: bestBook.page_count || bestBook.pages,
-      publisher: bestBook.publisher,
-      description: bestBook.description,
-      image: bestBook.image || bestBook.thumbnail,
-      language: bestBook.language,
+      published_date: firstBook.published_date || firstBook.year?.toString(),
+      page_count: firstBook.page_count || firstBook.pages,
+      publisher: firstBook.publisher,
+      description: firstBook.description,
+      image: firstBook.image || firstBook.thumbnail, // Already perfect!
+      language: firstBook.language,
     };
-  }
-
-  /**
-   * Score a book's metadata completeness (higher is better)
-   */
-  private static getMetadataScore(book: UIBook): number {
-    let score = 0;
-    if (book.published_date || book.year) score += 3;
-    if (book.page_count || book.pages) score += 2;
-    if (book.publisher) score += 1;
-    if (book.description) score += 1;
-    if (book.image || book.thumbnail) score += 1;
-    return score;
   }
 
   /**

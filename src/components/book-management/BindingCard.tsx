@@ -20,13 +20,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BookBinding } from '@/lib/types/book';
+import { BookBinding, BookEdition } from '@/lib/types/book';
+import { getBindingCover } from '@/lib/utils/book-cover';
 
 import { DeleteBindingDialog } from './DeleteBindingDialog';
 import { EditBindingDialog } from './EditBindingDialog';
 
 interface BindingCardProps {
   binding: BookBinding;
+  edition: BookEdition;
   onBindingUpdated?: (updatedBinding: BookBinding) => void;
   onBindingDeleted?: (bindingId: string) => void;
 }
@@ -59,6 +61,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 export function BindingCard({
   binding,
+  edition,
   onBindingUpdated,
   onBindingDeleted,
 }: BindingCardProps) {
@@ -208,20 +211,26 @@ export function BindingCard({
           )}
 
           {/* Cover Image Preview */}
-          {binding.cover_image_url && (
-            <div className="border-t border-gray-100 pt-2">
-              <div className="mb-1 text-xs text-gray-500">Cover Image:</div>
-              <div className="relative h-16 w-12 overflow-hidden rounded bg-gray-100">
-                <Image
-                  src={binding.cover_image_url}
-                  alt={`${bindingTypeLabel} cover`}
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                />
+          {(() => {
+            const coverUrl = getBindingCover(binding.cover_image_url, edition);
+            return coverUrl ? (
+              <div className="border-t border-gray-100 pt-2">
+                <div className="mb-1 text-xs text-gray-500">
+                  Cover Image:
+                  {!binding.cover_image_url && ' (inherited from edition)'}
+                </div>
+                <div className="relative h-16 w-12 overflow-hidden rounded bg-gray-100">
+                  <Image
+                    src={coverUrl}
+                    alt={`${bindingTypeLabel} cover`}
+                    fill
+                    className="object-cover"
+                    sizes="48px"
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
         </CardContent>
       </Card>
 

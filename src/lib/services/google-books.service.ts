@@ -277,6 +277,35 @@ export class GoogleBooksService {
       ? new Date(volumeInfo.publishedDate).getFullYear()
       : undefined;
 
+    // Fix Google Books image URLs (ensure HTTPS and high quality)
+    const getImageUrl = (imageLinks: any) => {
+      if (!imageLinks) return '';
+
+      // Priority: large > medium > small > thumbnail
+      const imageUrl =
+        imageLinks.large ||
+        imageLinks.medium ||
+        imageLinks.small ||
+        imageLinks.thumbnail;
+
+      if (!imageUrl) return '';
+
+      // Convert HTTP to HTTPS for security
+      let httpsUrl = imageUrl.replace(/^http:/, 'https:');
+
+      // Increase image quality by modifying Google Books URL parameters
+      if (httpsUrl.includes('books.google.com')) {
+        // Remove zoom restrictions and get higher quality
+        httpsUrl =
+          httpsUrl.replace(/&zoom=\d+/, '').replace(/&edge=curl/, '') +
+          '&zoom=1';
+      }
+
+      return httpsUrl;
+    };
+
+    const imageUrl = getImageUrl(volumeInfo.imageLinks);
+
     return {
       id: volume.id, // Use Google Books volume ID as the primary ID
       isbn,
@@ -287,8 +316,8 @@ export class GoogleBooksService {
       year,
       pages: volumeInfo.pageCount,
       binding,
-      image:
-        volumeInfo.imageLinks?.thumbnail || volumeInfo.imageLinks?.small || '',
+      image: imageUrl,
+      thumbnail: imageUrl, // Also set thumbnail for backward compatibility
       description: volumeInfo.description || '',
       language: volumeInfo.language || 'en',
       subjects: volumeInfo.categories || [],

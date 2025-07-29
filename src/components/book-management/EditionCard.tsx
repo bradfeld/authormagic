@@ -158,6 +158,7 @@ export function EditionCard({
                   <BindingCard
                     key={binding.id}
                     binding={binding}
+                    edition={edition}
                     onBindingUpdated={updatedBinding => {
                       if (onBindingUpdated) {
                         onBindingUpdated(edition.id, updatedBinding);
