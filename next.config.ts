@@ -34,17 +34,17 @@ const nextConfig: NextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          // Enhanced CSP: Restored unsafe-inline (REQUIRED for Next.js functionality)
+          // Enhanced CSP: Added clerk.authormagic.com for production Clerk scripts
           // Next.js framework depends on inline scripts - removing breaks the app
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.authormagic.com https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: https://*.clerk.accounts.dev https://*.clerk.com https://books.googleapis.com https://covers.isbndb.com https://images.clerk.dev https://*.gravatar.com https://*.googleusercontent.com",
-              "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://books.googleapis.com https://api.isbndb.com",
+              "img-src 'self' data: https://*.clerk.accounts.dev https://*.clerk.com https://clerk.authormagic.com https://books.googleapis.com https://covers.isbndb.com https://images.clerk.dev https://*.gravatar.com https://*.googleusercontent.com",
+              "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://clerk.authormagic.com https://books.googleapis.com https://api.isbndb.com",
               "frame-ancestors 'none'",
               "object-src 'none'",
               "base-uri 'self'",
