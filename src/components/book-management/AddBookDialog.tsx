@@ -18,6 +18,7 @@ import {
   EditionDetectionService,
   EditionGroup,
 } from '@/lib/services/edition-detection.service';
+// Remove WaitlistService import - can't be used in client components
 import { UIBook } from '@/lib/types/ui-book';
 
 interface AddBookDialogProps {
@@ -44,14 +45,60 @@ export function AddBookDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Admin functionality state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  const [authorOverride, setAuthorOverride] = useState('');
+
   // Reset search state when dialog closes
   useEffect(() => {
     if (!isOpen) {
       setHasSearched(false);
       setEditionGroups([]);
       setBookTitle('');
+      // Don't reset authorOverride to maintain persistence
     }
   }, [isOpen]);
+
+  // Check admin status when component mounts or userId changes
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!userId) {
+        setIsAdmin(false);
+        setAdminCheckLoading(false);
+        return;
+      }
+
+      // Only run admin check on client-side to avoid SSR issues
+      if (typeof window === 'undefined') {
+        setAdminCheckLoading(false);
+        return;
+      }
+
+      try {
+        // Use the existing admin API that checks roles properly (same pattern as sidebar)
+        const response = await fetch('/api/admin/users?limit=1');
+
+        if (response.ok) {
+          // If we can access admin API, user is admin
+          setIsAdmin(true);
+        } else if (response.status === 403) {
+          // Forbidden means not admin
+          setIsAdmin(false);
+        } else {
+          // Other errors - assume not admin
+          setIsAdmin(false);
+        }
+      } catch {
+        // Silent fail for admin check - assume not admin
+        setIsAdmin(false);
+      } finally {
+        setAdminCheckLoading(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [userId]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -82,11 +129,17 @@ export function AddBookDialog({
       } else {
         const queryParams = new URLSearchParams();
         if (bookTitle.trim()) queryParams.append('title', bookTitle.trim());
-        if (firstName || lastName)
-          queryParams.append(
-            'author',
-            `${firstName || ''} ${lastName || ''}`.trim(),
-          );
+
+        // Use author override if admin provided one, otherwise use default author
+        const authorToUse =
+          isAdmin && authorOverride.trim()
+            ? authorOverride.trim()
+            : `${firstName || ''} ${lastName || ''}`.trim();
+
+        if (authorToUse) {
+          queryParams.append('author', authorToUse);
+        }
+
         // Add validation parameters to filter out phantom books
         queryParams.append('validate', 'true');
         // Use new enriched flow for perfect image associations
@@ -313,12 +366,41 @@ export function AddBookDialog({
           <DialogTitle>Add New Book</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          {/* Author Display */}
-          <div className="mb-2">
-            <span className="text-sm font-medium text-gray-700">Author:</span>
-            <span className="ml-2 text-base text-gray-900">
-              {firstName} {lastName}
-            </span>
+          {/* Author Display & Admin Override */}
+          <div className="mb-2 space-y-3">
+            {/* Default Author Display */}
+            <div>
+              <span className="text-sm font-medium text-gray-700">
+                {isAdmin ? 'Default Author:' : 'Author:'}
+              </span>
+              <span className="ml-2 text-base text-gray-900">
+                {firstName} {lastName}
+              </span>
+            </div>
+
+            {/* Admin Override Field */}
+            {isAdmin && !adminCheckLoading && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="authorOverride"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Override Author (Admin only):
+                </label>
+                <Input
+                  id="authorOverride"
+                  type="text"
+                  value={authorOverride}
+                  onChange={e => setAuthorOverride(e.target.value)}
+                  placeholder="Enter different author name (optional)"
+                  disabled={isLoading}
+                  className="max-w-md"
+                />
+                <p className="text-xs text-gray-500">
+                  Leave empty to use default author above
+                </p>
+              </div>
+            )}
           </div>
           {/* Book Title/ISBN Input Row */}
           <div className="mb-6 flex items-end gap-4">

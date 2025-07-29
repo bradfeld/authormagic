@@ -15,9 +15,7 @@ export class BookEnrichmentService {
    * This provides perfect image-to-ISBN association
    */
   async enrichBooksWithDetailedData(isbns: string[]): Promise<UIBook[]> {
-    console.log(
-      `🔍 Enriching ${isbns.length} ISBNs with detailed ISBNDB data...`,
-    );
+    // Enriching ISBNs with detailed ISBNDB data
 
     if (isbns.length === 0) {
       return [];
@@ -29,8 +27,6 @@ export class BookEnrichmentService {
     );
 
     const enrichedBooks: UIBook[] = [];
-    let successCount = 0;
-    let failureCount = 0;
 
     detailedResults.forEach((result, index) => {
       const isbn = isbns[index];
@@ -47,27 +43,14 @@ export class BookEnrichmentService {
 
         if (enrichedBook) {
           enrichedBooks.push(enrichedBook);
-          successCount++;
-
-          console.log(`✅ Enriched ISBN ${isbn}:`, {
-            title: enrichedBook.title?.substring(0, 50) + '...',
-            hasImage: !!enrichedBook.image,
-            imageUrl: enrichedBook.image?.substring(0, 50) + '...',
-            source: 'isbndb-detailed',
-          });
+          // Successfully enriched ISBN with detailed data
         }
       } else {
-        failureCount++;
-        console.warn(
-          `❌ Failed to enrich ISBN ${isbn}:`,
-          result.status === 'rejected' ? result.reason : result.value.error,
-        );
+        // Failed to enrich ISBN - continuing with available data
       }
     });
 
-    console.log(
-      `📊 Enrichment Results: ${successCount} success, ${failureCount} failures`,
-    );
+    // Enrichment completed with available data
     return enrichedBooks;
   }
 

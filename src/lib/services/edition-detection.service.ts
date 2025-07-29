@@ -1022,10 +1022,8 @@ export class EditionDetectionService {
 
     // Step 1: Check edition metadata first (from ISBNDB edition field)
     if (book.edition || book.content_version) {
-      const editionText = (
-        book.edition ||
-        book.content_version ||
-        ''
+      const editionText = String(
+        book.edition || book.content_version || '',
       ).toLowerCase();
 
       // Try to extract number from edition metadata

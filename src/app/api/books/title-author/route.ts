@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // Apply final filtering to merged results
     const filterStart = performance.now();
-    const filteredBooks = filterBooksByTitleAuthor(
+    const filteredBooks = filterBooksByTitleAuthorFixed(
       mergedResults.books,
       title.trim(),
       author.trim(),
@@ -250,49 +250,23 @@ export async function GET(request: NextRequest) {
         book => !book.image && book.isbn,
       );
 
+      // Queue secondary books for background enhancement
       if (secondaryBooks.length > 0) {
-        // Queue secondary books for background enhancement
-        await ImageEnhancementQueueService.enqueueBooks(
-          secondaryBooks,
-          { title: title.trim(), author: author?.trim() },
-          `search-${Date.now()}`, // Simple parent search ID
-        );
-
-        // devLog( // Removed devLog
-        //   `📤 QUEUE: Added ${queueResult.queued} secondary books to enhancement queue (${queueResult.skipped} skipped, ${queueResult.errors.length} errors)`,
-        // );
+        await ImageEnhancementQueueService.enqueueBooks(secondaryBooks, {
+          title,
+          author,
+        });
       }
 
-      // Update finalBooks with any enhanced images that were applied
+      // Update finalBooks with enhanced images
       finalBooks = booksWithEnhancedImages;
-
-      // Re-group editions with potentially updated images
-      const updatedEditionGroups =
-        EditionDetectionService.groupByEdition(finalBooks);
-      // Use updated groups for response
-      editionGroups.splice(0, editionGroups.length, ...updatedEditionGroups);
-    } catch {
-      // Continue with original books if queue fails - don't break the main flow
-      // Continue silently if queue fails - don't break the main flow
+      timings.queueIntegration = performance.now() - queueStart;
+    } catch (error) {
+      timings.queueIntegration = performance.now() - queueStart;
+      // eslint-disable-next-line no-console
+      console.error('Image enhancement queue failed:', error);
+      // Continue with original finalBooks (no queue integration)
     }
-    timings.queue = performance.now() - queueStart;
-
-    timings.total = performance.now() - startTime;
-
-    // Log detailed performance breakdown
-    // devLog(`⚡ PERF BREAKDOWN for "${title}": // Removed devLog
-    // 📊 Total Time: ${timings.total.toFixed(2)}ms // Removed devLog
-    // 🔄 API Search: ${timings.apiSearch.toFixed(2)}ms (${((timings.apiSearch / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 📝 Extraction: ${timings.extraction.toFixed(2)}ms (${((timings.extraction / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 🔀 Merging: ${timings.merging.toFixed(2)}ms (${((timings.merging / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 🔍 Filtering: ${timings.filtering.toFixed(2)}ms (${((timings.filtering / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 🔧 Corrections: ${timings.corrections.toFixed(2)}ms (${((timings.corrections / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // �� Pre-Edition: ${timings.preEdition.toFixed(2)}ms (${((timings.preEdition / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 📈 Enhancement: ${timings.enhancement.toFixed(2)}ms (${((timings.enhancement / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // ${enableValidation ? `✅ Validation: ${timings.validation.toFixed(2)}ms (${((timings.validation / timings.total) * 100).toFixed(1)}%)` : '❌ Validation: Disabled'} // Removed devLog
-    // 📚 Edition Detection: ${timings.editionDetection.toFixed(2)}ms (${((timings.editionDetection / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 📤 Queue Integration: ${timings.queue.toFixed(2)}ms (${((timings.queue / timings.total) * 100).toFixed(1)}%) // Removed devLog
-    // 🎯 Final Results: ${editionGroups.length} edition groups, ${finalBooks.length} books`); // Removed devLog
 
     return NextResponse.json({
       success: true,
@@ -431,7 +405,7 @@ async function searchISBNDB(title: string, author?: string) {
   };
 }
 
-// NEW: Enriched search flow using ISBN-based detailed lookups
+// NEW: Enriched search flow using filter-first optimization
 async function handleEnrichedSearchFlow(
   request: NextRequest,
   title: string,
@@ -440,7 +414,7 @@ async function handleEnrichedSearchFlow(
   startTime: number,
 ) {
   try {
-    // Phase 1: ISBN Discovery using existing search APIs
+    // Phase 1: ISBN Discovery using existing search APIs (lightweight)
     const discoveryStart = performance.now();
     const googleBooksService = new GoogleBooksService();
 
@@ -461,53 +435,70 @@ async function handleEnrichedSearchFlow(
 
     timings.isbnDiscovery = performance.now() - discoveryStart;
 
-    // Phase 2: Extract unique ISBNs from all discovered books
-    const extractionStart = performance.now();
+    // Phase 2: FILTER FIRST (NEW OPTIMIZATION) - before expensive enrichment
+    const filterStart = performance.now();
     const allDiscoveredBooks = [...isbndbBooks, ...googleBooksBooks];
-    const uniqueISBNs = extractUniqueISBNs(allDiscoveredBooks);
-    timings.isbnExtraction = performance.now() - extractionStart;
 
-    console.log(
-      `📚 Enriched Flow: Discovered ${uniqueISBNs.length} unique ISBNs from ${allDiscoveredBooks.length} books`,
+    // Phase 2: Filter-first optimization for efficiency
+
+    // Apply lightweight filtering to discovered books BEFORE enrichment
+    const filteredBooks = filterBooksByTitleAuthorFixed(
+      allDiscoveredBooks,
+      title.trim(),
+      author.trim(),
     );
 
-    // Phase 3: Enrich with detailed ISBNDB data (perfect image associations)
+    // Filter-first optimization applied successfully
+
+    timings.filterFirst = performance.now() - filterStart;
+
+    // Phase 3: Extract ISBNs from FILTERED books only (minimal API calls)
+    const extractionStart = performance.now();
+    const uniqueISBNs = extractUniqueISBNs(filteredBooks);
+    timings.isbnExtraction = performance.now() - extractionStart;
+
+    // Enrichment optimization: reduced API calls significantly
+
+    // Phase 4: Enrich ONLY the filtered ISBNs (massive API savings!)
     const enrichmentStart = performance.now();
     const enrichmentService = new BookEnrichmentService();
     const enrichedBooks =
       await enrichmentService.enrichBooksWithDetailedData(uniqueISBNs);
     timings.enrichment = performance.now() - enrichmentStart;
 
-    // Phase 4: Apply filtering and processing (simplified since images are already correct)
+    // Phase 5: Group by edition (much simpler now since we have fewer, relevant books)
     const processingStart = performance.now();
-    const filteredBooks = filterBooksByTitleAuthor(
-      enrichedBooks,
-      title.trim(),
-      author.trim(),
-    );
-
-    // Group by edition (much simpler now since each book has correct images)
-    const editionGroups = EditionDetectionService.groupByEdition(filteredBooks);
+    const editionGroups = EditionDetectionService.groupByEdition(enrichedBooks);
     timings.processing = performance.now() - processingStart;
 
-    // Calculate total time
+    // Calculate total time and efficiency metrics
     const totalTime = performance.now() - startTime;
+    const apiCallSavings = allDiscoveredBooks.length - uniqueISBNs.length;
+    const efficiencyGain = (
+      (apiCallSavings / allDiscoveredBooks.length) *
+      100
+    ).toFixed(1);
 
     return NextResponse.json({
       success: true,
-      editionGroups, // ← Top level to match old format
-      books: filteredBooks, // ← Top level to match old format
-      total: filteredBooks.length,
+      editionGroups,
+      books: enrichedBooks,
+      total: enrichedBooks.length,
       sources: {
         isbndb: isbndbBooks.length,
         googleBooks: googleBooksBooks.length,
       },
       metadata: {
         totalDiscovered: allDiscoveredBooks.length,
+        filteredBeforeEnrichment: filteredBooks.length,
         uniqueISBNs: uniqueISBNs.length,
-        successfullyEnriched: enrichedBooks.length,
-        finalFiltered: filteredBooks.length,
-        method: 'enriched-isbn-lookup',
+        finalEnriched: enrichedBooks.length,
+        method: 'optimized-filter-first',
+        optimization: {
+          apiCallsSaved: apiCallSavings,
+          efficiencyGain: `${efficiencyGain}%`,
+          description: `Filtered ${allDiscoveredBooks.length} → ${filteredBooks.length} before enrichment`,
+        },
       },
       timings: {
         ...timings,
@@ -515,12 +506,11 @@ async function handleEnrichedSearchFlow(
       },
     });
   } catch (error) {
-    console.error('❌ Enriched search flow error:', error);
+    console.error('❌ Optimized search flow error:', error);
     return NextResponse.json(
       {
-        success: false,
-        error: 'Failed to process enriched search request',
-        method: 'enriched-isbn-lookup',
+        error: 'Optimized search failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 },
     );
@@ -549,12 +539,13 @@ async function searchGoogleBooks(
   return result;
 }
 
-// Helper function to filter books by title and author
-function filterBooksByTitleAuthor(
+// FIXED: More lenient filtering to preserve unique ISBNs
+function filterBooksByTitleAuthorFixed(
   books: UIBook[],
   title: string,
   author: string,
 ) {
+  // Optimized filtering for better ISBN coverage
   const normalize = (s: string) =>
     s
       .toLowerCase()
@@ -575,7 +566,7 @@ function filterBooksByTitleAuthor(
     .filter(word => word.length > 2);
 
   return books.filter(book => {
-    // Title matching - more flexible approach
+    // Title matching - MUCH more lenient for books with different ISBNs
     const bookTitle = normalize(removeStopWords(book.title || ''));
 
     let titleMatch = false;
@@ -585,13 +576,13 @@ function filterBooksByTitleAuthor(
       titleMatch = true;
     }
 
-    // Method 2: Word-based matching for longer titles with subtitles
+    // Method 2: Word-based matching with REDUCED threshold for unique ISBNs
     if (!titleMatch && inputTitleWords.length > 0) {
       const bookTitleWords = bookTitle
         .split(/\s+/)
         .filter(word => word.length > 2);
 
-      // All input words should be found in the book title
+      // Count matching words
       const matchingWords = inputTitleWords.filter(inputWord =>
         bookTitleWords.some(
           bookWord =>
@@ -599,10 +590,27 @@ function filterBooksByTitleAuthor(
         ),
       );
 
-      // If most input words match (allow for some flexibility)
+      // FIXED: Lower threshold from 80% to 50% for better coverage
       const matchRatio = matchingWords.length / inputTitleWords.length;
-      if (matchRatio >= 0.8) {
-        // 80% of words must match
+      if (matchRatio >= 0.5) {
+        titleMatch = true;
+      }
+    }
+
+    // Method 3: NEW - Core title matching (handles "New Builders" vs "The New Builders")
+    if (!titleMatch) {
+      // Extract core words from both titles
+      const coreInputWords = inputTitle.split(/\s+/).filter(w => w.length > 3);
+      const coreBookWords = bookTitle.split(/\s+/).filter(w => w.length > 3);
+
+      // If core words overlap significantly, consider it a match
+      const coreMatches = coreInputWords.filter(word =>
+        coreBookWords.some(
+          bookWord => bookWord.includes(word) || word.includes(bookWord),
+        ),
+      );
+
+      if (coreMatches.length >= Math.min(2, coreInputWords.length)) {
         titleMatch = true;
       }
     }
@@ -620,12 +628,17 @@ function filterBooksByTitleAuthor(
       !authorMatch &&
       (book.authors || []).some((a: string) => {
         const normA = normalize(a);
-        // Known co-author combinations for this project
+        // Known co-author combinations for this project + general patterns
         return (
           (inputAuthor.includes('brad feld') &&
             (normA.includes('sean wise') || normA.includes('amy batchelor'))) ||
           (inputAuthor.includes('sean wise') && normA.includes('brad feld')) ||
-          (inputAuthor.includes('amy batchelor') && normA.includes('brad feld'))
+          (inputAuthor.includes('amy batchelor') &&
+            normA.includes('brad feld')) ||
+          (inputAuthor.includes('seth levine') &&
+            normA.includes('elizabeth macbride')) ||
+          (inputAuthor.includes('elizabeth macbride') &&
+            normA.includes('seth levine'))
         );
       });
 
