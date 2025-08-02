@@ -964,16 +964,51 @@ export class EditionDetectionService {
         }
       }
 
-      // If audiobook couldn't be grouped by date, treat it as regular unmapped book
+      // If audiobook couldn't be grouped by date, try fallback grouping for iTunes audiobooks
       if (!wasGrouped) {
-        nonAudiobooks.push(audiobookData);
+        // Special handling for iTunes audiobooks - group with first available edition
+        // since iTunes audiobooks are likely to be the same content in audio format
+        if (audiobookData.book.source === 'itunes' && editionMap.size > 0) {
+          // Add to the first edition (most likely to be the primary edition)
+          const firstEdition = editionMap.keys().next().value;
+          if (firstEdition !== undefined) {
+            editionMap.get(firstEdition)!.push(audiobookData);
+            wasGrouped = true;
+          }
+        }
+
+        // If still not grouped, treat as regular unmapped book
+        if (!wasGrouped) {
+          nonAudiobooks.push(audiobookData);
+        }
       }
     }
 
     // Step 4: Create authoritative edition timeline using binding hierarchy
     const editionTimeline = this.createEditionTimeline(editionMap);
 
-    // Step 5: Map remaining unmapped books to editions based on publication date ranges
+    // Step 5: Special handling for iTunes audiobooks that might still be unmapped
+    // Group any remaining iTunes audiobooks with the first available edition
+    const itunesAudiobooks = nonAudiobooks.filter(
+      bookData => bookData.book.source === 'itunes',
+    );
+
+    for (const itunesBook of itunesAudiobooks) {
+      if (editionMap.size > 0) {
+        const firstEdition = editionMap.keys().next().value;
+        if (firstEdition !== undefined) {
+          editionMap.get(firstEdition)!.push(itunesBook);
+
+          // Remove from nonAudiobooks
+          const index = nonAudiobooks.indexOf(itunesBook);
+          if (index > -1) {
+            nonAudiobooks.splice(index, 1);
+          }
+        }
+      }
+    }
+
+    // Step 6: Map remaining unmapped books to editions based on publication date ranges
     // ONLY if they have very similar titles and close publication dates
     this.mapBooksByDateRangeConservative(
       nonAudiobooks,
@@ -981,7 +1016,7 @@ export class EditionDetectionService {
       editionMap,
     );
 
-    // Step 5: Convert to EditionGroup format
+    // Step 7: Convert to EditionGroup format
     const editionGroups: EditionGroup[] = [];
 
     for (const [editionNumber, bookDataList] of editionMap.entries()) {
@@ -996,6 +1031,29 @@ export class EditionDetectionService {
         ),
         publication_year: authoritativeBook?.publicationYear,
         books: books,
+      });
+    }
+
+    // Step 8: Final fallback for iTunes audiobooks that still aren't grouped
+    // This ensures iTunes audiobooks always get included somewhere
+    const allGroupedBooks = new Set(
+      editionGroups.flatMap(group => group.books.map(book => book.id)),
+    );
+
+    const ungroupedItunesBooks = books.filter(
+      book => book.source === 'itunes' && !allGroupedBooks.has(book.id),
+    );
+
+    if (ungroupedItunesBooks.length > 0 && editionGroups.length > 0) {
+      // Add ungrouped iTunes books to the first edition group
+      editionGroups[0].books.push(...ungroupedItunesBooks);
+    } else if (ungroupedItunesBooks.length > 0 && editionGroups.length === 0) {
+      // If no edition groups exist, create one for the iTunes books
+      editionGroups.push({
+        edition_number: 1,
+        edition_type: undefined,
+        publication_year: undefined,
+        books: ungroupedItunesBooks,
       });
     }
 
