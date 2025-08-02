@@ -123,7 +123,12 @@ export function convertITunesToUIBook(item: iTunesItem): UIBook {
     id: item.collectionId?.toString() || `itunes-${Date.now()}`,
     title: item.collectionName || item.trackName || '',
     subtitle: undefined, // iTunes doesn't separate subtitle
-    authors: item.artistName ? [item.artistName] : [],
+    authors: item.artistName
+      ? item.artistName
+          .split(/\s*[&,]\s*|\s+and\s+/i) // Split on &, comma, or "and"
+          .map(author => author.trim())
+          .filter(author => author.length > 0)
+      : [],
     publisher: undefined, // iTunes doesn't provide publisher in search results
     published_date: item.releaseDate || undefined,
     isbn: undefined, // iTunes Search API doesn't return ISBN for audiobooks

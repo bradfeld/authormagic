@@ -923,7 +923,10 @@ export class EditionDetectionService {
         bookData.book.binding || bookData.book.print_type,
       );
 
-      if (isAudiobook) {
+      // Special handling for iTunes audiobooks - always treat as audiobooks
+      const isItunesAudiobook = bookData.book.source === 'itunes';
+
+      if (isAudiobook || isItunesAudiobook) {
         audiobooks.push(bookData);
 
         // Debug logging removed
@@ -975,6 +978,15 @@ export class EditionDetectionService {
             editionMap.get(firstEdition)!.push(audiobookData);
             wasGrouped = true;
           }
+        }
+
+        // AGGRESSIVE: If iTunes audiobook still not grouped, create Edition 1 for it
+        if (!wasGrouped && audiobookData.book.source === 'itunes') {
+          if (!editionMap.has(1)) {
+            editionMap.set(1, []);
+          }
+          editionMap.get(1)!.push(audiobookData);
+          wasGrouped = true;
         }
 
         // If still not grouped, treat as regular unmapped book
