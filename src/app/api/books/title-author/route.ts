@@ -6,6 +6,7 @@ import { EditionDetectionService } from '@/lib/services/edition-detection.servic
 import { GoogleBooksService } from '@/lib/services/google-books.service';
 import { ImageEnhancementQueueService } from '@/lib/services/image-enhancement-queue.service';
 import { isbnDbService } from '@/lib/services/isbn-db.service';
+import { itunesSearchService } from '@/lib/services/itunes-search.service';
 import { SmartEnhancementService } from '@/lib/services/smart-enhancement.service';
 import { ISBNDBBookResponse } from '@/lib/types/api';
 import { convertISBNDBToUIBook, UIBook } from '@/lib/types/ui-book';
@@ -418,10 +419,12 @@ async function handleEnrichedSearchFlow(
     const discoveryStart = performance.now();
     const googleBooksService = new GoogleBooksService();
 
-    const [isbndbResult, googleBooksResult] = await Promise.allSettled([
-      searchISBNDB(title.trim(), author.trim()),
-      searchGoogleBooks(googleBooksService, title.trim(), author.trim()),
-    ]);
+    const [isbndbResult, googleBooksResult, itunesResult] =
+      await Promise.allSettled([
+        searchISBNDB(title.trim(), author.trim()),
+        searchGoogleBooks(googleBooksService, title.trim(), author.trim()),
+        searchITunes(title.trim(), author.trim()),
+      ]);
 
     const isbndbBooks =
       isbndbResult.status === 'fulfilled' && isbndbResult.value.success
@@ -432,12 +435,20 @@ async function handleEnrichedSearchFlow(
       googleBooksResult.value.success
         ? googleBooksResult.value.data || []
         : [];
+    const itunesBooks =
+      itunesResult.status === 'fulfilled' && itunesResult.value.success
+        ? itunesResult.value.data || []
+        : [];
 
     timings.isbnDiscovery = performance.now() - discoveryStart;
 
     // Phase 2: FILTER FIRST (NEW OPTIMIZATION) - before expensive enrichment
     const filterStart = performance.now();
-    const allDiscoveredBooks = [...isbndbBooks, ...googleBooksBooks];
+    const allDiscoveredBooks = [
+      ...isbndbBooks,
+      ...googleBooksBooks,
+      ...itunesBooks,
+    ];
 
     // Phase 2: Filter-first optimization for efficiency
 
@@ -487,6 +498,7 @@ async function handleEnrichedSearchFlow(
       sources: {
         isbndb: isbndbBooks.length,
         googleBooks: googleBooksBooks.length,
+        itunes: itunesBooks.length,
       },
       metadata: {
         totalDiscovered: allDiscoveredBooks.length,
@@ -506,7 +518,6 @@ async function handleEnrichedSearchFlow(
       },
     });
   } catch (error) {
-    console.error('❌ Optimized search flow error:', error);
     return NextResponse.json(
       {
         error: 'Optimized search failed',
@@ -537,6 +548,29 @@ async function searchGoogleBooks(
   const result = await service.searchBooks(title, author);
 
   return result;
+}
+
+// Helper function for iTunes Search
+async function searchITunes(title: string, author: string) {
+  if (!itunesSearchService.isAvailable()) {
+    return {
+      success: false,
+      data: [],
+      error: 'iTunes Search API not available',
+    };
+  }
+
+  try {
+    const result = await itunesSearchService.searchAudiobooks(title, author);
+    return result;
+  } catch (error) {
+    // Return empty result on error to not break the search flow
+    return {
+      success: true,
+      data: [],
+      error: error instanceof Error ? error.message : 'Unknown iTunes error',
+    };
+  }
 }
 
 // FIXED: More lenient filtering to preserve unique ISBNs

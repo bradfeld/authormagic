@@ -371,3 +371,85 @@ export interface BulkImportResult {
   updated_books: string[];
   created_authors: string[];
 }
+
+// iTunes Search API Types
+export interface iTunesSearchResponse {
+  resultCount: number;
+  results: iTunesItem[];
+}
+
+export interface iTunesItem {
+  wrapperType: string; // 'audiobook', 'track', 'collection', etc.
+  kind?: string; // 'audiobook' for audiobooks
+  artistId?: number;
+  collectionId?: number;
+  trackId?: number;
+  amgArtistId?: number;
+  artistName: string;
+  collectionName: string;
+  trackName?: string;
+  collectionCensoredName: string;
+  trackCensoredName?: string;
+  artistViewUrl?: string;
+  collectionViewUrl: string;
+  trackViewUrl?: string;
+  previewUrl?: string; // 30-second audio preview
+  artworkUrl30?: string;
+  artworkUrl60?: string;
+  artworkUrl100?: string;
+  collectionPrice?: number;
+  trackPrice?: number;
+  releaseDate?: string;
+  collectionExplicitness?: string; // 'cleaned', 'explicit', 'notExplicit'
+  trackExplicitness?: string;
+  discCount?: number;
+  discNumber?: number;
+  trackCount?: number;
+  trackNumber?: number;
+  trackTimeMillis?: number;
+  country: string;
+  currency: string;
+  primaryGenreName?: string;
+  copyright?: string;
+  description?: string;
+  longDescription?: string;
+  // Audiobook specific fields
+  isStreamable?: boolean;
+  collectionHdPrice?: number;
+  trackHdPrice?: number;
+}
+
+export interface iTunesSearchParams {
+  term: string; // Search term
+  country?: string; // Two-letter country code (default: 'US')
+  media?:
+    | 'movie'
+    | 'podcast'
+    | 'music'
+    | 'musicVideo'
+    | 'audiobook'
+    | 'shortFilm'
+    | 'tvShow'
+    | 'software'
+    | 'ebook'
+    | 'all';
+  entity?: string; // Type of results (e.g., 'audiobook', 'musicTrack', etc.)
+  attribute?: string; // Attribute to search (e.g., 'titleTerm', 'authorTerm')
+  callback?: string; // JSONP callback (for cross-site requests)
+  limit?: number; // Number of results (1-200, default: 50)
+  lang?: 'en_us' | 'ja_jp'; // Language
+  version?: 1 | 2; // Search result key version
+  explicit?: 'Yes' | 'No'; // Include explicit content
+}
+
+export interface iTunesLookupParams {
+  id?: string; // iTunes ID
+  amgArtistId?: string; // All Music Guide artist ID
+  amgAlbumId?: string; // All Music Guide album ID
+  amgVideoId?: string; // All Music Guide video ID
+  upc?: string; // UPC code
+  isbn?: string; // ISBN (for books)
+  entity?: string; // Type of results to return
+  limit?: number; // Number of results
+  sort?: 'recent'; // Sort order
+}

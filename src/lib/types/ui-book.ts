@@ -48,6 +48,12 @@ export interface UIBook {
   title_long?: string;
   related_isbns?: string[];
   subjects?: string[];
+
+  // iTunes-specific fields for audiobooks
+  preview_url?: string; // 30-second audio preview URL
+  view_url?: string; // iTunes store page URL
+  artist_view_url?: string; // Author's iTunes page URL
+  duration_minutes?: number; // Audiobook duration in minutes
   reviews?: Record<string, unknown>[];
   prices?: Record<string, unknown>[];
   other_isbns?: string[];
@@ -62,12 +68,13 @@ export interface UIBook {
   year?: number; // Publication year as number
 
   // Source tracking
-  source?: 'isbn-db' | 'google-books' | 'manual';
+  source?: 'isbn-db' | 'google-books' | 'itunes' | 'manual';
   googleBooksId?: string; // Google Books volume ID
+  itunesId?: string; // iTunes collection ID
 }
 
 // Conversion utilities
-import { ISBNDBBookResponse } from './api';
+import { ISBNDBBookResponse, iTunesItem } from './api';
 // Legacy imports and functions removed - Book and CompleteBook no longer used
 
 export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
@@ -97,6 +104,65 @@ export function convertISBNDBToUIBook(book: ISBNDBBookResponse): UIBook {
     // ISBNDB doesn't provide images, but we include the fields for consistency
     image: undefined,
     thumbnail: undefined,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function convertITunesToUIBook(item: iTunesItem): UIBook {
+  // Convert iTunes format to our binding type
+  const getBindingType = (item: iTunesItem): string => {
+    if (item.wrapperType === 'audiobook' || item.kind === 'audiobook') {
+      return 'Audiobook';
+    }
+    // Default to audiobook since we're primarily using this for audiobook search
+    return 'Audiobook';
+  };
+
+  return {
+    id: item.collectionId?.toString() || `itunes-${Date.now()}`,
+    title: item.collectionName || item.trackName || '',
+    subtitle: undefined, // iTunes doesn't separate subtitle
+    authors: item.artistName ? [item.artistName] : [],
+    publisher: undefined, // iTunes doesn't provide publisher in search results
+    published_date: item.releaseDate || undefined,
+    isbn: undefined, // iTunes Search API doesn't return ISBN for audiobooks
+    categories: item.primaryGenreName ? [item.primaryGenreName] : [],
+    description: item.description || item.longDescription || undefined,
+    page_count: undefined, // Not applicable for audiobooks
+    language: undefined, // Would need to infer from country
+    data_source: 'itunes',
+    external_id:
+      item.collectionId?.toString() || item.trackId?.toString() || undefined,
+
+    // Price information
+    price: item.collectionPrice || item.trackPrice || undefined,
+    currency: item.currency || undefined,
+
+    // iTunes-specific metadata
+    preview_url: item.previewUrl || undefined,
+    view_url: item.collectionViewUrl || item.trackViewUrl || undefined,
+    artist_view_url: item.artistViewUrl || undefined,
+
+    // Artwork/images
+    image: item.artworkUrl100 || item.artworkUrl60 || undefined,
+    thumbnail: item.artworkUrl60 || item.artworkUrl30 || undefined,
+
+    // Binding and edition info
+    binding: getBindingType(item),
+    edition: undefined, // iTunes doesn't provide edition info
+    content_version: undefined,
+
+    // Duration for audiobooks
+    duration_minutes: item.trackTimeMillis
+      ? Math.round(item.trackTimeMillis / 60000)
+      : undefined,
+
+    // Source tracking
+    source: 'itunes',
+    itunesId:
+      item.collectionId?.toString() || item.trackId?.toString() || undefined,
+
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

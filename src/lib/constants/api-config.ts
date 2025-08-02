@@ -43,6 +43,24 @@ export const API_CONFIG = {
     TIMEOUT: 3000, // Reduced from 8000ms (3 seconds)
     TIMEOUT_FALLBACK: 6000, // Longer timeout for fallback operations
   },
+
+  ITUNES_SEARCH: {
+    BASE_URL: 'https://itunes.apple.com',
+    ENDPOINTS: {
+      SEARCH: '/search',
+      LOOKUP: '/lookup',
+    },
+    RATE_LIMIT: {
+      requestsPerMinute: 20, // Apple's documented limit
+      requestsPerDay: 28800, // 20 per minute * 60 * 24
+      burstLimit: 5,
+    },
+    CACHE_TTL: 60 * 60 * 6, // 6 hours (audiobooks don't change frequently)
+    RETRY_ATTEMPTS: 1, // Fast failure for third-party API
+    RETRY_DELAY: 400,
+    TIMEOUT: 3500, // 3.5 seconds
+    TIMEOUT_FALLBACK: 7000,
+  },
 } as const;
 
 // Common HTTP status codes
@@ -102,6 +120,8 @@ export const CACHE_KEYS = {
   ISBN_DB_SEARCH: 'isbn_db:search:',
   GOOGLE_BOOKS_VOLUME: 'google_books:volume:',
   GOOGLE_BOOKS_SEARCH: 'google_books:search:',
+  ITUNES_SEARCH: 'itunes:search:',
+  ITUNES_LOOKUP: 'itunes:lookup:',
   BOOK_HIERARCHY: 'book_hierarchy:',
   AUTHOR_BOOKS: 'author_books:',
 } as const;
