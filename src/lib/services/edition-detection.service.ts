@@ -24,7 +24,20 @@ export class EditionDetectionService {
     const cleanBooks = this.filterAndCleanBooks(books);
 
     // Step 2: NORMALIZE AND CONSOLIDATE messy data (respecting unique ISBNs)
-    const normalizedBooks = this.normalizeAndConsolidateBooks(cleanBooks);
+    // CRITICAL FIX: Skip normalization for iTunes books to preserve them through the pipeline
+    // iTunes books were getting filtered out or consolidated during normalization
+    const itunesBooks = cleanBooks.filter(b => b.source === 'itunes');
+    const nonItunesBooks = cleanBooks.filter(b => b.source !== 'itunes');
+    const normalizedNonItunes =
+      this.normalizeAndConsolidateBooks(nonItunesBooks);
+
+    // Apply basic binding normalization to iTunes books while preserving them
+    const normalizedItunesBooks = itunesBooks.map(book => ({
+      ...book,
+      binding: this.normalizeBindingType(book.binding || book.print_type),
+    }));
+
+    const normalizedBooks = [...normalizedNonItunes, ...normalizedItunesBooks];
 
     // Step 3: Normalize and group books by title similarity
     const titleGroups = this.groupByNormalizedTitle(normalizedBooks);
@@ -36,6 +49,8 @@ export class EditionDetectionService {
       const groups = this.createEditionGroupsByExplicitNumbers(titleBooks);
       editionGroups.push(...groups);
     }
+
+    // iTunes audiobooks should now be properly grouped with the skip-normalization fix above
 
     // Step 7: Sort edition groups by edition number (newest first)
     const sortedGroups = editionGroups.sort((a, b) => {
@@ -791,13 +806,19 @@ export class EditionDetectionService {
         );
 
         // Enhanced grouping criteria with multiple algorithmic approaches
+        // Special handling for iTunes audiobooks - more lenient grouping
+        const isItunesBook = book.source === 'itunes';
+
         const shouldGroup =
           similarity > 0.7 || // High similarity threshold (more lenient)
           (isSubset && similarity > 0.4) || // Subset with minimal similarity
           (hasSameCore && publisherConsistent && similarity > 0.3) || // Core title match with publisher check
           (similarity > 0.5 && publisherConsistent) || // Good similarity with publisher validation
           (hasSameCore && similarity > 0.4) || // Core title match with reasonable similarity (fallback)
-          isProblematicTitle; // Pattern-based fallback for malformed titles
+          isProblematicTitle || // Pattern-based fallback for malformed titles
+          // iTunes special case: if titles are very similar (>0.8) or exact normalized match, group them
+          (isItunesBook && similarity > 0.8) ||
+          (isItunesBook && normalizedTitle === existingTitle);
 
         if (shouldGroup) {
           existingBooks.push(book);
@@ -928,32 +949,40 @@ export class EditionDetectionService {
 
       if (isAudiobook || isItunesAudiobook) {
         audiobooks.push(bookData);
-
-        // Debug logging removed
       } else {
         nonAudiobooks.push(bookData);
-
-        // Debug logging removed
       }
     }
 
-    // Try to group audiobooks with existing print editions using simple date matching
+    // Try to group audiobooks with existing print editions using enhanced date matching
     for (const audiobookData of audiobooks) {
       let wasGrouped = false;
 
+      // Enhanced date-based matching with multiple fallbacks
       if (audiobookData.publicationYear) {
         // Find the closest edition by publication year (within 5 years)
         let closestEdition: number | null = null;
         let closestYearDiff = Infinity;
 
         for (const [editionNum, bookList] of editionMap.entries()) {
-          if (bookList.length > 0 && bookList[0].publicationYear) {
-            const yearDiff = Math.abs(
-              audiobookData.publicationYear - bookList[0].publicationYear,
-            );
-            if (yearDiff <= 5 && yearDiff < closestYearDiff) {
-              closestEdition = editionNum;
-              closestYearDiff = yearDiff;
+          if (bookList.length > 0) {
+            // Try to find ANY book in the edition with a publication year
+            let editionYear: number | undefined;
+            for (const bookInEdition of bookList) {
+              if (bookInEdition.publicationYear) {
+                editionYear = bookInEdition.publicationYear;
+                break;
+              }
+            }
+
+            if (editionYear) {
+              const yearDiff = Math.abs(
+                audiobookData.publicationYear - editionYear,
+              );
+              if (yearDiff <= 5 && yearDiff < closestYearDiff) {
+                closestEdition = editionNum;
+                closestYearDiff = yearDiff;
+              }
             }
           }
         }
@@ -962,61 +991,56 @@ export class EditionDetectionService {
         if (closestEdition !== null) {
           editionMap.get(closestEdition)!.push(audiobookData);
           wasGrouped = true;
-
-          // Debug logging removed
         }
       }
 
-      // If audiobook couldn't be grouped by date, try fallback grouping for iTunes audiobooks
-      if (!wasGrouped) {
-        // Special handling for iTunes audiobooks - group with first available edition
-        // since iTunes audiobooks are likely to be the same content in audio format
-        if (audiobookData.book.source === 'itunes' && editionMap.size > 0) {
-          // Add to the first edition (most likely to be the primary edition)
-          const firstEdition = editionMap.keys().next().value;
-          if (firstEdition !== undefined) {
-            editionMap.get(firstEdition)!.push(audiobookData);
-            wasGrouped = true;
-          }
-        }
-
-        // AGGRESSIVE: If iTunes audiobook still not grouped, create Edition 1 for it
-        if (!wasGrouped && audiobookData.book.source === 'itunes') {
-          if (!editionMap.has(1)) {
-            editionMap.set(1, []);
-          }
+      // AGGRESSIVE iTunes fallback: If no date match, force group iTunes audiobooks
+      if (!wasGrouped && audiobookData.book.source === 'itunes') {
+        // Strategy 1: Group with Edition 1 if it exists and has books
+        if (editionMap.has(1) && editionMap.get(1)!.length > 0) {
           editionMap.get(1)!.push(audiobookData);
           wasGrouped = true;
         }
-
-        // If still not grouped, treat as regular unmapped book
-        if (!wasGrouped) {
-          nonAudiobooks.push(audiobookData);
+        // Strategy 2: Group with the first available edition
+        else if (editionMap.size > 0) {
+          const firstEdition = Array.from(editionMap.keys())[0];
+          editionMap.get(firstEdition)!.push(audiobookData);
+          wasGrouped = true;
         }
+        // Strategy 3: Create Edition 1 specifically for iTunes audiobook
+        else {
+          editionMap.set(1, [audiobookData]);
+          wasGrouped = true;
+        }
+      }
+
+      // If still not grouped, treat as regular unmapped book
+      if (!wasGrouped) {
+        nonAudiobooks.push(audiobookData);
       }
     }
 
     // Step 4: Create authoritative edition timeline using binding hierarchy
     const editionTimeline = this.createEditionTimeline(editionMap);
 
-    // Step 5: Special handling for iTunes audiobooks that might still be unmapped
-    // Group any remaining iTunes audiobooks with the first available edition
-    const itunesAudiobooks = nonAudiobooks.filter(
+    // Step 5: Final safety check for any remaining iTunes audiobooks
+    // This should be rare since we have aggressive grouping above
+    const remainingItunesBooks = nonAudiobooks.filter(
       bookData => bookData.book.source === 'itunes',
     );
 
-    for (const itunesBook of itunesAudiobooks) {
-      if (editionMap.size > 0) {
-        const firstEdition = editionMap.keys().next().value;
-        if (firstEdition !== undefined) {
-          editionMap.get(firstEdition)!.push(itunesBook);
+    for (const itunesBook of remainingItunesBooks) {
+      // Force group any remaining iTunes books that somehow slipped through
+      if (editionMap.has(1)) {
+        editionMap.get(1)!.push(itunesBook);
+      } else {
+        editionMap.set(1, [itunesBook]);
+      }
 
-          // Remove from nonAudiobooks
-          const index = nonAudiobooks.indexOf(itunesBook);
-          if (index > -1) {
-            nonAudiobooks.splice(index, 1);
-          }
-        }
+      // Remove from nonAudiobooks
+      const index = nonAudiobooks.indexOf(itunesBook);
+      if (index > -1) {
+        nonAudiobooks.splice(index, 1);
       }
     }
 
@@ -1046,28 +1070,7 @@ export class EditionDetectionService {
       });
     }
 
-    // Step 8: Final fallback for iTunes audiobooks that still aren't grouped
-    // This ensures iTunes audiobooks always get included somewhere
-    const allGroupedBooks = new Set(
-      editionGroups.flatMap(group => group.books.map(book => book.id)),
-    );
-
-    const ungroupedItunesBooks = books.filter(
-      book => book.source === 'itunes' && !allGroupedBooks.has(book.id),
-    );
-
-    if (ungroupedItunesBooks.length > 0 && editionGroups.length > 0) {
-      // Add ungrouped iTunes books to the first edition group
-      editionGroups[0].books.push(...ungroupedItunesBooks);
-    } else if (ungroupedItunesBooks.length > 0 && editionGroups.length === 0) {
-      // If no edition groups exist, create one for the iTunes books
-      editionGroups.push({
-        edition_number: 1,
-        edition_type: undefined,
-        publication_year: undefined,
-        books: ungroupedItunesBooks,
-      });
-    }
+    // iTunes audiobooks should now be properly grouped through the enhanced logic above
 
     return editionGroups;
   }
