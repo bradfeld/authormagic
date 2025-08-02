@@ -43,12 +43,14 @@ export async function GET(request: NextRequest) {
     // Initialize Google Books service
     const googleBooksService = new GoogleBooksService();
 
-    // Search both APIs in parallel for better coverage
+    // Search all three APIs in parallel for better coverage
     const apiSearchStart = performance.now();
-    const [isbndbResult, googleBooksResult] = await Promise.allSettled([
-      searchISBNDB(title.trim(), author.trim()),
-      searchGoogleBooks(googleBooksService, title.trim(), author.trim()),
-    ]);
+    const [isbndbResult, googleBooksResult, itunesResult] =
+      await Promise.allSettled([
+        searchISBNDB(title.trim(), author.trim()),
+        searchGoogleBooks(googleBooksService, title.trim(), author.trim()),
+        searchITunes(title.trim(), author.trim()),
+      ]);
     timings.apiSearch = performance.now() - apiSearchStart;
 
     // Extract successful results
@@ -63,20 +65,36 @@ export async function GET(request: NextRequest) {
       googleBooksResult.value.success
         ? googleBooksResult.value.data || []
         : [];
+
+    const itunesBooks =
+      itunesResult.status === 'fulfilled' && itunesResult.value.success
+        ? itunesResult.value.data || []
+        : [];
     timings.extraction = performance.now() - extractStart;
 
-    // Merge and deduplicate results
+    // Merge and deduplicate results (including iTunes)
     const mergeStart = performance.now();
+    // First merge ISBNDB and Google Books using the existing service
     const mergedResults = BookDataMergerService.mergeBookResults(
       isbndbBooks,
       googleBooksBooks,
     );
+
+    // Then manually add iTunes books (they're already enriched and shouldn't be deduplicated)
+    const finalMergedResults = {
+      ...mergedResults,
+      books: [...mergedResults.books, ...itunesBooks],
+      sources: {
+        ...mergedResults.sources,
+        itunes: itunesBooks.length,
+      },
+    };
     timings.merging = performance.now() - mergeStart;
 
     // Apply final filtering to merged results
     const filterStart = performance.now();
     const filteredBooks = filterBooksByTitleAuthorFixed(
-      mergedResults.books,
+      finalMergedResults.books,
       title.trim(),
       author.trim(),
     );
@@ -269,11 +287,14 @@ export async function GET(request: NextRequest) {
       // Continue with original finalBooks (no queue integration)
     }
 
+    // Calculate total time
+    timings.total = performance.now() - startTime;
+
     return NextResponse.json({
       success: true,
       editionGroups, // Return grouped data as primary structure
       books: finalBooks, // Keep flat array for backward compatibility (now potentially validated)
-      sources: mergedResults.sources, // Include source statistics
+      sources: finalMergedResults.sources, // Include source statistics
       total: finalBooks.length,
       validation: enableValidation
         ? {
@@ -302,7 +323,7 @@ export async function GET(request: NextRequest) {
           ? parseFloat(timings.validation.toFixed(2))
           : 0,
         editionDetectionMs: parseFloat(timings.editionDetection.toFixed(2)),
-        queueMs: parseFloat(timings.queue.toFixed(2)),
+        queueMs: parseFloat(timings.queueIntegration.toFixed(2)),
       },
     });
   } catch {
@@ -463,18 +484,29 @@ async function handleEnrichedSearchFlow(
 
     timings.filterFirst = performance.now() - filterStart;
 
-    // Phase 3: Extract ISBNs from FILTERED books only (minimal API calls)
-    const extractionStart = performance.now();
-    const uniqueISBNs = extractUniqueISBNs(filteredBooks);
-    timings.isbnExtraction = performance.now() - extractionStart;
+    // Phase 3: Separate pre-enriched books (iTunes) from books needing enrichment
+    const separationStart = performance.now();
+    const preEnrichedBooks = filteredBooks.filter(
+      book => book.source === 'itunes',
+    );
+    const booksNeedingEnrichment = filteredBooks.filter(
+      book => book.source !== 'itunes',
+    );
+
+    // Extract ISBNs from books that need enrichment only
+    const uniqueISBNs = extractUniqueISBNs(booksNeedingEnrichment);
+    timings.isbnExtraction = performance.now() - separationStart;
 
     // Enrichment optimization: reduced API calls significantly
 
     // Phase 4: Enrich ONLY the filtered ISBNs (massive API savings!)
     const enrichmentStart = performance.now();
     const enrichmentService = new BookEnrichmentService();
-    const enrichedBooks =
+    const enrichedBooksFromISBN =
       await enrichmentService.enrichBooksWithDetailedData(uniqueISBNs);
+
+    // Combine enriched books with pre-enriched books (iTunes audiobooks)
+    const enrichedBooks = [...enrichedBooksFromISBN, ...preEnrichedBooks];
     timings.enrichment = performance.now() - enrichmentStart;
 
     // Phase 5: Group by edition (much simpler now since we have fewer, relevant books)
@@ -484,11 +516,11 @@ async function handleEnrichedSearchFlow(
 
     // Calculate total time and efficiency metrics
     const totalTime = performance.now() - startTime;
-    const apiCallSavings = allDiscoveredBooks.length - uniqueISBNs.length;
-    const efficiencyGain = (
-      (apiCallSavings / allDiscoveredBooks.length) *
-      100
-    ).toFixed(1);
+    const apiCallSavings = booksNeedingEnrichment.length - uniqueISBNs.length;
+    const efficiencyGain =
+      booksNeedingEnrichment.length > 0
+        ? ((apiCallSavings / booksNeedingEnrichment.length) * 100).toFixed(1)
+        : '0.0';
 
     return NextResponse.json({
       success: true,
@@ -503,13 +535,15 @@ async function handleEnrichedSearchFlow(
       metadata: {
         totalDiscovered: allDiscoveredBooks.length,
         filteredBeforeEnrichment: filteredBooks.length,
+        preEnrichedBooks: preEnrichedBooks.length,
+        booksNeedingEnrichment: booksNeedingEnrichment.length,
         uniqueISBNs: uniqueISBNs.length,
         finalEnriched: enrichedBooks.length,
-        method: 'optimized-filter-first',
+        method: 'optimized-filter-first-with-pre-enriched',
         optimization: {
           apiCallsSaved: apiCallSavings,
           efficiencyGain: `${efficiencyGain}%`,
-          description: `Filtered ${allDiscoveredBooks.length} → ${filteredBooks.length} before enrichment`,
+          description: `Filtered ${allDiscoveredBooks.length} → ${filteredBooks.length} (${preEnrichedBooks.length} pre-enriched, ${booksNeedingEnrichment.length} need enrichment → ${uniqueISBNs.length} ISBNs)`,
         },
       },
       timings: {
