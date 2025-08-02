@@ -512,6 +512,16 @@ async function handleEnrichedSearchFlow(
     // Phase 5: Group by edition (much simpler now since we have fewer, relevant books)
     const processingStart = performance.now();
     const editionGroups = EditionDetectionService.groupByEdition(enrichedBooks);
+
+    // IMPORTANT: Apply binding normalization to the final books for consistent API response
+    // The groupByEdition function normalizes internally but we need normalized books in the response
+    const normalizedEnrichedBooks = enrichedBooks.map(book => ({
+      ...book,
+      binding: EditionDetectionService.normalizeBindingType(
+        book.binding || book.print_type,
+      ),
+    }));
+
     timings.processing = performance.now() - processingStart;
 
     // Calculate total time and efficiency metrics
@@ -525,8 +535,8 @@ async function handleEnrichedSearchFlow(
     return NextResponse.json({
       success: true,
       editionGroups,
-      books: enrichedBooks,
-      total: enrichedBooks.length,
+      books: normalizedEnrichedBooks,
+      total: normalizedEnrichedBooks.length,
       sources: {
         isbndb: isbndbBooks.length,
         googleBooks: googleBooksBooks.length,
@@ -538,7 +548,7 @@ async function handleEnrichedSearchFlow(
         preEnrichedBooks: preEnrichedBooks.length,
         booksNeedingEnrichment: booksNeedingEnrichment.length,
         uniqueISBNs: uniqueISBNs.length,
-        finalEnriched: enrichedBooks.length,
+        finalEnriched: normalizedEnrichedBooks.length,
         method: 'optimized-filter-first-with-pre-enriched',
         optimization: {
           apiCallsSaved: apiCallSavings,

@@ -1662,26 +1662,30 @@ export class EditionDetectionService {
       'trade paperback': 'paperback',
       paper: 'paperback',
 
-      // Digital variations
+      // Digital variations - FIXED: Preserve distinct types
       ebook: 'ebook',
       'e-book': 'ebook',
-      'kindle edition': 'ebook',
-      kindle: 'ebook',
       epub: 'ebook',
       pdf: 'ebook',
+
+      // Kindle (Amazon) - Keep separate from general ebook
+      'kindle edition': 'kindle',
+      kindle: 'kindle',
 
       // Electronic resource - needs context-aware detection
       // NOTE: Don't auto-map "electronic" - let it fall through to contextual detection
 
-      // Audio variations
+      // Audio variations - FIXED: Preserve distinct types
       audiobook: 'audiobook',
       'audio book': 'audiobook',
       'mp3 cd': 'audiobook',
       'audio cd': 'audiobook',
       'compact disc': 'audiobook',
       cd: 'audiobook',
-      audible: 'audiobook',
       unabridged: 'audiobook', // Often indicates audiobook
+
+      // Audible (Amazon) - Keep separate from general audiobook
+      audible: 'audible',
 
       // Special formats
       'board book': 'board book',
